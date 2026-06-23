@@ -470,6 +470,14 @@
           <textarea class="field-input" id="f-desc" placeholder="Descreva o problema ou o serviço…"></textarea>
         </div>
 
+        <div class="field-group">
+          <div class="field-label">📷 Fotos (opcional)</div>
+          <input type="file" id="f-fotos" accept="image/*" multiple
+            style="border:1.5px dashed #cbd5e1;border-radius:10px;padding:10px;font-size:.85rem;background:#f8fafc;cursor:pointer;width:100%"
+            onchange="previewFotosGestor()" />
+          <div id="f-fotos-preview" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px"></div>
+        </div>
+
         <button class="btn-full btn-blue" onclick="addTask()">✅ Adicionar Tarefa</button>
         <button class="btn-full btn-ghost" style="margin-top:8px" onclick="clearForm()">Limpar</button>
       </div>
@@ -764,6 +772,26 @@ function clearForm() {
   document.querySelectorAll('.prio-btn').forEach(b => {
     b.className = 'prio-btn' + (b.dataset.prio === 'media' ? ' active-media' : '');
   });
+  const fi = document.getElementById('f-fotos');
+  if (fi) fi.value = '';
+  const fp = document.getElementById('f-fotos-preview');
+  if (fp) fp.innerHTML = '';
+}
+
+function previewFotosGestor() {
+  const files = Array.from(document.getElementById('f-fotos').files);
+  const prev  = document.getElementById('f-fotos-preview');
+  prev.innerHTML = '';
+  files.forEach(file => {
+    const reader = new FileReader();
+    reader.onload = e => {
+      const img = document.createElement('img');
+      img.src = e.target.result;
+      img.style.cssText = 'width:72px;height:72px;object-fit:cover;border-radius:8px;border:2px solid #e2e8f0';
+      prev.appendChild(img);
+    };
+    reader.readAsDataURL(file);
+  });
 }
 
 async function addTask() {
@@ -777,14 +805,35 @@ async function addTask() {
   if (!tipo) { toast('⚠️ Selecione o tipo de serviço!'); return; }
   if (!data) { toast('⚠️ Informe a data!'); return; }
 
-  const tarefa = {
-    id: uid(), apto, tipo, prio: selectedPrio, resp, data, desc,
-    status: 'pendente', obs: '', dataExec: '', fotos: [], criadoEm: Date.now()
-  };
-  await dbSet('tarefas', tarefa.id, tarefa);
-  toast('✅ Tarefa adicionada!');
-  clearForm();
-  goSec('tarefas');
+  const files = Array.from((document.getElementById('f-fotos') || {}).files || []);
+
+  function salvarTarefa(fotos) {
+    const tarefa = {
+      id: uid(), apto, tipo, prio: selectedPrio, resp, data, desc,
+      status: 'pendente', obs: '', dataExec: '', fotos, criadoEm: Date.now()
+    };
+    dbSet('tarefas', tarefa.id, tarefa).then(() => {
+      toast('✅ Tarefa adicionada!');
+      clearForm();
+      goSec('tarefas');
+    });
+  }
+
+  if (files.length) {
+    toast('⏳ Carregando fotos…');
+    let loaded = 0;
+    const base64s = [];
+    files.forEach((file, i) => {
+      const reader = new FileReader();
+      reader.onload = e => {
+        base64s[i] = e.target.result;
+        if (++loaded === files.length) salvarTarefa(base64s);
+      };
+      reader.readAsDataURL(file);
+    });
+  } else {
+    salvarTarefa([]);
+  }
 }
 
 // ════════════════════════
