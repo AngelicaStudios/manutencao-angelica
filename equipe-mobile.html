@@ -1,0 +1,826 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Manutenção">
+<meta name="theme-color" content="#16a34a">
+<link rel="manifest" href="manifest-equipe.json">
+<link rel="apple-touch-icon" href="icon-equipe-180.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-equipe-192.png">
+<title>Manutenção — Equipe</title>
+<style>
+  :root {
+    --green:   #16a34a;
+    --green-d: #15803d;
+    --blue:    #2563eb;
+    --yellow:  #d97706;
+    --red:     #dc2626;
+    --bg:      #f0f2f5;
+    --card:    #ffffff;
+    --text:    #1e293b;
+    --muted:   #64748b;
+    --border:  #e2e8f0;
+    --radius:  14px;
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+  html, body { height: 100%; }
+
+  body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    overflow-x: hidden;
+  }
+
+  /* ═══════════════════════════
+     TELA DE LOGIN
+  ═══════════════════════════ */
+  #login-screen {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 28px 20px;
+    background: linear-gradient(160deg, #14532d 0%, #16a34a 100%);
+  }
+  .login-logo   { font-size: 4rem; margin-bottom: 8px; }
+  .login-title  { color: #fff; font-size: 1.5rem; font-weight: 800; margin-bottom: 4px; text-align: center; }
+  .login-sub    { color: rgba(255,255,255,.75); font-size: .9rem; margin-bottom: 36px; text-align: center; }
+
+  .login-box {
+    background: #fff;
+    border-radius: 20px;
+    padding: 28px 24px;
+    width: 100%;
+    max-width: 380px;
+    box-shadow: 0 16px 48px rgba(0,0,0,.25);
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    align-items: center;
+    text-align: center;
+  }
+  .login-box h2 { font-size: 1.15rem; font-weight: 700; }
+  .login-box p  { font-size: .85rem; color: var(--muted); line-height: 1.5; }
+
+  .btn-enter {
+    width: 100%;
+    padding: 16px;
+    background: var(--green);
+    color: #fff;
+    border: none;
+    border-radius: 12px;
+    font-size: 1.05rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background .2s;
+    margin-top: 6px;
+  }
+  .btn-enter:active { background: var(--green-d); transform: scale(.98); }
+
+  /* ═══════════════════════════
+     HEADER
+  ═══════════════════════════ */
+  #app { display: none; min-height: 100vh; flex-direction: column; }
+  #app.visible { display: flex; }
+
+  header {
+    background: var(--green);
+    color: #fff;
+    padding: 14px 16px 12px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: 0 2px 8px rgba(0,0,0,.2);
+  }
+  .header-left  h1    { font-size: 1rem; font-weight: 800; }
+  .header-left  span  { font-size: .72rem; opacity: .8; }
+  .logout-btn {
+    background: rgba(255,255,255,.2);
+    border: 1.5px solid rgba(255,255,255,.5);
+    color: #fff;
+    border-radius: 20px;
+    padding: 6px 14px;
+    font-size: .78rem;
+    font-weight: 700;
+    cursor: pointer;
+  }
+
+  /* ═══════════════════════════
+     FILTRO STICKY
+  ═══════════════════════════ */
+  .filter-bar {
+    background: #fff;
+    border-bottom: 1.5px solid var(--border);
+    padding: 10px 14px;
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    position: sticky;
+    top: 57px;
+    z-index: 99;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .filter-bar::-webkit-scrollbar { display: none; }
+
+  .filter-chip {
+    flex-shrink: 0;
+    padding: 6px 14px;
+    border: 1.5px solid var(--border);
+    border-radius: 20px;
+    font-size: .78rem;
+    font-weight: 600;
+    cursor: pointer;
+    background: #fff;
+    color: var(--muted);
+    transition: all .15s;
+    white-space: nowrap;
+  }
+  .filter-chip.active {
+    background: var(--green);
+    color: #fff;
+    border-color: var(--green);
+  }
+
+  .date-filter {
+    flex-shrink: 0;
+    padding: 6px 10px;
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    font-size: .78rem;
+    font-family: inherit;
+    color: var(--text);
+    background: #fff;
+    cursor: pointer;
+  }
+  .date-filter:focus { outline: none; border-color: var(--green); }
+
+  /* ═══════════════════════════
+     CONTADORES
+  ═══════════════════════════ */
+  .counters-bar {
+    display: flex;
+    gap: 0;
+    background: #fff;
+    border-bottom: 1.5px solid var(--border);
+  }
+  .cnt {
+    flex: 1;
+    text-align: center;
+    padding: 10px 4px;
+    border-right: 1px solid var(--border);
+  }
+  .cnt:last-child { border-right: none; }
+  .cnt .num { font-size: 1.4rem; font-weight: 800; line-height: 1; }
+  .cnt .lbl { font-size: .62rem; color: var(--muted); text-transform: uppercase; letter-spacing: .4px; margin-top: 2px; }
+  .cnt.c-pend  .num { color: var(--yellow); }
+  .cnt.c-and   .num { color: var(--blue);   }
+  .cnt.c-conc  .num { color: var(--green);  }
+  .cnt.c-total .num { color: var(--text);   }
+
+  /* ═══════════════════════════
+     LISTA DE TAREFAS
+  ═══════════════════════════ */
+  #task-list {
+    flex: 1;
+    padding: 14px 12px calc(14px + var(--safe-bottom));
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .task-card {
+    background: var(--card);
+    border-radius: var(--radius);
+    box-shadow: 0 2px 8px rgba(0,0,0,.08);
+    border-left: 5px solid var(--border);
+    overflow: hidden;
+  }
+  .task-card[data-prio="alta"]  { border-left-color: var(--red);    }
+  .task-card[data-prio="media"] { border-left-color: var(--yellow);  }
+  .task-card[data-prio="baixa"] { border-left-color: var(--green);   }
+
+  .card-top {
+    padding: 14px 14px 10px;
+  }
+  .card-row1 {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+  .card-tipo  { font-size: 1rem; font-weight: 800; flex: 1; }
+  .card-date  { font-size: .72rem; font-weight: 600; white-space: nowrap; }
+  .date-hoje     { color: var(--blue); }
+  .date-atrasada { color: var(--red);  }
+  .date-futura   { color: var(--muted); }
+
+  .card-tags  { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 8px; }
+
+  .tag {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: .68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .3px;
+  }
+  .tag-apto     { background: #ede9fe; color: #5b21b6; }
+  .tag-resp     { background: #e0f2fe; color: #075985; }
+  .tag-pend     { background: #fef3c7; color: #92400e; }
+  .tag-and      { background: #dbeafe; color: #1e40af; }
+  .tag-conc     { background: #dcfce7; color: #166534; }
+
+  .card-desc  { font-size: .83rem; color: var(--muted); line-height: 1.4; }
+
+  .card-obs-saved {
+    margin: 6px 14px 0;
+    background: #f8fafc;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: .8rem;
+    color: var(--text);
+  }
+  .card-obs-saved strong { color: var(--blue); }
+
+  .card-exec-date {
+    margin: 6px 14px 0;
+    font-size: .78rem;
+    color: var(--green);
+    font-weight: 600;
+  }
+
+  /* Fotos salvas */
+  .card-fotos {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    padding: 8px 14px 0;
+  }
+  .card-foto-thumb {
+    width: 68px; height: 68px;
+    object-fit: cover;
+    border-radius: 8px;
+    border: 2px solid var(--border);
+  }
+
+  /* ═══════════════════════════
+     PAINEL DE AÇÃO
+  ═══════════════════════════ */
+  .action-toggle {
+    width: 100%;
+    background: none;
+    border: none;
+    border-top: 1.5px solid var(--border);
+    padding: 13px 14px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: .85rem;
+    font-weight: 700;
+    color: var(--blue);
+    cursor: pointer;
+    margin-top: 10px;
+  }
+  .action-toggle .arrow { transition: transform .2s; }
+  .action-toggle.open .arrow { transform: rotate(180deg); }
+
+  .action-panel {
+    display: none;
+    flex-direction: column;
+    gap: 14px;
+    padding: 14px;
+    border-top: 1px solid var(--border);
+    background: #f8fafc;
+  }
+  .action-panel.open { display: flex; }
+
+  /* STATUS BUTTONS */
+  .status-btns {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 8px;
+  }
+  .status-btn {
+    padding: 12px 6px;
+    border: 2px solid var(--border);
+    border-radius: 10px;
+    background: #fff;
+    font-size: .75rem;
+    font-weight: 700;
+    cursor: pointer;
+    text-align: center;
+    line-height: 1.3;
+    transition: all .15s;
+    color: var(--muted);
+  }
+  .status-btn:active { transform: scale(.96); }
+  .status-btn .s-icon { font-size: 1.4rem; display: block; margin-bottom: 3px; }
+  .status-btn.active-pend { background: #fef9c3; border-color: var(--yellow); color: #92400e; }
+  .status-btn.active-and  { background: #dbeafe; border-color: var(--blue);   color: #1e40af; }
+  .status-btn.active-conc { background: #dcfce7; border-color: var(--green);  color: #166534; }
+
+  /* DATA EXECUÇÃO */
+  .field-label {
+    font-size: .72rem;
+    font-weight: 700;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: .4px;
+    margin-bottom: 5px;
+  }
+  .field-input {
+    width: 100%;
+    padding: 12px 14px;
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    font-size: .9rem;
+    font-family: inherit;
+    background: #fff;
+    color: var(--text);
+  }
+  .field-input:focus { outline: none; border-color: var(--green); }
+
+  textarea.field-input { min-height: 80px; resize: none; }
+
+  /* FOTO */
+  .foto-label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: #fff;
+    border: 2px dashed var(--border);
+    border-radius: 10px;
+    padding: 14px;
+    cursor: pointer;
+    font-size: .88rem;
+    font-weight: 600;
+    color: var(--muted);
+    transition: border-color .2s;
+  }
+  .foto-label:active { border-color: var(--green); }
+  .foto-label .cam-icon { font-size: 1.6rem; }
+  input[type="file"] { display: none; }
+
+  .fotos-preview {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .prev-wrap { position: relative; }
+  .prev-thumb {
+    width: 72px; height: 72px;
+    object-fit: cover;
+    border-radius: 8px;
+    border: 2px solid var(--border);
+  }
+  .prev-del {
+    position: absolute;
+    top: -6px; right: -6px;
+    background: var(--red);
+    color: #fff;
+    border: none;
+    border-radius: 50%;
+    width: 20px; height: 20px;
+    font-size: .7rem;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+  }
+
+  /* BOTÃO SALVAR */
+  .btn-save {
+    width: 100%;
+    padding: 16px;
+    background: var(--green);
+    color: #fff;
+    border: none;
+    border-radius: 12px;
+    font-size: 1rem;
+    font-weight: 800;
+    cursor: pointer;
+    transition: background .2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+  .btn-save:active { background: var(--green-d); transform: scale(.98); }
+
+  /* ═══════════════════════════
+     VAZIO
+  ═══════════════════════════ */
+  .empty {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--muted);
+  }
+  .empty .icon { font-size: 3.5rem; margin-bottom: 12px; }
+  .empty p     { font-size: .92rem; }
+
+  /* ═══════════════════════════
+     LIGHTBOX
+  ═══════════════════════════ */
+  #lightbox {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,.92);
+    z-index: 500;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    padding: 20px;
+  }
+  #lightbox.open { display: flex; }
+  #lightbox img  { max-width: 100%; max-height: 75vh; border-radius: 10px; object-fit: contain; }
+  #lightbox button {
+    background: #fff; border: none; border-radius: 8px;
+    padding: 10px 28px; font-size: .9rem; font-weight: 700; cursor: pointer;
+  }
+
+  /* ═══════════════════════════
+     TOAST
+  ═══════════════════════════ */
+  #toast {
+    position: fixed;
+    bottom: calc(20px + var(--safe-bottom));
+    left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: #1e293b;
+    color: #fff;
+    padding: 12px 22px;
+    border-radius: 24px;
+    font-size: .88rem;
+    font-weight: 700;
+    box-shadow: 0 4px 20px rgba(0,0,0,.3);
+    opacity: 0;
+    transition: all .3s;
+    pointer-events: none;
+    z-index: 400;
+    white-space: nowrap;
+  }
+  #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+</style>
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script src="firebase-config.js"></script>
+</head>
+<body>
+
+<!-- ═══════════════════════════════
+     LOGIN
+═══════════════════════════════ -->
+<div id="login-screen">
+  <div class="login-logo">🔧</div>
+  <div class="login-title">Manutenção</div>
+  <div class="login-sub">Painel da Equipe de Campo</div>
+
+  <div class="login-box">
+    <div style="font-size:2rem">🛠️</div>
+    <h2>Equipe de Manutenção</h2>
+    <p>Acesse suas tarefas do dia, atualize o status e registre fotos da execução.</p>
+    <button class="btn-enter" onclick="entrar()">Entrar</button>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════
+     APP
+═══════════════════════════════ -->
+<div id="app">
+
+  <header>
+    <div class="header-left">
+      <h1>🔧 Manutenção</h1>
+      <span id="header-date"></span>
+    </div>
+    <button class="logout-btn" onclick="logout()">Sair</button>
+  </header>
+
+  <!-- Contadores -->
+  <div class="counters-bar" id="counters-bar"></div>
+
+  <!-- Filtros -->
+  <div class="filter-bar">
+    <input type="date" class="date-filter" id="filter-date" onchange="render()" />
+    <button class="filter-chip" data-status="" onclick="setStatusFilter(this)">Todas</button>
+    <button class="filter-chip" data-status="pendente"  onclick="setStatusFilter(this)">⏳ Pendentes</button>
+    <button class="filter-chip" data-status="andamento" onclick="setStatusFilter(this)">🔄 Em andamento</button>
+    <button class="filter-chip" data-status="concluida" onclick="setStatusFilter(this)">✅ Concluídas</button>
+  </div>
+
+  <!-- Lista -->
+  <div id="task-list"></div>
+
+</div>
+
+<!-- Lightbox -->
+<div id="lightbox" onclick="closeLightbox()">
+  <img id="lb-img" src="" alt="" onclick="event.stopPropagation()" />
+  <button onclick="closeLightbox()">✕ Fechar</button>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ════════════════════════════════
+// ESTADO GLOBAL FIREBASE
+// ════════════════════════════════
+let tasks = [];
+const fotosPendentes = {}; // fotos ainda não salvas, por tarefa
+
+function initListeners() {
+  db.collection('tarefas').onSnapshot(snap => {
+    tasks = snap.docs.map(d => d.data());
+    if (sessionStorage.getItem('manut_mobile_role')) render();
+  });
+}
+
+async function dbUpdate(id, fields) {
+  await db.collection('tarefas').doc(id).update(fields);
+}
+
+// ════════════════════════════════
+// UTILS
+// ════════════════════════════════
+function today() { return new Date().toISOString().split('T')[0]; }
+function fmtDate(d) {
+  if (!d) return '';
+  const [y,m,dia] = d.split('-');
+  return `${dia}/${m}/${y}`;
+}
+function fmtDateFull() {
+  return new Date().toLocaleDateString('pt-BR', { weekday:'long', day:'numeric', month:'long' });
+}
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 2500);
+}
+function esc(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ════════════════════════════════
+// AUTH
+// ════════════════════════════════
+function entrar() {
+  sessionStorage.setItem('manut_mobile_role', 'equipe');
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('app').classList.add('visible');
+  document.getElementById('header-date').textContent = fmtDateFull();
+  document.getElementById('filter-date').value = today();
+  document.querySelector('.filter-chip').classList.add('active');
+  render();
+}
+
+function logout() {
+  sessionStorage.removeItem('manut_mobile_role');
+  document.getElementById('app').classList.remove('visible');
+  document.getElementById('login-screen').style.display = 'flex';
+}
+
+// ════════════════════════════════
+// FILTROS
+// ════════════════════════════════
+let activeStatus = '';
+
+function setStatusFilter(btn) {
+  document.querySelectorAll('.filter-chip').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  activeStatus = btn.dataset.status;
+  render();
+}
+
+// ════════════════════════════════
+// RENDER
+// ════════════════════════════════
+function render() {
+  const date = document.getElementById('filter-date') ? document.getElementById('filter-date').value : '';
+
+  const pend = tasks.filter(t => t.status === 'pendente').length;
+  const and  = tasks.filter(t => t.status === 'andamento').length;
+  const conc = tasks.filter(t => t.status === 'concluida').length;
+  const cEl  = document.getElementById('counters-bar');
+  if (cEl) cEl.innerHTML = `
+    <div class="cnt c-total"><div class="num">${tasks.length}</div><div class="lbl">Total</div></div>
+    <div class="cnt c-pend"><div class="num">${pend}</div><div class="lbl">Pendentes</div></div>
+    <div class="cnt c-and"><div class="num">${and}</div><div class="lbl">Andamento</div></div>
+    <div class="cnt c-conc"><div class="num">${conc}</div><div class="lbl">Concluídas</div></div>
+  `;
+
+  let list = tasks.filter(t =>
+    (!date || t.data === date) &&
+    (!activeStatus || t.status === activeStatus)
+  );
+  list.sort((a,b) => statusOrder(a.status) - statusOrder(b.status)
+                  || prioOrder(a.prio) - prioOrder(b.prio));
+
+  const el = document.getElementById('task-list');
+  if (!el) return;
+  if (!list.length) {
+    el.innerHTML = `<div class="empty"><div class="icon">📋</div><p>Nenhuma tarefa encontrada para este dia.</p></div>`;
+    return;
+  }
+  el.innerHTML = list.map(cardHTML).join('');
+}
+
+function statusOrder(s) { return { pendente:0, andamento:1, concluida:2 }[s] ?? 0; }
+function prioOrder(p)   { return { alta:0, media:1, baixa:2 }[p] ?? 1; }
+
+// ════════════════════════════════
+// CARD HTML
+// ════════════════════════════════
+function cardHTML(t) {
+  const d = today();
+  let dateCls = 'date-futura', dateLabel = '📆 ' + fmtDate(t.data);
+  if (t.data === d)  { dateCls = 'date-hoje';     dateLabel = '📅 Hoje'; }
+  else if (t.data<d) { dateCls = 'date-atrasada'; dateLabel = '⚠️ ' + fmtDate(t.data); }
+
+  const statusTagCls = { pendente:'tag-pend', andamento:'tag-and', concluida:'tag-conc' }[t.status] || '';
+  const statusLabel  = { pendente:'⏳ Pendente', andamento:'🔄 Andamento', concluida:'✅ Concluída' }[t.status] || '';
+
+  const obsHtml      = t.obs     ? `<div class="card-obs-saved"><strong>📝 Obs:</strong> ${esc(t.obs)}</div>` : '';
+  const dataExecHtml = t.dataExec? `<div class="card-exec-date">✅ Executado em: ${fmtDate(t.dataExec)}</div>` : '';
+
+  const fotosHtml = (t.fotos && t.fotos.length)
+    ? `<div class="card-fotos">${t.fotos.map((f,i) =>
+        `<img class="card-foto-thumb" src="${f}" onclick="openLightbox('${t.id}',${i})" />`
+      ).join('')}</div>` : '';
+
+  const sBtn = (val, icon, label) =>
+    `<button class="status-btn ${t.status===val?'active-'+val.replace('andamento','and').replace('pendente','pend').replace('concluida','conc'):''}" onclick="setStatus('${t.id}','${val}')">
+       <span class="s-icon">${icon}</span>${label}
+     </button>`;
+
+  const pending = fotosPendentes[t.id] || [];
+  const pendPrev = `<div class="fotos-preview" id="prev-${t.id}">${pending.map((f,i) => `
+    <div class="prev-wrap">
+      <img class="prev-thumb" src="${f}" />
+      <button class="prev-del" onclick="removePendFoto('${t.id}',${i})">✕</button>
+    </div>`).join('')}</div>`;
+
+  return `
+    <div class="task-card" data-prio="${t.prio}" id="card-${t.id}">
+      <div class="card-top">
+        <div class="card-row1">
+          <div class="card-tipo">${esc(t.tipo)}</div>
+          <div class="card-date ${dateCls}">${dateLabel}</div>
+        </div>
+        <div class="card-tags">
+          <span class="tag tag-apto">🏠 ${esc(t.apto)}</span>
+          ${t.resp ? `<span class="tag tag-resp">👷 ${esc(t.resp)}</span>` : ''}
+          <span class="tag ${statusTagCls}">${statusLabel}</span>
+        </div>
+        ${t.desc ? `<div class="card-desc">${esc(t.desc)}</div>` : ''}
+      </div>
+      ${obsHtml}${dataExecHtml}${fotosHtml}
+      <button class="action-toggle" id="toggle-${t.id}" onclick="togglePanel('${t.id}')">
+        <span>✏️ Atualizar tarefa</span>
+        <span class="arrow">▼</span>
+      </button>
+      <div class="action-panel" id="panel-${t.id}">
+        <div>
+          <div class="field-label">Status da tarefa</div>
+          <div class="status-btns">
+            ${sBtn('pendente',  '⏳', 'Pendente')}
+            ${sBtn('andamento', '🔄', 'Em andamento')}
+            ${sBtn('concluida', '✅', 'Concluída')}
+          </div>
+        </div>
+        <div>
+          <div class="field-label">Data de execução</div>
+          <input type="date" class="field-input" value="${t.dataExec || ''}"
+            onchange="setDataExec('${t.id}', this.value)" />
+        </div>
+        <div>
+          <div class="field-label">Observação</div>
+          <textarea class="field-input" id="obs-${t.id}"
+            placeholder="Materiais usados, pendências, detalhes…">${esc(t.obs)}</textarea>
+        </div>
+        <div>
+          <div class="field-label">Fotos</div>
+          <label class="foto-label" for="foto-${t.id}">
+            <span class="cam-icon">📷</span>
+            <span>Tirar foto ou escolher da galeria</span>
+          </label>
+          <input type="file" accept="image/*" capture="environment" multiple
+            id="foto-${t.id}" onchange="previewFotos('${t.id}', this)" />
+          ${pendPrev}
+        </div>
+        <button class="btn-save" onclick="salvar('${t.id}')">💾 Salvar</button>
+      </div>
+    </div>
+  `;
+}
+
+// ════════════════════════════════
+// AÇÕES
+// ════════════════════════════════
+function togglePanel(id) {
+  const panel  = document.getElementById('panel-' + id);
+  const toggle = document.getElementById('toggle-' + id);
+  panel.classList.toggle('open');
+  toggle.classList.toggle('open');
+}
+
+async function setStatus(id, status) {
+  await dbUpdate(id, { status });
+  // Reabre o painel após re-render (via onSnapshot)
+  requestAnimationFrame(() => {
+    const panel  = document.getElementById('panel-' + id);
+    const toggle = document.getElementById('toggle-' + id);
+    if (panel) { panel.classList.add('open'); toggle.classList.add('open'); }
+  });
+  toast('Status atualizado!');
+}
+
+async function setDataExec(id, data) {
+  await dbUpdate(id, { dataExec: data });
+  toast('Data de execução salva!');
+}
+
+function previewFotos(id, input) {
+  if (!fotosPendentes[id]) fotosPendentes[id] = [];
+  const files = Array.from(input.files);
+  let loaded = 0;
+  files.forEach(file => {
+    const reader = new FileReader();
+    reader.onload = e => {
+      fotosPendentes[id].push(e.target.result);
+      if (++loaded === files.length) updatePreview(id);
+    };
+    reader.readAsDataURL(file);
+  });
+  input.value = '';
+}
+
+function updatePreview(id) {
+  const wrap = document.getElementById('prev-' + id);
+  if (!wrap) return;
+  const pending = fotosPendentes[id] || [];
+  wrap.innerHTML = pending.map((f,i) => `
+    <div class="prev-wrap">
+      <img class="prev-thumb" src="${f}" />
+      <button class="prev-del" onclick="removePendFoto('${id}',${i})">✕</button>
+    </div>`).join('');
+}
+
+function removePendFoto(id, idx) {
+  if (fotosPendentes[id]) { fotosPendentes[id].splice(idx, 1); updatePreview(id); }
+}
+
+async function salvar(id) {
+  const obs    = document.getElementById('obs-' + id)?.value.trim() || '';
+  const novFot = fotosPendentes[id] || [];
+  const t      = tasks.find(t => t.id === id);
+  if (!t) return;
+
+  const fotos = [...(t.fotos || []), ...novFot];
+  await dbUpdate(id, { obs, fotos });
+  delete fotosPendentes[id];
+  toast('💾 Salvo com sucesso!');
+}
+
+// ════════════════════════════════
+// LIGHTBOX
+// ════════════════════════════════
+function openLightbox(taskId, idx) {
+  const t = tasks.find(t => t.id === taskId);
+  if (!t || !t.fotos || !t.fotos[idx]) return;
+  document.getElementById('lb-img').src = t.fotos[idx];
+  document.getElementById('lightbox').classList.add('open');
+}
+function closeLightbox() {
+  document.getElementById('lightbox').classList.remove('open');
+  document.getElementById('lb-img').src = '';
+}
+
+// ════════════════════════════════
+// INIT
+// ════════════════════════════════
+(function init() {
+  initListeners();
+  if (sessionStorage.getItem('manut_mobile_role') === 'equipe') entrar();
+})();
+</script>
+</body>
+</html>

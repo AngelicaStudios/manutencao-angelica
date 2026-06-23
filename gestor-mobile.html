@@ -1,0 +1,899 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Gestão Manutenção">
+<meta name="theme-color" content="#1d4ed8">
+<link rel="manifest" href="manifest-gestor.json">
+<link rel="apple-touch-icon" href="icon-gestor-180.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-gestor-192.png">
+<title>Manutenção — Gestor</title>
+<style>
+  :root {
+    --blue:    #2563eb;
+    --blue-d:  #1d4ed8;
+    --green:   #16a34a;
+    --yellow:  #d97706;
+    --red:     #dc2626;
+    --bg:      #f0f2f5;
+    --card:    #ffffff;
+    --text:    #1e293b;
+    --muted:   #64748b;
+    --border:  #e2e8f0;
+    --radius:  14px;
+    --nav-h:   62px;
+    --safe-b:  env(safe-area-inset-bottom, 0px);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; }
+  body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--text); overflow-x: hidden; }
+
+  /* ══════════════════════
+     LOGIN
+  ══════════════════════ */
+  #login-screen {
+    min-height: 100vh;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    padding: 28px 20px;
+    background: linear-gradient(160deg, #1e3a8a 0%, #2563eb 100%);
+  }
+  .login-logo  { font-size: 3.8rem; margin-bottom: 8px; }
+  .login-title { color: #fff; font-size: 1.4rem; font-weight: 800; text-align: center; margin-bottom: 4px; }
+  .login-sub   { color: rgba(255,255,255,.75); font-size: .88rem; text-align: center; margin-bottom: 32px; }
+
+  .login-box {
+    background: #fff; border-radius: 20px;
+    padding: 28px 22px; width: 100%; max-width: 380px;
+    box-shadow: 0 16px 48px rgba(0,0,0,.25);
+    display: flex; flex-direction: column; gap: 14px; align-items: center; text-align: center;
+  }
+  .login-box h2 { font-size: 1.1rem; font-weight: 700; }
+  .login-box p  { font-size: .83rem; color: var(--muted); line-height: 1.5; }
+
+  .pwd-input {
+    width: 100%; padding: 14px 16px;
+    border: 1.5px solid var(--border); border-radius: 12px;
+    font-size: 1rem; text-align: center; letter-spacing: 3px;
+    font-family: inherit;
+  }
+  .pwd-input:focus { outline: none; border-color: var(--blue); }
+
+  .btn-enter {
+    width: 100%; padding: 16px;
+    background: var(--blue); color: #fff;
+    border: none; border-radius: 12px;
+    font-size: 1rem; font-weight: 800;
+    cursor: pointer; transition: background .15s;
+  }
+  .btn-enter:active { background: var(--blue-d); transform: scale(.98); }
+
+  .login-err { color: var(--red); font-size: .8rem; display: none; }
+
+  /* ══════════════════════
+     APP SHELL
+  ══════════════════════ */
+  #app { display: none; flex-direction: column; min-height: 100vh; }
+  #app.visible { display: flex; }
+
+  /* ── HEADER ── */
+  header {
+    background: var(--blue); color: #fff;
+    padding: 13px 16px 11px;
+    display: flex; align-items: center; justify-content: space-between;
+    position: sticky; top: 0; z-index: 100;
+    box-shadow: 0 2px 8px rgba(0,0,0,.2);
+  }
+  .hdr-left h1   { font-size: .98rem; font-weight: 800; }
+  .hdr-left span { font-size: .7rem; opacity: .8; }
+  .logout-btn {
+    background: rgba(255,255,255,.18); border: 1.5px solid rgba(255,255,255,.45);
+    color: #fff; border-radius: 20px; padding: 6px 14px;
+    font-size: .75rem; font-weight: 700; cursor: pointer;
+  }
+
+  /* ── CONTEÚDO ── */
+  #content {
+    flex: 1;
+    overflow-y: auto;
+    padding-bottom: calc(var(--nav-h) + var(--safe-b) + 10px);
+  }
+
+  /* ── NAVEGAÇÃO INFERIOR ── */
+  nav {
+    position: fixed; bottom: 0; left: 0; right: 0;
+    height: calc(var(--nav-h) + var(--safe-b));
+    background: #fff;
+    border-top: 1.5px solid var(--border);
+    display: flex;
+    padding-bottom: var(--safe-b);
+    z-index: 200;
+    box-shadow: 0 -2px 10px rgba(0,0,0,.08);
+  }
+  .nav-btn {
+    flex: 1; display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 3px; border: none; background: none;
+    cursor: pointer; padding: 8px 4px;
+    color: var(--muted); transition: color .15s;
+  }
+  .nav-btn .nav-icon { font-size: 1.5rem; line-height: 1; }
+  .nav-btn .nav-lbl  { font-size: .62rem; font-weight: 700; text-transform: uppercase; letter-spacing: .3px; }
+  .nav-btn.active { color: var(--blue); }
+
+  /* ── SEÇÕES ── */
+  .section { display: none; padding: 14px 12px; }
+  .section.active { display: block; }
+
+  /* ══════════════════════
+     CAMPOS / BOTÕES
+  ══════════════════════ */
+  .field-group { display: flex; flex-direction: column; gap: 5px; margin-bottom: 12px; }
+  .field-label { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .4px; }
+
+  .field-input {
+    width: 100%; padding: 13px 14px;
+    border: 1.5px solid var(--border); border-radius: 11px;
+    font-size: .92rem; font-family: inherit;
+    background: #fff; color: var(--text);
+    transition: border-color .2s;
+  }
+  .field-input:focus { outline: none; border-color: var(--blue); }
+  textarea.field-input { min-height: 80px; resize: none; }
+
+  .prio-btns { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+  .prio-btn {
+    padding: 12px 6px; border: 2px solid var(--border);
+    border-radius: 10px; background: #fff;
+    font-size: .8rem; font-weight: 700; cursor: pointer;
+    text-align: center; transition: all .15s; color: var(--muted);
+  }
+  .prio-btn .p-icon { font-size: 1.3rem; display: block; margin-bottom: 3px; }
+  .prio-btn.active-baixa { background: #f0fdf4; border-color: var(--green);  color: #14532d; }
+  .prio-btn.active-media { background: #fff7ed; border-color: var(--yellow); color: #9a3412; }
+  .prio-btn.active-alta  { background: #fee2e2; border-color: var(--red);    color: #991b1b; }
+
+  .btn-full {
+    width: 100%; padding: 16px;
+    border: none; border-radius: 12px;
+    font-size: 1rem; font-weight: 800;
+    cursor: pointer; transition: all .15s;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+  }
+  .btn-full:active { transform: scale(.98); }
+  .btn-blue   { background: var(--blue);   color: #fff; }
+  .btn-blue:active { background: var(--blue-d); }
+  .btn-green  { background: var(--green);  color: #fff; }
+  .btn-green:active { background: #15803d; }
+  .btn-yellow { background: var(--yellow); color: #fff; }
+  .btn-yellow:active { background: #b45309; }
+  .btn-red    { background: var(--red);    color: #fff; }
+  .btn-red:active { background: #b91c1c; }
+  .btn-ghost  { background: #f1f5f9; color: var(--muted); }
+  .btn-sm { padding: 10px 16px; font-size: .85rem; border-radius: 10px; display: inline-flex; align-items: center; gap: 6px; border: none; font-weight: 700; cursor: pointer; transition: all .15s; }
+
+  /* ══════════════════════
+     CONTADORES
+  ══════════════════════ */
+  .counters-bar {
+    display: flex; gap: 0;
+    background: #fff; border-bottom: 1.5px solid var(--border);
+  }
+  .cnt { flex: 1; text-align: center; padding: 10px 4px; border-right: 1px solid var(--border); }
+  .cnt:last-child { border-right: none; }
+  .cnt .num { font-size: 1.4rem; font-weight: 800; line-height: 1; }
+  .cnt .lbl { font-size: .6rem; color: var(--muted); text-transform: uppercase; letter-spacing: .3px; margin-top: 2px; }
+  .cnt.c-total .num { color: var(--text); }
+  .cnt.c-pend  .num { color: var(--yellow); }
+  .cnt.c-and   .num { color: var(--blue); }
+  .cnt.c-conc  .num { color: var(--green); }
+
+  /* ══════════════════════
+     FILTROS
+  ══════════════════════ */
+  .filter-bar {
+    background: #fff; border-bottom: 1.5px solid var(--border);
+    padding: 10px 12px; display: flex; gap: 8px; align-items: center;
+    overflow-x: auto; -webkit-overflow-scrolling: touch;
+  }
+  .filter-bar::-webkit-scrollbar { display: none; }
+  .filter-chip {
+    flex-shrink: 0; padding: 6px 14px;
+    border: 1.5px solid var(--border); border-radius: 20px;
+    font-size: .75rem; font-weight: 600;
+    cursor: pointer; background: #fff; color: var(--muted);
+    transition: all .15s; white-space: nowrap;
+  }
+  .filter-chip.active { background: var(--blue); color: #fff; border-color: var(--blue); }
+  .date-filter {
+    flex-shrink: 0; padding: 6px 10px;
+    border: 1.5px solid var(--border); border-radius: 10px;
+    font-size: .75rem; font-family: inherit; color: var(--text); background: #fff;
+  }
+  .date-filter:focus { outline: none; border-color: var(--blue); }
+
+  /* ══════════════════════
+     CARDS DE TAREFA
+  ══════════════════════ */
+  .tasks-wrap { padding: 12px; display: flex; flex-direction: column; gap: 11px; }
+
+  .task-card {
+    background: var(--card); border-radius: var(--radius);
+    box-shadow: 0 2px 8px rgba(0,0,0,.08);
+    border-left: 5px solid var(--border); overflow: hidden;
+  }
+  .task-card[data-prio="alta"]  { border-left-color: var(--red); }
+  .task-card[data-prio="media"] { border-left-color: var(--yellow); }
+  .task-card[data-prio="baixa"] { border-left-color: var(--green); }
+  .task-card.archived { opacity: .6; background: #f8fafc; }
+
+  .card-body { padding: 13px 13px 10px; }
+  .card-row1 { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; margin-bottom: 7px; }
+  .card-tipo { font-size: .97rem; font-weight: 800; flex: 1; }
+  .card-date { font-size: .7rem; font-weight: 600; white-space: nowrap; }
+  .date-hoje     { color: var(--blue); }
+  .date-atrasada { color: var(--red);  }
+  .date-futura   { color: var(--muted); }
+
+  .card-tags { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 7px; }
+  .tag {
+    display: inline-block; padding: 2px 9px;
+    border-radius: 20px; font-size: .67rem;
+    font-weight: 700; text-transform: uppercase; letter-spacing: .3px;
+  }
+  .tag-apto { background: #ede9fe; color: #5b21b6; }
+  .tag-resp { background: #e0f2fe; color: #075985; }
+  .tag-pend { background: #fef3c7; color: #92400e; }
+  .tag-and  { background: #dbeafe; color: #1e40af; }
+  .tag-conc { background: #dcfce7; color: #166534; }
+  .tag-arq  { background: #f1f5f9; color: #475569; }
+  .tag-alta { background: #fee2e2; color: #991b1b; }
+  .tag-media{ background: #fff7ed; color: #9a3412; }
+  .tag-baixa{ background: #f0fdf4; color: #14532d; }
+
+  .card-desc    { font-size: .82rem; color: var(--muted); line-height: 1.4; margin-bottom: 6px; }
+  .card-obs     { font-size: .79rem; background: #f8fafc; border: 1px solid var(--border); border-radius: 7px; padding: 7px 10px; margin-top: 6px; }
+  .card-obs strong { color: var(--blue); }
+  .card-exec    { font-size: .76rem; color: var(--green); font-weight: 600; margin-top: 5px; }
+
+  .card-fotos { display: flex; gap: 7px; flex-wrap: wrap; padding: 0 13px 10px; }
+  .foto-thumb { width: 64px; height: 64px; object-fit: cover; border-radius: 8px; border: 2px solid var(--border); }
+
+  .card-actions {
+    border-top: 1.5px solid var(--border);
+    display: flex;
+  }
+  .card-act-btn {
+    flex: 1; padding: 12px 6px;
+    border: none; background: none;
+    font-size: .75rem; font-weight: 700;
+    cursor: pointer; color: var(--muted);
+    display: flex; flex-direction: column; align-items: center; gap: 3px;
+    border-right: 1px solid var(--border);
+    transition: background .15s;
+  }
+  .card-act-btn:last-child { border-right: none; }
+  .card-act-btn:active { background: var(--bg); }
+  .card-act-btn .act-icon { font-size: 1.1rem; }
+  .card-act-btn.del  { color: var(--red); }
+
+  /* ══════════════════════
+     SEÇÃO NOVA TAREFA
+  ══════════════════════ */
+  .form-card {
+    background: #fff; border-radius: var(--radius);
+    padding: 18px 16px; box-shadow: 0 2px 8px rgba(0,0,0,.07);
+  }
+  .form-card h2 { font-size: .95rem; font-weight: 800; color: var(--blue); margin-bottom: 16px; }
+
+  /* Seletor responsável */
+  select.field-input { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2364748b' d='M6 8L1 3h10z'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 14px center; padding-right: 36px; }
+
+  /* ══════════════════════
+     ARQUIVO
+  ══════════════════════ */
+  .arq-header { padding: 12px; display: flex; justify-content: space-between; align-items: center; }
+  .arq-header span { font-size: .82rem; color: var(--muted); }
+
+  /* ══════════════════════
+     CONFIGURAÇÕES
+  ══════════════════════ */
+  .config-section { background: #fff; border-radius: var(--radius); padding: 18px 16px; box-shadow: 0 2px 8px rgba(0,0,0,.07); margin-bottom: 14px; }
+  .config-section h3 { font-size: .9rem; font-weight: 800; color: var(--blue); margin-bottom: 14px; }
+
+  .func-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+  .func-chip {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: #f1f5f9; border: 1.5px solid var(--border);
+    border-radius: 20px; padding: 6px 12px;
+    font-size: .8rem; font-weight: 600;
+  }
+  .func-chip button { background: none; border: none; cursor: pointer; color: #94a3b8; font-size: .85rem; padding: 0; }
+  .func-chip button:active { color: var(--red); }
+
+  /* ══════════════════════
+     EMPTY
+  ══════════════════════ */
+  .empty { text-align: center; padding: 50px 20px; color: var(--muted); }
+  .empty .icon { font-size: 3rem; margin-bottom: 10px; }
+  .empty p { font-size: .88rem; }
+
+  /* ══════════════════════
+     LIGHTBOX
+  ══════════════════════ */
+  #lightbox {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,.92); z-index: 500;
+    flex-direction: column; align-items: center; justify-content: center; gap: 16px; padding: 20px;
+  }
+  #lightbox.open { display: flex; }
+  #lightbox img  { max-width: 100%; max-height: 75vh; border-radius: 10px; object-fit: contain; }
+  #lightbox button { background: #fff; border: none; border-radius: 8px; padding: 10px 28px; font-size: .9rem; font-weight: 700; cursor: pointer; }
+
+  /* ══════════════════════
+     TOAST
+  ══════════════════════ */
+  #toast {
+    position: fixed; bottom: calc(var(--nav-h) + var(--safe-b) + 12px); left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: #1e293b; color: #fff;
+    padding: 11px 22px; border-radius: 24px;
+    font-size: .86rem; font-weight: 700;
+    box-shadow: 0 4px 20px rgba(0,0,0,.3);
+    opacity: 0; transition: all .3s;
+    pointer-events: none; z-index: 400; white-space: nowrap;
+  }
+  #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+</style>
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script src="firebase-config.js"></script>
+</head>
+<body>
+
+<!-- ═══════════════════════════
+     LOGIN
+═══════════════════════════ -->
+<div id="login-screen">
+  <div class="login-logo">🔧</div>
+  <div class="login-title">Manutenção</div>
+  <div class="login-sub">Painel do Gestor</div>
+  <div class="login-box">
+    <div style="font-size:2rem">👤</div>
+    <h2>Acesso do Gestor</h2>
+    <p>Digite sua senha para acessar o painel completo de gerenciamento.</p>
+    <button class="btn-enter" onclick="login()">🔓 Entrar</button>
+  </div>
+</div>
+
+<!-- ═══════════════════════════
+     APP
+═══════════════════════════ -->
+<div id="app">
+
+  <header>
+    <div class="hdr-left">
+      <h1>🔧 Gestão Manutenção</h1>
+      <span id="hdr-date"></span>
+    </div>
+    <button class="logout-btn" onclick="logout()">Sair</button>
+  </header>
+
+  <div id="content">
+
+    <!-- ══ TAREFAS ══ -->
+    <div id="sec-tarefas" class="section active">
+      <div class="counters-bar" id="counters"></div>
+      <div class="filter-bar">
+        <input type="date" class="date-filter" id="filter-date" onchange="renderTarefas()" />
+        <button class="filter-chip active" data-s="" onclick="setFilter(this)">Todas</button>
+        <button class="filter-chip" data-s="pendente"  onclick="setFilter(this)">⏳ Pendentes</button>
+        <button class="filter-chip" data-s="andamento" onclick="setFilter(this)">🔄 Andamento</button>
+        <button class="filter-chip" data-s="concluida" onclick="setFilter(this)">✅ Concluídas</button>
+      </div>
+
+      <!-- Ações rápidas -->
+      <div style="padding:10px 12px;display:flex;gap:8px">
+        <button class="btn-sm btn-yellow" onclick="exportPDF()">🖨️ PDF do dia</button>
+        <button class="btn-sm btn-green"  onclick="archiveCompleted()">📁 Arquivar concluídas</button>
+      </div>
+
+      <div id="task-list" class="tasks-wrap"></div>
+    </div>
+
+    <!-- Print header (só no PDF) -->
+    <div id="print-header" style="display:none;padding:12px;border-bottom:2px solid #000;margin-bottom:12px">
+      <h2 style="font-size:1.1rem">Tarefas do Dia — Manutenção</h2>
+      <p id="print-date" style="font-size:.82rem;color:#555"></p>
+    </div>
+
+    <!-- ══ NOVA TAREFA ══ -->
+    <div id="sec-nova" class="section">
+      <div class="form-card">
+        <h2>➕ Nova Tarefa</h2>
+
+        <div class="field-group">
+          <div class="field-label">Apartamento / Unidade</div>
+          <input type="text" class="field-input" id="f-apto" placeholder="Ex: 101, Bloco B-204" />
+        </div>
+
+        <div class="field-group">
+          <div class="field-label">Tipo de Serviço</div>
+          <select class="field-input" id="f-tipo">
+            <option value="">Selecione…</option>
+            <option>Elétrica</option>
+            <option>Hidráulica</option>
+            <option>Limpeza</option>
+            <option>Pintura</option>
+            <option>Marcenaria</option>
+            <option>Ar-condicionado</option>
+            <option>Portão / Interfone</option>
+            <option>Inspeção geral</option>
+            <option>Outro</option>
+          </select>
+        </div>
+
+        <div class="field-group">
+          <div class="field-label">Responsável</div>
+          <select class="field-input" id="f-resp">
+            <option value="">Selecione…</option>
+          </select>
+        </div>
+
+        <div class="field-group">
+          <div class="field-label">Prioridade</div>
+          <div class="prio-btns">
+            <button class="prio-btn" data-prio="baixa" onclick="setPrio(this)">
+              <span class="p-icon">🟢</span>Baixa
+            </button>
+            <button class="prio-btn active-media" data-prio="media" onclick="setPrio(this)">
+              <span class="p-icon">🟡</span>Média
+            </button>
+            <button class="prio-btn" data-prio="alta" onclick="setPrio(this)">
+              <span class="p-icon">🔴</span>Alta
+            </button>
+          </div>
+        </div>
+
+        <div class="field-group">
+          <div class="field-label">Data Prevista</div>
+          <input type="date" class="field-input" id="f-data" />
+        </div>
+
+        <div class="field-group">
+          <div class="field-label">Descrição</div>
+          <textarea class="field-input" id="f-desc" placeholder="Descreva o problema ou o serviço…"></textarea>
+        </div>
+
+        <button class="btn-full btn-blue" onclick="addTask()">✅ Adicionar Tarefa</button>
+        <button class="btn-full btn-ghost" style="margin-top:8px" onclick="clearForm()">Limpar</button>
+      </div>
+    </div>
+
+    <!-- ══ ARQUIVO ══ -->
+    <div id="sec-arquivo" class="section">
+      <div class="arq-header">
+        <span id="arq-count">Carregando…</span>
+        <button class="btn-sm btn-red" onclick="clearArquivo()">🗑️ Limpar arquivo</button>
+      </div>
+      <div id="arq-list" class="tasks-wrap" style="padding-top:0"></div>
+    </div>
+
+    <!-- ══ CONFIG ══ -->
+    <div id="sec-config" class="section">
+
+      <!-- Funcionários -->
+      <div class="config-section">
+        <h3>👷 Funcionários</h3>
+        <div style="display:flex;gap:8px">
+          <input type="text" class="field-input" id="new-func" placeholder="Nome do funcionário"
+            style="flex:1" onkeydown="if(event.key==='Enter')addFunc()" />
+          <button class="btn-sm btn-blue" onclick="addFunc()">+ Add</button>
+        </div>
+        <div class="func-chips" id="func-list"></div>
+      </div>
+
+
+    </div>
+
+  </div><!-- /content -->
+
+  <!-- NAVEGAÇÃO INFERIOR -->
+  <nav>
+    <button class="nav-btn active" id="nav-tarefas" onclick="goSec('tarefas')">
+      <span class="nav-icon">📋</span>
+      <span class="nav-lbl">Tarefas</span>
+    </button>
+    <button class="nav-btn" id="nav-nova" onclick="goSec('nova')">
+      <span class="nav-icon">➕</span>
+      <span class="nav-lbl">Nova</span>
+    </button>
+    <button class="nav-btn" id="nav-arquivo" onclick="goSec('arquivo')">
+      <span class="nav-icon">📁</span>
+      <span class="nav-lbl">Arquivo</span>
+    </button>
+    <button class="nav-btn" id="nav-config" onclick="goSec('config')">
+      <span class="nav-icon">⚙️</span>
+      <span class="nav-lbl">Config</span>
+    </button>
+  </nav>
+
+</div>
+
+<!-- Lightbox -->
+<div id="lightbox" onclick="closeLightbox()">
+  <img id="lb-img" src="" alt="" onclick="event.stopPropagation()" />
+  <button onclick="closeLightbox()">✕ Fechar</button>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ════════════════════════
+// ESTADO GLOBAL FIREBASE
+// ════════════════════════
+let tasks    = [];
+let arqTasks = [];
+let funcs    = [];
+
+function initListeners() {
+  db.collection('tarefas').onSnapshot(snap => {
+    tasks = snap.docs.map(d => d.data());
+    if (sessionStorage.getItem('manut_gestor_mobile')) renderTarefas();
+  });
+  db.collection('arquivo').onSnapshot(snap => {
+    arqTasks = snap.docs.map(d => d.data());
+    const sec = document.getElementById('sec-arquivo');
+    if (sec && sec.classList.contains('active')) renderArquivo();
+  });
+  db.collection('config').doc('funcionarios').onSnapshot(snap => {
+    funcs = (snap.exists && snap.data().nomes) ? snap.data().nomes : [];
+    renderFuncs();
+  });
+}
+
+async function dbSet(col, id, data)    { await db.collection(col).doc(id).set(data); }
+async function dbUpdate(col, id, flds) { await db.collection(col).doc(id).update(flds); }
+async function dbDelete(col, id)       { await db.collection(col).doc(id).delete(); }
+async function dbSaveFuncs(list)       { await db.collection('config').doc('funcionarios').set({ nomes: list }); }
+
+// ════════════════════════
+// UTILS
+// ════════════════════════
+function today() { return new Date().toISOString().split('T')[0]; }
+function fmtDate(d) {
+  if (!d) return '';
+  const [y,m,dia] = d.split('-');
+  return `${dia}/${m}/${y}`;
+}
+function uid()  { return Date.now().toString(36) + Math.random().toString(36).slice(2); }
+function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 2600);
+}
+function prioOrder(p)   { return { alta:0, media:1, baixa:2 }[p] ?? 1; }
+function statusOrder(s) { return { pendente:0, andamento:1, concluida:2 }[s] ?? 0; }
+
+// ════════════════════════
+// AUTH
+// ════════════════════════
+function login() {
+  sessionStorage.setItem('manut_gestor_mobile', '1');
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('app').classList.add('visible');
+  document.getElementById('hdr-date').textContent =
+    new Date().toLocaleDateString('pt-BR', { weekday:'long', day:'numeric', month:'long' });
+  document.getElementById('filter-date').value = today();
+  document.getElementById('f-data').value = today();
+  renderFuncs();
+  renderTarefas();
+}
+
+function logout() {
+  sessionStorage.removeItem('manut_gestor_mobile');
+  document.getElementById('app').classList.remove('visible');
+  document.getElementById('login-screen').style.display = 'flex';
+}
+
+// ════════════════════════
+// NAVEGAÇÃO
+// ════════════════════════
+function goSec(sec) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('sec-' + sec).classList.add('active');
+  document.getElementById('nav-' + sec).classList.add('active');
+  document.getElementById('content').scrollTop = 0;
+  if (sec === 'tarefas') renderTarefas();
+  if (sec === 'arquivo') renderArquivo();
+  if (sec === 'config')  renderFuncs();
+}
+
+// ════════════════════════
+// FILTROS
+// ════════════════════════
+let activeStatus = '';
+
+function setFilter(btn) {
+  document.querySelectorAll('.filter-chip').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  activeStatus = btn.dataset.s;
+  renderTarefas();
+}
+
+// ════════════════════════
+// PRIORIDADE
+// ════════════════════════
+let selectedPrio = 'media';
+
+function setPrio(btn) {
+  document.querySelectorAll('.prio-btn').forEach(b => { b.className = 'prio-btn'; });
+  selectedPrio = btn.dataset.prio;
+  btn.classList.add('active-' + selectedPrio);
+}
+
+// ════════════════════════
+// RENDER TAREFAS
+// ════════════════════════
+function renderTarefas() {
+  const date = document.getElementById('filter-date') ? document.getElementById('filter-date').value : '';
+
+  const pend = tasks.filter(t => t.status === 'pendente').length;
+  const and  = tasks.filter(t => t.status === 'andamento').length;
+  const conc = tasks.filter(t => t.status === 'concluida').length;
+  const cEl  = document.getElementById('counters');
+  if (cEl) cEl.innerHTML = `
+    <div class="cnt c-total"><div class="num">${tasks.length}</div><div class="lbl">Total</div></div>
+    <div class="cnt c-pend"><div class="num">${pend}</div><div class="lbl">Pendentes</div></div>
+    <div class="cnt c-and"><div class="num">${and}</div><div class="lbl">Andamento</div></div>
+    <div class="cnt c-conc"><div class="num">${conc}</div><div class="lbl">Concluídas</div></div>
+  `;
+
+  let list = tasks.filter(t =>
+    (!date || t.data === date) &&
+    (!activeStatus || t.status === activeStatus)
+  );
+  list.sort((a,b) => a.data.localeCompare(b.data) || prioOrder(a.prio) - prioOrder(b.prio));
+
+  const el = document.getElementById('task-list');
+  if (!el) return;
+  if (!list.length) {
+    el.innerHTML = `<div class="empty"><div class="icon">📋</div><p>Nenhuma tarefa encontrada.</p></div>`;
+    return;
+  }
+  el.innerHTML = list.map(t => taskCardHTML(t, false)).join('');
+}
+
+// ════════════════════════
+// RENDER ARQUIVO
+// ════════════════════════
+function renderArquivo() {
+  const sorted = [...arqTasks].sort((a,b) => b.arquivadoEm - a.arquivadoEm);
+  const cntEl = document.getElementById('arq-count');
+  if (cntEl) cntEl.textContent = `${arqTasks.length} tarefa(s) arquivada(s)`;
+  const el = document.getElementById('arq-list');
+  if (!el) return;
+  if (!arqTasks.length) {
+    el.innerHTML = `<div class="empty"><div class="icon">📁</div><p>Nenhuma tarefa arquivada.</p></div>`;
+    return;
+  }
+  el.innerHTML = sorted.map(t => taskCardHTML(t, true)).join('');
+}
+
+// ════════════════════════
+// CARD HTML
+// ════════════════════════
+function taskCardHTML(t, isArq) {
+  const d = today();
+  let dateCls = 'date-futura', dateLabel = '📆 ' + fmtDate(t.data);
+  if (!isArq) {
+    if (t.data === d)  { dateCls = 'date-hoje';     dateLabel = '📅 Hoje'; }
+    else if (t.data<d) { dateCls = 'date-atrasada'; dateLabel = '⚠️ ' + fmtDate(t.data); }
+  }
+
+  const sTagCls = { pendente:'tag-pend', andamento:'tag-and', concluida:'tag-conc' }[t.status] || '';
+  const sLabel  = { pendente:'⏳ Pendente', andamento:'🔄 Andamento', concluida:'✅ Concluída' }[t.status] || '';
+  const pTagCls = { alta:'tag-alta', media:'tag-media', baixa:'tag-baixa' }[t.prio] || '';
+  const pLabel  = { alta:'🔴 Alta', media:'🟡 Média', baixa:'🟢 Baixa' }[t.prio] || '';
+
+  const fotosHtml = (t.fotos && t.fotos.length)
+    ? `<div class="card-fotos">${t.fotos.map((f,i)=>
+        `<img class="foto-thumb" src="${f}" onclick="openLightbox('${t.id}',${i},'${isArq?'arq':'task'}')">`
+      ).join('')}</div>` : '';
+
+  const obsHtml  = t.obs     ? `<div class="card-obs"><strong>📝</strong> ${esc(t.obs)}</div>` : '';
+  const execHtml = t.dataExec? `<div class="card-exec">✅ Executado: ${fmtDate(t.dataExec)}</div>` : '';
+
+  const actions = isArq ? '' : `
+    <div class="card-actions">
+      <button class="card-act-btn" onclick="quickStatus('${t.id}','pendente')">
+        <span class="act-icon">⏳</span>Pendente
+      </button>
+      <button class="card-act-btn" onclick="quickStatus('${t.id}','andamento')">
+        <span class="act-icon">🔄</span>Andamento
+      </button>
+      <button class="card-act-btn" onclick="quickStatus('${t.id}','concluida')">
+        <span class="act-icon">✅</span>Concluída
+      </button>
+      <button class="card-act-btn del" onclick="deleteTask('${t.id}')">
+        <span class="act-icon">🗑️</span>Excluir
+      </button>
+    </div>`;
+
+  return `
+    <div class="task-card${isArq?' archived':''}" data-prio="${t.prio}" id="card-${t.id}">
+      <div class="card-body">
+        <div class="card-row1">
+          <div class="card-tipo">${esc(t.tipo)}</div>
+          ${!isArq ? `<div class="card-date ${dateCls}">${dateLabel}</div>` : ''}
+        </div>
+        <div class="card-tags">
+          <span class="tag tag-apto">🏠 ${esc(t.apto)}</span>
+          ${t.resp ? `<span class="tag tag-resp">👷 ${esc(t.resp)}</span>` : ''}
+          ${isArq
+            ? `<span class="tag tag-arq">📁 ${fmtDate(t.data)}</span>`
+            : `<span class="tag ${sTagCls}">${sLabel}</span>`}
+          <span class="tag ${pTagCls}">${pLabel}</span>
+        </div>
+        ${t.desc ? `<div class="card-desc">${esc(t.desc)}</div>` : ''}
+        ${obsHtml}${execHtml}
+      </div>
+      ${fotosHtml}
+      ${actions}
+    </div>`;
+}
+
+// ════════════════════════
+// FORM NOVA TAREFA
+// ════════════════════════
+function clearForm() {
+  document.getElementById('f-apto').value = '';
+  document.getElementById('f-tipo').value = '';
+  document.getElementById('f-resp').selectedIndex = 0;
+  document.getElementById('f-desc').value = '';
+  document.getElementById('f-data').value = today();
+  selectedPrio = 'media';
+  document.querySelectorAll('.prio-btn').forEach(b => {
+    b.className = 'prio-btn' + (b.dataset.prio === 'media' ? ' active-media' : '');
+  });
+}
+
+async function addTask() {
+  const apto = document.getElementById('f-apto').value.trim();
+  const tipo = document.getElementById('f-tipo').value;
+  const resp = document.getElementById('f-resp').value;
+  const data = document.getElementById('f-data').value;
+  const desc = document.getElementById('f-desc').value.trim();
+
+  if (!apto) { toast('⚠️ Informe o apartamento!'); return; }
+  if (!tipo) { toast('⚠️ Selecione o tipo de serviço!'); return; }
+  if (!data) { toast('⚠️ Informe a data!'); return; }
+
+  const tarefa = {
+    id: uid(), apto, tipo, prio: selectedPrio, resp, data, desc,
+    status: 'pendente', obs: '', dataExec: '', fotos: [], criadoEm: Date.now()
+  };
+  await dbSet('tarefas', tarefa.id, tarefa);
+  toast('✅ Tarefa adicionada!');
+  clearForm();
+  goSec('tarefas');
+}
+
+// ════════════════════════
+// AÇÕES
+// ════════════════════════
+async function quickStatus(id, status) {
+  await dbUpdate('tarefas', id, { status });
+  toast('Status atualizado!');
+}
+
+async function deleteTask(id) {
+  if (!confirm('Excluir esta tarefa?')) return;
+  await dbDelete('tarefas', id);
+  toast('🗑️ Tarefa excluída.');
+}
+
+async function archiveCompleted() {
+  const done = tasks.filter(t => t.status === 'concluida');
+  if (!done.length) { toast('⚠️ Nenhuma tarefa concluída.'); return; }
+  if (!confirm(`Arquivar ${done.length} tarefa(s) concluída(s)?`)) return;
+  const now   = Date.now();
+  const batch = db.batch();
+  done.forEach(t => {
+    const archived = { ...t, arquivadoEm: now };
+    batch.set(db.collection('arquivo').doc(t.id), archived);
+    batch.delete(db.collection('tarefas').doc(t.id));
+  });
+  await batch.commit();
+  toast(`📁 ${done.length} arquivada(s)!`);
+}
+
+async function clearArquivo() {
+  if (!confirm('Limpar todo o arquivo?')) return;
+  const batch = db.batch();
+  arqTasks.forEach(t => batch.delete(db.collection('arquivo').doc(t.id)));
+  await batch.commit();
+  toast('🗑️ Arquivo limpo.');
+}
+
+function exportPDF() {
+  document.getElementById('print-date').textContent =
+    'Data: ' + fmtDate(today()) + '  ·  ' +
+    new Date().toLocaleTimeString('pt-BR', {hour:'2-digit',minute:'2-digit'});
+  document.getElementById('print-header').style.display = 'block';
+  const orig = document.getElementById('filter-date').value;
+  document.getElementById('filter-date').value = today();
+  renderTarefas();
+  setTimeout(() => {
+    window.print();
+    document.getElementById('print-header').style.display = 'none';
+    document.getElementById('filter-date').value = orig;
+    renderTarefas();
+  }, 150);
+}
+
+// ════════════════════════
+// FUNCIONÁRIOS
+// ════════════════════════
+async function addFunc() {
+  const input = document.getElementById('new-func');
+  const nome  = input.value.trim();
+  if (!nome) { toast('⚠️ Digite o nome!'); return; }
+  if (funcs.includes(nome)) { toast('⚠️ Já existe!'); return; }
+  const list = [...funcs, nome].sort((a,b) => a.localeCompare(b));
+  await dbSaveFuncs(list);
+  input.value = '';
+  toast('👷 Funcionário adicionado!');
+}
+
+async function removeFunc(nome) {
+  if (!confirm(`Remover "${nome}"?`)) return;
+  await dbSaveFuncs(funcs.filter(f => f !== nome));
+  toast('Removido.');
+}
+
+function renderFuncs() {
+  const el = document.getElementById('func-list');
+  if (el) {
+    el.innerHTML = funcs.length
+      ? funcs.map(f => `<span class="func-chip">👷 ${esc(f)}<button onclick="removeFunc('${esc(f)}')">✕</button></span>`).join('')
+      : `<span style="font-size:.8rem;color:var(--muted)">Nenhum funcionário cadastrado.</span>`;
+  }
+  const opts = funcs.map(f => `<option value="${esc(f)}">${esc(f)}</option>`).join('');
+  const sel  = document.getElementById('f-resp');
+  if (sel) { const c = sel.value; sel.innerHTML = '<option value="">Selecione…</option>' + opts; if (c) sel.value = c; }
+}
+
+// ════════════════════════
+// LIGHTBOX
+// ════════════════════════
+function openLightbox(taskId, idx, src) {
+  const all = src === 'arq' ? arqTasks : tasks;
+  const t   = all.find(t => t.id === taskId);
+  if (!t || !t.fotos || !t.fotos[idx]) return;
+  document.getElementById('lb-img').src = t.fotos[idx];
+  document.getElementById('lightbox').classList.add('open');
+}
+function closeLightbox() {
+  document.getElementById('lightbox').classList.remove('open');
+  document.getElementById('lb-img').src = '';
+}
+
+// ════════════════════════
+// INIT
+// ════════════════════════
+(function init() {
+  initListeners();
+  if (sessionStorage.getItem('manut_gestor_mobile') === '1') login();
+})();
+</script>
+</body>
+</html>

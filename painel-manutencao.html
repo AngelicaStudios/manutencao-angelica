@@ -1,0 +1,1175 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Painel de Manutenção</title>
+<style>
+  :root {
+    --bg: #f0f2f5;
+    --card: #ffffff;
+    --primary: #2563eb;
+    --primary-dark: #1d4ed8;
+    --danger: #dc2626;
+    --success: #16a34a;
+    --warning: #d97706;
+    --text: #1e293b;
+    --muted: #64748b;
+    --border: #e2e8f0;
+    --radius: 10px;
+    --shadow: 0 1px 3px rgba(0,0,0,.1), 0 1px 2px rgba(0,0,0,.06);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+  }
+
+  /* ══════════════════════════════════════════
+     TELA DE LOGIN
+  ══════════════════════════════════════════ */
+  #login-screen {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 24px;
+    background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%);
+  }
+  #login-screen h1 { color: #fff; font-size: 1.6rem; margin-bottom: 6px; }
+  #login-screen p  { color: rgba(255,255,255,.75); font-size: .9rem; margin-bottom: 36px; }
+
+  .login-cards {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+    justify-content: center;
+    width: 100%;
+    max-width: 640px;
+  }
+  .login-card {
+    flex: 1;
+    min-width: 240px;
+    background: #fff;
+    border-radius: 14px;
+    padding: 32px 28px;
+    box-shadow: 0 8px 32px rgba(0,0,0,.2);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+    text-align: center;
+  }
+  .login-card .icon { font-size: 2.8rem; }
+  .login-card h2   { font-size: 1.1rem; font-weight: 700; }
+  .login-card p    { font-size: .82rem; color: var(--muted); line-height: 1.5; }
+  .login-card input {
+    width: 100%;
+    border: 1.5px solid var(--border);
+    border-radius: 7px;
+    padding: 10px 14px;
+    font-size: .9rem;
+    text-align: center;
+    letter-spacing: 2px;
+  }
+  .login-card input:focus { outline: none; border-color: var(--primary); }
+
+  /* ══════════════════════════════════════════
+     MODAL ALTERAR SENHA
+  ══════════════════════════════════════════ */
+  #modal-senha {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,.5);
+    z-index: 1100;
+    align-items: center;
+    justify-content: center;
+  }
+  #modal-senha.open { display: flex; }
+  .modal-box {
+    background: #fff;
+    border-radius: var(--radius);
+    padding: 28px;
+    width: 340px;
+    max-width: 95vw;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    box-shadow: 0 8px 32px rgba(0,0,0,.25);
+  }
+  .modal-box h3 { font-size: 1rem; font-weight: 700; color: var(--primary); }
+  .modal-box input {
+    border: 1.5px solid var(--border);
+    border-radius: 7px;
+    padding: 9px 12px;
+    font-size: .9rem;
+    width: 100%;
+  }
+  .modal-box input:focus { outline: none; border-color: var(--primary); }
+  .modal-actions { display: flex; gap: 8px; }
+
+  /* ══════════════════════════════════════════
+     HEADER
+  ══════════════════════════════════════════ */
+  #app { display: none; }
+
+  header {
+    background: var(--primary);
+    color: #fff;
+    padding: 14px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px;
+    box-shadow: 0 2px 8px rgba(0,0,0,.2);
+  }
+  header h1      { font-size: 1.15rem; font-weight: 700; }
+  .header-right  { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .role-badge {
+    background: rgba(255,255,255,.2);
+    border: 1.5px solid rgba(255,255,255,.5);
+    color: #fff;
+    border-radius: 20px;
+    padding: 4px 14px;
+    font-size: .78rem;
+    font-weight: 700;
+    letter-spacing: .4px;
+  }
+  .logout-btn {
+    background: rgba(255,255,255,.15);
+    border: 1.5px solid rgba(255,255,255,.5);
+    color: #fff;
+    border-radius: 20px;
+    padding: 5px 14px;
+    font-size: .78rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background .2s;
+  }
+  .logout-btn:hover { background: rgba(255,255,255,.3); }
+
+  .mode-btns { display: flex; gap: 8px; flex-wrap: wrap; }
+  .mode-btn {
+    padding: 6px 16px;
+    border: 2px solid rgba(255,255,255,.6);
+    background: transparent;
+    color: #fff;
+    border-radius: 20px;
+    cursor: pointer;
+    font-size: .82rem;
+    font-weight: 600;
+    transition: all .2s;
+  }
+  .mode-btn.active { background: #fff; color: var(--primary); border-color: #fff; }
+
+  /* ══════════════════════════════════════════
+     LAYOUT GERAL
+  ══════════════════════════════════════════ */
+  main { max-width: 1100px; margin: 0 auto; padding: 24px 16px; }
+  .view { display: none; }
+  .view.active { display: block; }
+
+  /* ══════════════════════════════════════════
+     FORM / CARDS GESTOR
+  ══════════════════════════════════════════ */
+  .form-card {
+    background: var(--card);
+    border-radius: var(--radius);
+    padding: 24px;
+    box-shadow: var(--shadow);
+    margin-bottom: 24px;
+  }
+  .form-card h2 { font-size: 1rem; font-weight: 700; margin-bottom: 16px; color: var(--primary); }
+
+  .form-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+    gap: 14px;
+  }
+  .form-group { display: flex; flex-direction: column; gap: 5px; }
+  .form-group.full { grid-column: 1 / -1; }
+  label { font-size: .78rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .4px; }
+
+  input, select, textarea {
+    border: 1.5px solid var(--border);
+    border-radius: 7px;
+    padding: 9px 12px;
+    font-size: .9rem;
+    font-family: inherit;
+    color: var(--text);
+    background: #fff;
+    transition: border-color .2s;
+    width: 100%;
+  }
+  input:focus, select:focus, textarea:focus { outline: none; border-color: var(--primary); }
+  textarea { resize: vertical; min-height: 75px; }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 9px 20px;
+    border: none;
+    border-radius: 7px;
+    font-size: .88rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all .18s;
+    white-space: nowrap;
+  }
+  .btn-primary { background: var(--primary); color: #fff; }
+  .btn-primary:hover { background: var(--primary-dark); }
+  .btn-danger  { background: var(--danger);  color: #fff; }
+  .btn-danger:hover  { background: #b91c1c; }
+  .btn-success { background: var(--success); color: #fff; }
+  .btn-success:hover { background: #15803d; }
+  .btn-warning { background: var(--warning); color: #fff; }
+  .btn-warning:hover { background: #b45309; }
+  .btn-ghost   { background: #f1f5f9; color: var(--muted); }
+  .btn-ghost:hover { background: #e2e8f0; }
+  .btn-sm { padding: 5px 12px; font-size: .77rem; }
+  .form-actions { margin-top: 16px; display: flex; gap: 10px; flex-wrap: wrap; }
+  .action-bar   { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 16px; }
+
+  /* ══════════════════════════════════════════
+     FILTROS
+  ══════════════════════════════════════════ */
+  .filters {
+    background: var(--card);
+    border-radius: var(--radius);
+    padding: 14px 18px;
+    box-shadow: var(--shadow);
+    margin-bottom: 18px;
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    align-items: flex-end;
+  }
+  .filters .form-group { min-width: 145px; }
+  .filters label { font-size: .73rem; }
+
+  /* ══════════════════════════════════════════
+     CARDS DE TAREFA
+  ══════════════════════════════════════════ */
+  .task-card {
+    background: var(--card);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 16px 18px;
+    border-left: 5px solid var(--border);
+    transition: box-shadow .2s;
+    position: relative;
+    margin-bottom: 12px;
+  }
+  .task-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,.12); }
+  .task-card[data-priority="alta"]  { border-left-color: var(--danger); }
+  .task-card[data-priority="media"] { border-left-color: var(--warning); }
+  .task-card[data-priority="baixa"] { border-left-color: var(--success); }
+  .task-card.archived { opacity: .65; background: #f8fafc; }
+
+  .task-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 8px;
+    flex-wrap: wrap;
+  }
+  .task-title { font-weight: 700; font-size: .95rem; }
+  .task-meta  { display: flex; gap: 7px; flex-wrap: wrap; margin-bottom: 8px; }
+
+  .badge {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 20px;
+    font-size: .7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .4px;
+  }
+  .badge-pendente  { background: #fef3c7; color: #92400e; }
+  .badge-andamento { background: #dbeafe; color: #1e40af; }
+  .badge-concluida { background: #dcfce7; color: #166534; }
+  .badge-arquivada { background: #f1f5f9; color: #475569; }
+  .badge-alta  { background: #fee2e2; color: #991b1b; }
+  .badge-media { background: #fff7ed; color: #9a3412; }
+  .badge-baixa { background: #f0fdf4; color: #14532d; }
+
+  .task-desc { font-size: .84rem; color: var(--muted); margin-bottom: 8px; line-height: 1.5; }
+  .task-obs  {
+    font-size: .82rem;
+    background: #f8fafc;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 8px 12px;
+    margin-top: 8px;
+    color: var(--text);
+  }
+  .task-obs strong { color: var(--primary); }
+
+  .task-date { font-size: .77rem; color: var(--muted); }
+  .task-date.hoje     { color: var(--primary); font-weight: 700; }
+  .task-date.atrasada { color: var(--danger);  font-weight: 700; }
+
+  /* ── PAINEL DA EQUIPE ── */
+  .equipe-panel {
+    margin-top: 12px;
+    background: #f8fafc;
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .equipe-panel-row {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    align-items: flex-end;
+  }
+  .equipe-panel-row .form-group { min-width: 160px; flex: 1; }
+  .equipe-panel-row label { font-size: .73rem; }
+
+  /* ── FOTO ── */
+  .foto-input-wrap label  { font-size: .73rem; color: var(--muted); }
+  .foto-input-wrap input[type="file"] {
+    padding: 4px 8px;
+    font-size: .78rem;
+    border: 1.5px dashed var(--border);
+    background: #fff;
+    cursor: pointer;
+  }
+  .foto-preview-wrap { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
+  .foto-thumb {
+    width: 72px;
+    height: 72px;
+    object-fit: cover;
+    border-radius: 6px;
+    border: 2px solid var(--border);
+    cursor: pointer;
+    transition: transform .15s;
+  }
+  .foto-thumb:hover { transform: scale(1.07); }
+
+  /* ── LIGHTBOX ── */
+  #lightbox {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,.88);
+    z-index: 1200;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 16px;
+  }
+  #lightbox.open { display: flex; }
+  #lightbox img  { max-width: 90vw; max-height: 80vh; border-radius: 8px; }
+  #lightbox button {
+    background: #fff; border: none; border-radius: 6px;
+    padding: 8px 20px; font-weight: 700; cursor: pointer;
+  }
+
+  /* ── DELETE BTN ── */
+  .delete-btn {
+    position: absolute;
+    top: 12px; right: 12px;
+    background: none; border: none;
+    color: #cbd5e1; cursor: pointer;
+    font-size: 1rem; line-height: 1;
+    padding: 2px; border-radius: 4px;
+    transition: color .15s;
+  }
+  .delete-btn:hover { color: var(--danger); }
+
+  /* ── VAZIO ── */
+  .empty { text-align: center; padding: 50px 20px; color: var(--muted); }
+  .empty .icon { font-size: 2.8rem; margin-bottom: 10px; }
+  .empty p     { font-size: .9rem; }
+
+  /* ── CONTADORES ── */
+  .counters { display: flex; gap: 12px; margin-bottom: 18px; flex-wrap: wrap; }
+  .counter {
+    flex: 1; min-width: 110px;
+    background: var(--card); border-radius: var(--radius);
+    padding: 12px 16px; box-shadow: var(--shadow);
+    display: flex; flex-direction: column; gap: 2px;
+  }
+  .counter .num { font-size: 1.7rem; font-weight: 800; }
+  .counter .lbl { font-size: .72rem; color: var(--muted); text-transform: uppercase; letter-spacing: .4px; }
+  .counter.c-pend  .num { color: var(--warning); }
+  .counter.c-and   .num { color: var(--primary); }
+  .counter.c-conc  .num { color: var(--success); }
+  .counter.c-total .num { color: var(--text); }
+
+  .section-title {
+    font-size: .82rem; font-weight: 700; color: var(--muted);
+    text-transform: uppercase; letter-spacing: .5px;
+    margin: 20px 0 8px;
+    padding-bottom: 5px; border-bottom: 1.5px solid var(--border);
+  }
+
+  .apto-tag {
+    font-size: .76rem; background: #ede9fe; color: #5b21b6;
+    border-radius: 4px; padding: 2px 8px; font-weight: 700;
+  }
+
+  .func-chip {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: #f1f5f9; border: 1.5px solid var(--border);
+    border-radius: 20px; padding: 5px 12px;
+    font-size: .82rem; font-weight: 600; color: var(--text);
+  }
+  .func-chip button {
+    background: none; border: none; cursor: pointer;
+    color: #94a3b8; font-size: .85rem; padding: 0;
+    line-height: 1; transition: color .15s;
+  }
+  .func-chip button:hover { color: var(--danger); }
+
+  details > summary::-webkit-details-marker { display: none; }
+  details[open] summary span:last-child { display: none; }
+
+  @media (max-width: 600px) {
+    header { padding: 12px 14px; }
+    main { padding: 14px 10px; }
+    .form-grid { grid-template-columns: 1fr; }
+    .counters { gap: 8px; }
+    .counter { min-width: 90px; padding: 10px 12px; }
+    .counter .num { font-size: 1.4rem; }
+    .login-card { min-width: 100%; }
+  }
+
+  /* ── TOAST ── */
+  #toast {
+    position: fixed; bottom: 22px; right: 22px;
+    background: #1e293b; color: #fff;
+    padding: 11px 18px; border-radius: 8px;
+    font-size: .86rem; font-weight: 600;
+    box-shadow: 0 4px 16px rgba(0,0,0,.25);
+    opacity: 0; transform: translateY(10px);
+    transition: all .3s; pointer-events: none; z-index: 999;
+  }
+  #toast.show { opacity: 1; transform: translateY(0); }
+
+  /* ── PRINT ── */
+  @media print {
+    #login-screen, header .mode-btns, header .role-badge, header .logout-btn,
+    .filters, .form-card, .action-bar, .equipe-panel, .delete-btn,
+    #toast, details { display: none !important; }
+    body { background: #fff; }
+    main { padding: 0; max-width: 100%; }
+    .view { display: block !important; }
+    #view-equipe, #view-arquivo { display: none !important; }
+    .task-card { box-shadow: none; border: 1px solid #ddd; page-break-inside: avoid; margin-bottom: 10px; }
+    #print-header { display: block !important; }
+  }
+  #print-header { display: none; margin-bottom: 18px; border-bottom: 2px solid #000; padding-bottom: 10px; }
+  #print-header h2 { font-size: 1.1rem; }
+  #print-header p  { font-size: .82rem; color: #555; }
+</style>
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script src="firebase-config.js"></script>
+</head>
+<body>
+
+<!-- ════════════════════════════════════════
+     TELA DE LOGIN
+════════════════════════════════════════ -->
+<div id="login-screen">
+  <h1>🔧 Painel de Manutenção</h1>
+  <p>Selecione seu perfil de acesso</p>
+  <div class="login-cards">
+
+    <div class="login-card">
+      <div class="icon">👤</div>
+      <h2>Gestor</h2>
+      <p>Acesso completo: criar, editar, arquivar tarefas e gerenciar a equipe.</p>
+      <button class="btn btn-primary" style="width:100%;margin-top:auto" onclick="loginGestor()">Entrar como Gestor</button>
+    </div>
+
+    <div class="login-card">
+      <div class="icon">🛠️</div>
+      <h2>Equipe de Manutenção</h2>
+      <p>Visualize suas tarefas, registre a data de execução e atualize o status.</p>
+      <button class="btn btn-success" style="width:100%;margin-top:auto" onclick="loginEquipe()">Entrar como Equipe</button>
+    </div>
+
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════
+     APLICATIVO
+════════════════════════════════════════ -->
+<div id="app">
+
+  <header>
+    <h1>🔧 Painel de Manutenção</h1>
+    <div class="header-right">
+      <div class="mode-btns" id="mode-btns"></div>
+      <span class="role-badge" id="role-badge"></span>
+      <button class="logout-btn" onclick="logout()">Sair</button>
+    </div>
+  </header>
+
+  <main>
+
+    <!-- ════ VISÃO DO GESTOR ════ -->
+    <div id="view-gestor" class="view">
+
+      <div id="print-header">
+        <h2>Tarefas do Dia — Manutenção</h2>
+        <p id="print-date"></p>
+      </div>
+
+      <div class="form-card">
+        <h2>➕ Nova Tarefa</h2>
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Apartamento / Unidade</label>
+            <input type="text" id="f-apto" placeholder="Ex: 101, Bloco B-204" />
+          </div>
+          <div class="form-group">
+            <label>Tipo de Serviço</label>
+            <select id="f-tipo">
+              <option value="">Selecione…</option>
+              <option>Elétrica</option>
+              <option>Hidráulica</option>
+              <option>Limpeza</option>
+              <option>Pintura</option>
+              <option>Marcenaria</option>
+              <option>Ar-condicionado</option>
+              <option>Portão / Interfone</option>
+              <option>Inspeção geral</option>
+              <option>Outro</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Responsável</label>
+            <select id="f-resp"><option value="">Selecione…</option></select>
+          </div>
+          <div class="form-group">
+            <label>Prioridade</label>
+            <select id="f-prioridade">
+              <option value="baixa">🟢 Baixa</option>
+              <option value="media" selected>🟡 Média</option>
+              <option value="alta">🔴 Alta</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Data Prevista</label>
+            <input type="date" id="f-data" />
+          </div>
+          <div class="form-group full">
+            <label>Descrição da Tarefa</label>
+            <textarea id="f-desc" placeholder="Descreva o problema ou o serviço a realizar…"></textarea>
+          </div>
+        </div>
+        <div class="form-actions">
+          <button class="btn btn-primary" onclick="addTask()">✅ Adicionar Tarefa</button>
+          <button class="btn btn-ghost" onclick="clearForm()">Limpar</button>
+        </div>
+      </div>
+
+      <!-- Funcionários -->
+      <details class="form-card" style="margin-bottom:20px">
+        <summary style="cursor:pointer;font-size:.93rem;font-weight:700;color:var(--primary);list-style:none;display:flex;align-items:center;gap:8px">
+          <span>👷 Gerenciar Funcionários</span>
+          <span style="font-size:.74rem;font-weight:400;color:var(--muted)">(clique para expandir)</span>
+        </summary>
+        <div style="margin-top:14px">
+          <div style="display:flex;gap:8px;margin-bottom:12px">
+            <input type="text" id="new-func" placeholder="Nome do funcionário" style="flex:1" onkeydown="if(event.key==='Enter')addFunc()" />
+            <button class="btn btn-primary" onclick="addFunc()">+ Adicionar</button>
+          </div>
+          <div id="func-list" style="display:flex;flex-wrap:wrap;gap:8px"></div>
+        </div>
+      </details>
+
+      <!-- Filtros gestor -->
+      <div class="filters">
+        <div class="form-group">
+          <label>Data</label>
+          <input type="date" id="g-filter-date" oninput="renderGestor()" />
+        </div>
+        <div class="form-group">
+          <label>Status</label>
+          <select id="g-filter-status" onchange="renderGestor()">
+            <option value="">Todos</option>
+            <option value="pendente">Pendente</option>
+            <option value="andamento">Em andamento</option>
+            <option value="concluida">Concluída</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Prioridade</label>
+          <select id="g-filter-prio" onchange="renderGestor()">
+            <option value="">Todas</option>
+            <option value="alta">Alta</option>
+            <option value="media">Média</option>
+            <option value="baixa">Baixa</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Responsável</label>
+          <select id="g-filter-resp" onchange="renderGestor()">
+            <option value="">Todos</option>
+          </select>
+        </div>
+        <button class="btn btn-sm btn-ghost" onclick="clearFilters('g')">Limpar filtros</button>
+      </div>
+
+      <div class="action-bar">
+        <button class="btn btn-warning" onclick="exportPDF()">🖨️ PDF do dia</button>
+        <button class="btn btn-success" onclick="archiveCompleted()">📁 Arquivar concluídas</button>
+      </div>
+
+      <div id="gestor-list"></div>
+    </div>
+
+    <!-- ════ VISÃO DA EQUIPE ════ -->
+    <div id="view-equipe" class="view">
+      <div class="counters" id="counters"></div>
+
+      <div class="filters">
+        <div class="form-group">
+          <label>Data</label>
+          <input type="date" id="e-filter-date" oninput="renderEquipe()" />
+        </div>
+        <div class="form-group">
+          <label>Status</label>
+          <select id="e-filter-status" onchange="renderEquipe()">
+            <option value="">Todos</option>
+            <option value="pendente">Pendente</option>
+            <option value="andamento">Em andamento</option>
+            <option value="concluida">Concluída</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Responsável</label>
+          <select id="e-filter-resp" onchange="renderEquipe()">
+            <option value="">Todos</option>
+          </select>
+        </div>
+        <button class="btn btn-sm btn-ghost" onclick="clearFilters('e')">Limpar filtros</button>
+      </div>
+
+      <div id="equipe-list"></div>
+    </div>
+
+    <!-- ════ VISÃO DO ARQUIVO ════ -->
+    <div id="view-arquivo" class="view">
+      <div class="filters">
+        <div class="form-group">
+          <label>Data</label>
+          <input type="date" id="a-filter-date" oninput="renderArquivo()" />
+        </div>
+        <div class="form-group">
+          <label>Responsável</label>
+          <select id="a-filter-resp" onchange="renderArquivo()">
+            <option value="">Todos</option>
+          </select>
+        </div>
+        <button class="btn btn-sm btn-ghost" onclick="clearFilters('a')">Limpar filtros</button>
+      </div>
+      <div class="action-bar">
+        <button class="btn btn-danger btn-sm" onclick="clearArquivo()">🗑️ Limpar arquivo</button>
+      </div>
+      <div id="arquivo-list"></div>
+    </div>
+
+  </main>
+</div>
+
+<!-- Lightbox -->
+<div id="lightbox" onclick="closeLightbox()">
+  <img id="lightbox-img" src="" alt="foto" onclick="event.stopPropagation()" />
+  <button onclick="closeLightbox()">✕ Fechar</button>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ══════════════════════════════════════════════
+// ESTADO GLOBAL — sincronizado pelo Firebase
+// ══════════════════════════════════════════════
+let tasks    = [];   // tarefas ativas
+let arqTasks = [];   // tarefas arquivadas
+let funcs    = [];   // lista de funcionários
+
+function initListeners() {
+  db.collection('tarefas').onSnapshot(snap => {
+    tasks = snap.docs.map(d => d.data());
+    if (currentRole) renderIfActive();
+  });
+  db.collection('arquivo').onSnapshot(snap => {
+    arqTasks = snap.docs.map(d => d.data());
+    if (currentRole && document.getElementById('view-arquivo').classList.contains('active'))
+      renderArquivo();
+  });
+  db.collection('config').doc('funcionarios').onSnapshot(snap => {
+    funcs = (snap.exists && snap.data().nomes) ? snap.data().nomes : [];
+    if (currentRole) renderFuncs();
+  });
+}
+
+function renderIfActive() {
+  if (document.getElementById('view-gestor').classList.contains('active')) renderGestor();
+  if (document.getElementById('view-equipe').classList.contains('active')) renderEquipe();
+}
+
+// ── Helpers Firestore ──
+async function dbSet(col, id, data)    { await db.collection(col).doc(id).set(data); }
+async function dbUpdate(col, id, flds) { await db.collection(col).doc(id).update(flds); }
+async function dbDelete(col, id)       { await db.collection(col).doc(id).delete(); }
+async function dbSaveFuncs(list)       { await db.collection('config').doc('funcionarios').set({ nomes: list }); }
+
+// ══════════════════════════════════════════════
+// AUTENTICAÇÃO
+// ══════════════════════════════════════════════
+let currentRole = null;
+
+function loginGestor() { entrar('gestor'); }
+function loginEquipe() { entrar('equipe'); }
+
+function entrar(role) {
+  currentRole = role;
+  sessionStorage.setItem('manut_role', role);
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
+
+  const badge = document.getElementById('role-badge');
+  const tabs  = document.getElementById('mode-btns');
+
+  if (role === 'gestor') {
+    badge.textContent = '👤 Gestor';
+    tabs.innerHTML = `
+      <button class="mode-btn" onclick="setMode('gestor')">👤 Gestor</button>
+      <button class="mode-btn" onclick="setMode('equipe')">🛠 Equipe</button>
+      <button class="mode-btn" onclick="setMode('arquivo')">📁 Arquivo</button>
+    `;
+    renderFuncs();
+    setMode('gestor');
+  } else {
+    badge.textContent = '🛠️ Equipe';
+    tabs.innerHTML = '';
+    renderFuncs();
+    setMode('equipe');
+  }
+}
+
+function logout() {
+  currentRole = null;
+  sessionStorage.removeItem('manut_role');
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('login-screen').style.display = 'flex';
+}
+
+// ══════════════════════════════════════════════
+// UTILIDADES
+// ══════════════════════════════════════════════
+function today() { return new Date().toISOString().split('T')[0]; }
+function fmtDate(d) {
+  if (!d) return '';
+  const [y,m,dia] = d.split('-');
+  return `${dia}/${m}/${y}`;
+}
+function dateLabel(d) {
+  const t = today();
+  if (d === t) return { label: '📅 Hoje', cls: 'hoje' };
+  if (d < t)   return { label: '⚠️ Atrasada · ' + fmtDate(d), cls: 'atrasada' };
+  return { label: '📆 ' + fmtDate(d), cls: '' };
+}
+function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2); }
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 2800);
+}
+
+// ══════════════════════════════════════════════
+// MODO / TABS
+// ══════════════════════════════════════════════
+function setMode(m) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.getElementById('view-' + m).classList.add('active');
+  document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+  const active = document.querySelector(`[onclick="setMode('${m}')"]`);
+  if (active) active.classList.add('active');
+  if (m === 'gestor')  renderGestor();
+  else if (m === 'equipe')  renderEquipe();
+  else if (m === 'arquivo') renderArquivo();
+}
+
+// ══════════════════════════════════════════════
+// FORM GESTOR
+// ══════════════════════════════════════════════
+function clearForm() {
+  ['f-apto','f-desc'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('f-tipo').value = '';
+  document.getElementById('f-resp').selectedIndex = 0;
+  document.getElementById('f-prioridade').value = 'media';
+  document.getElementById('f-data').value = today();
+}
+
+async function addTask() {
+  const apto = document.getElementById('f-apto').value.trim();
+  const tipo = document.getElementById('f-tipo').value;
+  const prio = document.getElementById('f-prioridade').value;
+  const data = document.getElementById('f-data').value;
+  const desc = document.getElementById('f-desc').value.trim();
+  const resp = document.getElementById('f-resp').value;
+
+  if (!apto) { toast('⚠️ Informe o apartamento!'); return; }
+  if (!tipo) { toast('⚠️ Selecione o tipo de serviço!'); return; }
+  if (!data) { toast('⚠️ Informe a data!'); return; }
+
+  const tarefa = { id: uid(), apto, tipo, prio, resp, data, desc,
+                   status: 'pendente', obs: '', dataExec: '', fotos: [], criadoEm: Date.now() };
+  await dbSet('tarefas', tarefa.id, tarefa);
+  clearForm();
+  toast('✅ Tarefa adicionada!');
+}
+
+// ══════════════════════════════════════════════
+// FILTROS
+// ══════════════════════════════════════════════
+function clearFilters(p) {
+  ['date','status','prio','resp'].forEach(f => {
+    const el = document.getElementById(p + '-filter-' + f);
+    if (el) el.value = '';
+  });
+  if (p === 'g') renderGestor();
+  else if (p === 'e') renderEquipe();
+  else renderArquivo();
+}
+
+function applyFilters(list, p) {
+  const g = id => { const el = document.getElementById(id); return el ? el.value : ''; };
+  const date   = g(p + '-filter-date');
+  const status = g(p + '-filter-status');
+  const prio   = g(p + '-filter-prio');
+  const resp   = g(p + '-filter-resp');
+  return list.filter(t =>
+    (!date   || t.data === date) &&
+    (!status || t.status === status) &&
+    (!prio   || t.prio === prio) &&
+    (!resp   || t.resp === resp)
+  );
+}
+
+// ══════════════════════════════════════════════
+// RENDERS
+// ══════════════════════════════════════════════
+function renderGestor() {
+  document.getElementById('f-data').value = document.getElementById('f-data').value || today();
+  let list = applyFilters(tasks, 'g');
+  list.sort((a,b) => a.data.localeCompare(b.data) || prioOrder(a.prio) - prioOrder(b.prio));
+
+  const el = document.getElementById('gestor-list');
+  if (!list.length) { el.innerHTML = emptyHTML('Nenhuma tarefa encontrada.'); return; }
+
+  const byDate = {};
+  list.forEach(t => { (byDate[t.data] = byDate[t.data] || []).push(t); });
+
+  el.innerHTML = Object.keys(byDate).sort().map(d => {
+    const info = dateLabel(d);
+    return `<div class="section-title ${info.cls}">${info.label}</div>` +
+      byDate[d].map(t => taskCardHTML(t, 'gestor')).join('');
+  }).join('');
+}
+
+function renderEquipe() {
+  const pend = tasks.filter(t => t.status === 'pendente').length;
+  const and  = tasks.filter(t => t.status === 'andamento').length;
+  const conc = tasks.filter(t => t.status === 'concluida').length;
+
+  document.getElementById('counters').innerHTML = `
+    <div class="counter c-total"><div class="num">${tasks.length}</div><div class="lbl">Total</div></div>
+    <div class="counter c-pend"><div class="num">${pend}</div><div class="lbl">Pendentes</div></div>
+    <div class="counter c-and"><div class="num">${and}</div><div class="lbl">Em andamento</div></div>
+    <div class="counter c-conc"><div class="num">${conc}</div><div class="lbl">Concluídas</div></div>
+  `;
+
+  let list = applyFilters(tasks, 'e');
+  list.sort((a,b) => statusOrder(a.status) - statusOrder(b.status)
+                  || a.data.localeCompare(b.data)
+                  || prioOrder(a.prio) - prioOrder(b.prio));
+
+  const el = document.getElementById('equipe-list');
+  if (!list.length) { el.innerHTML = emptyHTML('Nenhuma tarefa encontrada.'); return; }
+  el.innerHTML = list.map(t => taskCardHTML(t, 'equipe')).join('');
+}
+
+function renderArquivo() {
+  let list = applyFilters(arqTasks, 'a');
+  list.sort((a,b) => b.arquivadoEm - a.arquivadoEm);
+
+  const el = document.getElementById('arquivo-list');
+  if (!list.length) { el.innerHTML = emptyHTML('Nenhuma tarefa arquivada.'); return; }
+  el.innerHTML = list.map(t => taskCardHTML(t, 'arquivo')).join('');
+}
+
+function prioOrder(p)   { return { alta:0, media:1, baixa:2 }[p] ?? 1; }
+function statusOrder(s) { return { pendente:0, andamento:1, concluida:2 }[s] ?? 0; }
+
+// ══════════════════════════════════════════════
+// CARD HTML
+// ══════════════════════════════════════════════
+function taskCardHTML(t, view) {
+  const info  = dateLabel(t.data);
+  const isArq = view === 'arquivo';
+
+  const fotosHtml = (t.fotos && t.fotos.length)
+    ? `<div class="foto-preview-wrap">${t.fotos.map((f,i) =>
+        `<img class="foto-thumb" src="${f}" alt="foto ${i+1}" onclick="openLightbox('${t.id}',${i},'${isArq?'arq':'task'}')" />`
+      ).join('')}</div>`
+    : '';
+
+  const obsHtml = t.obs
+    ? `<div class="task-obs"><strong>📝 Obs:</strong> ${escHtml(t.obs)}</div>` : '';
+  const dataExecHtml = t.dataExec
+    ? `<div style="font-size:.78rem;color:var(--success);margin-top:4px">✅ Executado em: <strong>${fmtDate(t.dataExec)}</strong></div>` : '';
+
+  const deleteBtn = (view === 'gestor')
+    ? `<button class="delete-btn" onclick="deleteTask('${t.id}')" title="Excluir">✕</button>` : '';
+
+  let panel = '';
+  if (view === 'equipe') {
+    panel = `
+      <div class="equipe-panel">
+        <div class="equipe-panel-row">
+          <div class="form-group">
+            <label>Status</label>
+            <select class="status-select" onchange="updateStatus('${t.id}', this.value)">
+              <option value="pendente"  ${t.status==='pendente' ?'selected':''}>⏳ Pendente</option>
+              <option value="andamento" ${t.status==='andamento'?'selected':''}>🔄 Em andamento</option>
+              <option value="concluida" ${t.status==='concluida'?'selected':''}>✅ Concluída</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Data de Execução</label>
+            <input type="date" value="${t.dataExec || ''}"
+              onchange="updateDataExec('${t.id}', this.value)" />
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Observação</label>
+          <textarea id="obs-text-${t.id}" placeholder="Materiais usados, pendências, detalhes…"
+            rows="2">${escHtml(t.obs)}</textarea>
+        </div>
+        <div class="foto-input-wrap">
+          <label>📷 Adicionar foto(s)</label>
+          <input type="file" accept="image/*" multiple id="foto-input-${t.id}" />
+        </div>
+        ${fotosHtml}
+        <div>
+          <button class="btn btn-primary btn-sm" onclick="saveEquipe('${t.id}')">💾 Salvar</button>
+        </div>
+      </div>
+    `;
+  }
+
+  return `
+    <div class="task-card${isArq ? ' archived' : ''}" data-priority="${t.prio}" id="card-${t.id}">
+      ${deleteBtn}
+      <div class="task-header">
+        <div class="task-title">${escHtml(t.tipo)}</div>
+        ${!isArq ? `<div class="task-date ${info.cls}">${info.label}</div>` : ''}
+      </div>
+      <div class="task-meta">
+        <span class="apto-tag">🏠 ${escHtml(t.apto)}</span>
+        ${t.resp ? `<span class="badge" style="background:#e0f2fe;color:#075985">👷 ${escHtml(t.resp)}</span>` : ''}
+        ${isArq
+          ? `<span class="badge badge-arquivada">📁 Arquivada · ${fmtDate(t.data)}</span>`
+          : `<span class="badge badge-${t.status}">${labelStatus(t.status)}</span>`}
+        <span class="badge badge-${t.prio}">${labelPrio(t.prio)}</span>
+      </div>
+      ${t.desc ? `<div class="task-desc">${escHtml(t.desc)}</div>` : ''}
+      ${obsHtml}
+      ${dataExecHtml}
+      ${view === 'gestor' || isArq ? fotosHtml : ''}
+      ${panel}
+    </div>
+  `;
+}
+
+function labelStatus(s) {
+  return { pendente:'⏳ Pendente', andamento:'🔄 Em andamento', concluida:'✅ Concluída' }[s] || s;
+}
+function labelPrio(p) {
+  return { alta:'🔴 Alta', media:'🟡 Média', baixa:'🟢 Baixa' }[p] || p;
+}
+function escHtml(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function emptyHTML(msg) {
+  return `<div class="empty"><div class="icon">📋</div><p>${msg}</p></div>`;
+}
+
+// ══════════════════════════════════════════════
+// AÇÕES GESTOR
+// ══════════════════════════════════════════════
+async function deleteTask(id) {
+  if (!confirm('Excluir esta tarefa?')) return;
+  await dbDelete('tarefas', id);
+  toast('🗑️ Tarefa excluída.');
+}
+
+async function archiveCompleted() {
+  const done = tasks.filter(t => t.status === 'concluida');
+  if (!done.length) { toast('⚠️ Nenhuma tarefa concluída para arquivar.'); return; }
+  if (!confirm(`Arquivar ${done.length} tarefa(s) concluída(s)?`)) return;
+  const now = Date.now();
+  const batch = db.batch();
+  done.forEach(t => {
+    const archived = { ...t, arquivadoEm: now };
+    batch.set(db.collection('arquivo').doc(t.id), archived);
+    batch.delete(db.collection('tarefas').doc(t.id));
+  });
+  await batch.commit();
+  toast(`📁 ${done.length} tarefa(s) arquivada(s)!`);
+}
+
+async function clearArquivo() {
+  if (!confirm('Limpar todo o arquivo? Esta ação não pode ser desfeita.')) return;
+  const batch = db.batch();
+  arqTasks.forEach(t => batch.delete(db.collection('arquivo').doc(t.id)));
+  await batch.commit();
+  toast('🗑️ Arquivo limpo.');
+}
+
+function exportPDF() {
+  document.getElementById('print-date').textContent =
+    'Data: ' + fmtDate(today()) + '  ·  Gerado em: ' +
+    new Date().toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'});
+  const orig = document.getElementById('g-filter-date').value;
+  document.getElementById('g-filter-date').value = today();
+  renderGestor();
+  setTimeout(() => {
+    window.print();
+    document.getElementById('g-filter-date').value = orig;
+    renderGestor();
+  }, 150);
+}
+
+// ══════════════════════════════════════════════
+// AÇÕES EQUIPE
+// ══════════════════════════════════════════════
+async function updateStatus(id, status) {
+  await dbUpdate('tarefas', id, { status });
+  toast('Status atualizado!');
+}
+
+async function updateDataExec(id, data) {
+  await dbUpdate('tarefas', id, { dataExec: data });
+  toast('Data de execução salva!');
+}
+
+function saveEquipe(id) {
+  const obs       = document.getElementById('obs-text-' + id).value.trim();
+  const fileInput = document.getElementById('foto-input-' + id);
+  const files     = fileInput ? Array.from(fileInput.files) : [];
+
+  if (files.length) {
+    let loaded = 0;
+    const base64s = [];
+    files.forEach((file, i) => {
+      const reader = new FileReader();
+      reader.onload = e => {
+        base64s[i] = e.target.result;
+        if (++loaded === files.length) persistEquipe(id, obs, base64s);
+      };
+      reader.readAsDataURL(file);
+    });
+  } else {
+    persistEquipe(id, obs, []);
+  }
+}
+
+async function persistEquipe(id, obs, novasFotos) {
+  const t = tasks.find(t => t.id === id);
+  if (!t) return;
+  const fotos = [...(t.fotos || []), ...novasFotos];
+  await dbUpdate('tarefas', id, { obs, fotos });
+  toast('💾 Salvo com sucesso!');
+}
+
+// ══════════════════════════════════════════════
+// LIGHTBOX
+// ══════════════════════════════════════════════
+function openLightbox(taskId, idx, src) {
+  const all = src === 'arq' ? arqTasks : tasks;
+  const t   = all.find(t => t.id === taskId);
+  if (!t || !t.fotos || !t.fotos[idx]) return;
+  document.getElementById('lightbox-img').src = t.fotos[idx];
+  document.getElementById('lightbox').classList.add('open');
+}
+function closeLightbox() {
+  document.getElementById('lightbox').classList.remove('open');
+  document.getElementById('lightbox-img').src = '';
+}
+
+// ══════════════════════════════════════════════
+// FUNCIONÁRIOS
+// ══════════════════════════════════════════════
+async function addFunc() {
+  const input = document.getElementById('new-func');
+  const nome  = input.value.trim();
+  if (!nome) { toast('⚠️ Digite o nome!'); return; }
+  if (funcs.includes(nome)) { toast('⚠️ Já existe!'); return; }
+  const list = [...funcs, nome].sort((a,b) => a.localeCompare(b));
+  await dbSaveFuncs(list);
+  input.value = '';
+  toast('👷 Funcionário adicionado!');
+}
+
+async function removeFunc(nome) {
+  if (!confirm(`Remover "${nome}"?`)) return;
+  await dbSaveFuncs(funcs.filter(f => f !== nome));
+  toast('Funcionário removido.');
+}
+
+function renderFuncs() {
+  const el = document.getElementById('func-list');
+  if (el) {
+    el.innerHTML = funcs.length
+      ? funcs.map(f => `<span class="func-chip">👷 ${escHtml(f)}<button onclick="removeFunc('${escHtml(f)}')" title="Remover">✕</button></span>`).join('')
+      : `<span style="font-size:.82rem;color:var(--muted)">Nenhum funcionário cadastrado.</span>`;
+  }
+  const opts = funcs.map(f => `<option value="${escHtml(f)}">${escHtml(f)}</option>`).join('');
+
+  const sel = document.getElementById('f-resp');
+  if (sel) { const c = sel.value; sel.innerHTML = '<option value="">Selecione…</option>' + opts; if (c) sel.value = c; }
+
+  ['g-filter-resp','e-filter-resp','a-filter-resp'].forEach(id => {
+    const s = document.getElementById(id);
+    if (!s) return;
+    const c = s.value;
+    s.innerHTML = '<option value="">Todos</option>' + opts;
+    if (c) s.value = c;
+  });
+}
+
+// ══════════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════════
+(function init() {
+  initListeners();
+  const role = sessionStorage.getItem('manut_role');
+  if (role) entrar(role);
+})();
+</script>
+</body>
+</html>
