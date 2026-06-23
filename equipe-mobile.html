@@ -495,9 +495,11 @@
 
   <div class="login-box">
     <div style="font-size:2rem">🛠️</div>
-    <h2>Equipe de Manutenção</h2>
-    <p>Acesse suas tarefas do dia, atualize o status e registre fotos da execução.</p>
-    <button class="btn-enter" onclick="entrar()">Entrar</button>
+    <h2>Quem é você?</h2>
+    <p>Selecione seu nome para acessar suas tarefas.</p>
+    <div id="func-btns" style="width:100%;display:flex;flex-direction:column;gap:10px;margin-top:6px">
+      <div style="text-align:center;color:var(--muted);font-size:.85rem;padding:10px">Carregando…</div>
+    </div>
   </div>
 </div>
 
@@ -511,7 +513,10 @@
       <h1>🔧 Manutenção</h1>
       <span id="header-date"></span>
     </div>
-    <button class="logout-btn" onclick="logout()">Sair</button>
+    <div style="display:flex;align-items:center;gap:10px">
+      <span id="header-user" style="font-size:.75rem;color:rgba(255,255,255,.85);font-weight:700"></span>
+      <button class="logout-btn" onclick="logout()">Sair</button>
+    </div>
   </header>
 
   <!-- Contadores -->
@@ -543,18 +548,40 @@
 // ════════════════════════════════
 // ESTADO GLOBAL FIREBASE
 // ════════════════════════════════
-let tasks = [];
-const fotosPendentes = {}; // fotos ainda não salvas, por tarefa
+let tasks        = [];
+let currentUser  = '';
+let listenersOn  = false;
+const fotosPendentes = {};
 
 function initListeners() {
+  if (listenersOn) return;
+  listenersOn = true;
   db.collection('tarefas').onSnapshot(snap => {
     tasks = snap.docs.map(d => d.data());
-    if (sessionStorage.getItem('manut_mobile_role')) render();
+    if (currentUser) render();
   });
 }
 
 async function dbUpdate(id, fields) {
   await db.collection('tarefas').doc(id).update(fields);
+}
+
+// Popula botões de nome no login
+function carregarFuncs() {
+  db.collection('config').doc('funcionarios').get().then(snap => {
+    const nomes = (snap.exists && snap.data().nomes) ? snap.data().nomes : [];
+    const container = document.getElementById('func-btns');
+    if (!nomes.length) {
+      container.innerHTML = `<p style="color:var(--muted);font-size:.85rem;text-align:center">Nenhum funcionário cadastrado.<br>Fale com o gestor.</p>`;
+    } else {
+      container.innerHTML = nomes.map(n =>
+        `<button class="btn-enter" onclick="entrar('${n.replace(/'/g,"\\'")}')">${n}</button>`
+      ).join('');
+    }
+  }).catch(() => {
+    document.getElementById('func-btns').innerHTML =
+      `<p style="color:var(--red);font-size:.85rem;text-align:center">Erro de conexão. Verifique a internet.</p>`;
+  });
 }
 
 // ════════════════════════════════
@@ -582,20 +609,25 @@ function esc(s) {
 // ════════════════════════════════
 // AUTH
 // ════════════════════════════════
-function entrar() {
-  sessionStorage.setItem('manut_mobile_role', 'equipe');
+function entrar(nome) {
+  currentUser = nome;
+  sessionStorage.setItem('manut_equipe_nome', nome);
   document.getElementById('login-screen').style.display = 'none';
   document.getElementById('app').classList.add('visible');
   document.getElementById('header-date').textContent = fmtDateFull();
-  document.getElementById('filter-date').value = today();
+  document.getElementById('header-user').textContent = '👷 ' + nome;
+  // Sem data pré-selecionada: mostra todas as tarefas
   document.querySelector('.filter-chip').classList.add('active');
+  initListeners();
   render();
 }
 
 function logout() {
-  sessionStorage.removeItem('manut_mobile_role');
+  currentUser = '';
+  sessionStorage.removeItem('manut_equipe_nome');
   document.getElementById('app').classList.remove('visible');
   document.getElementById('login-screen').style.display = 'flex';
+  carregarFuncs();
 }
 
 // ════════════════════════════════
@@ -616,28 +648,40 @@ function setStatusFilter(btn) {
 function render() {
   const date = document.getElementById('filter-date') ? document.getElementById('filter-date').value : '';
 
-  const pend = tasks.filter(t => t.status === 'pendente').length;
-  const and  = tasks.filter(t => t.status === 'andamento').length;
-  const conc = tasks.filter(t => t.status === 'concluida').length;
-  const cEl  = document.getElementById('counters-bar');
+  // Apenas tarefas deste funcionário
+  const minhas = tasks.filter(t => t.resp === currentUser);
+  const pend   = minhas.filter(t => t.status === 'pendente').length;
+  const and    = minhas.filter(t => t.status === 'andamento').length;
+  const conc   = minhas.filter(t => t.status === 'concluida').length;
+
+  const cEl = document.getElementById('counters-bar');
   if (cEl) cEl.innerHTML = `
-    <div class="cnt c-total"><div class="num">${tasks.length}</div><div class="lbl">Total</div></div>
+    <div class="cnt c-total"><div class="num">${minhas.length}</div><div class="lbl">Minhas</div></div>
     <div class="cnt c-pend"><div class="num">${pend}</div><div class="lbl">Pendentes</div></div>
     <div class="cnt c-and"><div class="num">${and}</div><div class="lbl">Andamento</div></div>
     <div class="cnt c-conc"><div class="num">${conc}</div><div class="lbl">Concluídas</div></div>
   `;
 
-  let list = tasks.filter(t =>
+  // Filtro de data é opcional — sem data mostra tudo
+  let list = minhas.filter(t =>
     (!date || t.data === date) &&
     (!activeStatus || t.status === activeStatus)
   );
-  list.sort((a,b) => statusOrder(a.status) - statusOrder(b.status)
-                  || prioOrder(a.prio) - prioOrder(b.prio));
+  // Ordena: atrasadas e pendentes primeiro, depois por data e prioridade
+  list.sort((a,b) => {
+    const today_ = today();
+    const aAtras = a.data < today_ && a.status !== 'concluida' ? -1 : 0;
+    const bAtras = b.data < today_ && b.status !== 'concluida' ? -1 : 0;
+    if (aAtras !== bAtras) return aAtras - bAtras;
+    return statusOrder(a.status) - statusOrder(b.status)
+        || a.data.localeCompare(b.data)
+        || prioOrder(a.prio) - prioOrder(b.prio);
+  });
 
   const el = document.getElementById('task-list');
   if (!el) return;
   if (!list.length) {
-    el.innerHTML = `<div class="empty"><div class="icon">📋</div><p>Nenhuma tarefa encontrada para este dia.</p></div>`;
+    el.innerHTML = `<div class="empty"><div class="icon">✅</div><p>Nenhuma tarefa para você${date ? ' neste dia' : ''}.</p></div>`;
     return;
   }
   el.innerHTML = list.map(cardHTML).join('');
@@ -818,8 +862,12 @@ function closeLightbox() {
 // INIT
 // ════════════════════════════════
 (function init() {
-  initListeners();
-  if (sessionStorage.getItem('manut_mobile_role') === 'equipe') entrar();
+  const savedName = sessionStorage.getItem('manut_equipe_nome');
+  if (savedName) {
+    entrar(savedName);
+  } else {
+    carregarFuncs();
+  }
 })();
 </script>
 </body>

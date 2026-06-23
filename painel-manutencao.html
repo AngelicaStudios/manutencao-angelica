@@ -501,8 +501,10 @@
     <div class="login-card">
       <div class="icon">🛠️</div>
       <h2>Equipe de Manutenção</h2>
-      <p>Visualize suas tarefas, registre a data de execução e atualize o status.</p>
-      <button class="btn btn-success" style="width:100%;margin-top:auto" onclick="loginEquipe()">Entrar como Equipe</button>
+      <p>Selecione seu nome para ver suas tarefas.</p>
+      <div id="equipe-nomes" style="width:100%;display:flex;flex-direction:column;gap:8px;margin-top:auto">
+        <div style="font-size:.82rem;color:var(--muted);text-align:center">Carregando…</div>
+      </div>
     </div>
 
   </div>
@@ -703,9 +705,10 @@
 // ══════════════════════════════════════════════
 // ESTADO GLOBAL — sincronizado pelo Firebase
 // ══════════════════════════════════════════════
-let tasks    = [];   // tarefas ativas
-let arqTasks = [];   // tarefas arquivadas
-let funcs    = [];   // lista de funcionários
+let tasks         = [];
+let arqTasks      = [];
+let funcs         = [];
+let currentEquipe = ''; // nome do funcionário logado como equipe
 
 function initListeners() {
   db.collection('tarefas').onSnapshot(snap => {
@@ -740,7 +743,27 @@ async function dbSaveFuncs(list)       { await db.collection('config').doc('func
 let currentRole = null;
 
 function loginGestor() { entrar('gestor'); }
-function loginEquipe() { entrar('equipe'); }
+
+function loginEquipe(nome) {
+  currentEquipe = nome;
+  sessionStorage.setItem('manut_equipe_nome', nome);
+  entrar('equipe');
+}
+
+function carregarNomesEquipe() {
+  db.collection('config').doc('funcionarios').get().then(snap => {
+    const nomes = (snap.exists && snap.data().nomes) ? snap.data().nomes : [];
+    const el = document.getElementById('equipe-nomes');
+    if (!el) return;
+    if (!nomes.length) {
+      el.innerHTML = `<span style="font-size:.8rem;color:var(--muted);text-align:center">Nenhum funcionário cadastrado.</span>`;
+    } else {
+      el.innerHTML = nomes.map(n =>
+        `<button class="btn btn-success" onclick="loginEquipe('${n.replace(/'/g,"\\'")}')">${n}</button>`
+      ).join('');
+    }
+  });
+}
 
 function entrar(role) {
   currentRole = role;
@@ -761,7 +784,7 @@ function entrar(role) {
     renderFuncs();
     setMode('gestor');
   } else {
-    badge.textContent = '🛠️ Equipe';
+    badge.textContent = currentEquipe ? '🛠️ ' + currentEquipe : '🛠️ Equipe';
     tabs.innerHTML = '';
     renderFuncs();
     setMode('equipe');
@@ -769,10 +792,13 @@ function entrar(role) {
 }
 
 function logout() {
-  currentRole = null;
+  currentRole   = null;
+  currentEquipe = '';
   sessionStorage.removeItem('manut_role');
+  sessionStorage.removeItem('manut_equipe_nome');
   document.getElementById('app').style.display = 'none';
   document.getElementById('login-screen').style.display = 'flex';
+  carregarNomesEquipe();
 }
 
 // ══════════════════════════════════════════════
@@ -891,21 +917,34 @@ function renderGestor() {
 }
 
 function renderEquipe() {
-  const pend = tasks.filter(t => t.status === 'pendente').length;
-  const and  = tasks.filter(t => t.status === 'andamento').length;
-  const conc = tasks.filter(t => t.status === 'concluida').length;
+  // Filtra apenas as tarefas do funcionário logado
+  const minhas = currentEquipe
+    ? tasks.filter(t => t.resp === currentEquipe)
+    : tasks;
+
+  const pend = minhas.filter(t => t.status === 'pendente').length;
+  const and  = minhas.filter(t => t.status === 'andamento').length;
+  const conc = minhas.filter(t => t.status === 'concluida').length;
 
   document.getElementById('counters').innerHTML = `
-    <div class="counter c-total"><div class="num">${tasks.length}</div><div class="lbl">Total</div></div>
+    <div class="counter c-total"><div class="num">${minhas.length}</div><div class="lbl">Minhas</div></div>
     <div class="counter c-pend"><div class="num">${pend}</div><div class="lbl">Pendentes</div></div>
     <div class="counter c-and"><div class="num">${and}</div><div class="lbl">Em andamento</div></div>
     <div class="counter c-conc"><div class="num">${conc}</div><div class="lbl">Concluídas</div></div>
   `;
 
-  let list = applyFilters(tasks, 'e');
-  list.sort((a,b) => statusOrder(a.status) - statusOrder(b.status)
-                  || a.data.localeCompare(b.data)
-                  || prioOrder(a.prio) - prioOrder(b.prio));
+  let list = applyFilters(minhas, 'e');
+
+  // Tarefas atrasadas primeiro, depois por status/data/prioridade
+  const hoje = today();
+  list.sort((a,b) => {
+    const aAtras = (a.data < hoje && a.status !== 'concluida') ? -1 : 0;
+    const bAtras = (b.data < hoje && b.status !== 'concluida') ? -1 : 0;
+    if (aAtras !== bAtras) return aAtras - bAtras;
+    return statusOrder(a.status) - statusOrder(b.status)
+        || a.data.localeCompare(b.data)
+        || prioOrder(a.prio) - prioOrder(b.prio);
+  });
 
   const el = document.getElementById('equipe-list');
   if (!list.length) { el.innerHTML = emptyHTML('Nenhuma tarefa encontrada.'); return; }
@@ -1167,8 +1206,14 @@ function renderFuncs() {
 // ══════════════════════════════════════════════
 (function init() {
   initListeners();
+  carregarNomesEquipe();
   const role = sessionStorage.getItem('manut_role');
-  if (role) entrar(role);
+  if (role === 'equipe') {
+    const nome = sessionStorage.getItem('manut_equipe_nome');
+    if (nome) { currentEquipe = nome; entrar('equipe'); }
+  } else if (role) {
+    entrar(role);
+  }
 })();
 </script>
 </body>
