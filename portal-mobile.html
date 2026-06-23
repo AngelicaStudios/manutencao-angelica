@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Instalar — Painel de Manutenção</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>
+  :root {
+    --blue:  #2563eb;
+    --green: #16a34a;
+    --bg:    #f0f2f5;
+    --card:  #ffffff;
+    --text:  #1e293b;
+    --muted: #64748b;
+    --border:#e2e8f0;
+    --radius:14px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    background: var(--bg); color: var(--text); min-height: 100vh;
+  }
+
+  header {
+    background: linear-gradient(135deg, #1e3a8a, #2563eb);
+    color: #fff; padding: 28px 24px; text-align: center;
+  }
+  header h1 { font-size: 1.4rem; font-weight: 800; margin-bottom: 4px; }
+  header p  { font-size: .88rem; opacity: .8; }
+
+  main { max-width: 860px; margin: 0 auto; padding: 28px 16px; }
+
+  /* URL CONFIG */
+  .url-box {
+    background: var(--card); border-radius: var(--radius);
+    padding: 22px; box-shadow: 0 2px 8px rgba(0,0,0,.07);
+    margin-bottom: 28px;
+  }
+  .url-box h2 { font-size: 1rem; font-weight: 700; color: var(--blue); margin-bottom: 6px; }
+  .url-box p  { font-size: .83rem; color: var(--muted); margin-bottom: 14px; line-height: 1.5; }
+
+  .url-row { display: flex; gap: 8px; flex-wrap: wrap; }
+  .url-row input {
+    flex: 1; min-width: 200px;
+    padding: 11px 14px;
+    border: 1.5px solid var(--border); border-radius: 10px;
+    font-size: .9rem; font-family: inherit; color: var(--text);
+  }
+  .url-row input:focus { outline: none; border-color: var(--blue); }
+  .url-row button {
+    padding: 11px 22px;
+    background: var(--blue); color: #fff;
+    border: none; border-radius: 10px;
+    font-size: .9rem; font-weight: 700; cursor: pointer;
+    transition: background .15s;
+  }
+  .url-row button:hover { background: #1d4ed8; }
+
+  .url-tip {
+    margin-top: 12px;
+    background: #eff6ff; border: 1px solid #bfdbfe;
+    border-radius: 8px; padding: 12px 14px;
+    font-size: .8rem; color: #1e40af; line-height: 1.6;
+  }
+  .url-tip strong { display: block; margin-bottom: 4px; }
+
+  /* CARDS QR */
+  .cards-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 20px;
+  }
+
+  .qr-card {
+    background: var(--card); border-radius: var(--radius);
+    padding: 24px; box-shadow: 0 2px 8px rgba(0,0,0,.07);
+    display: flex; flex-direction: column; align-items: center;
+    text-align: center; gap: 14px;
+  }
+  .qr-card .card-icon { font-size: 2.4rem; }
+  .qr-card h3 { font-size: 1.05rem; font-weight: 800; }
+  .qr-card p  { font-size: .81rem; color: var(--muted); line-height: 1.5; }
+
+  .qr-wrap {
+    width: 180px; height: 180px;
+    display: flex; align-items: center; justify-content: center;
+    border: 2px solid var(--border); border-radius: 12px;
+    background: #fff; overflow: hidden;
+  }
+  .qr-placeholder {
+    display: flex; flex-direction: column; align-items: center;
+    gap: 8px; color: var(--muted); font-size: .78rem; text-align: center; padding: 16px;
+  }
+  .qr-placeholder .ph-icon { font-size: 2rem; }
+
+  .btn-open {
+    width: 100%; padding: 13px;
+    border: none; border-radius: 10px;
+    font-size: .92rem; font-weight: 800;
+    cursor: pointer; transition: all .15s; color: #fff;
+    text-decoration: none; display: block;
+  }
+  .btn-gestor { background: var(--blue); }
+  .btn-gestor:hover { background: #1d4ed8; }
+  .btn-equipe { background: var(--green); }
+  .btn-equipe:hover { background: #15803d; }
+
+  .steps {
+    margin-top: 10px; text-align: left; width: 100%;
+    font-size: .78rem; color: var(--muted); line-height: 1.7;
+  }
+  .steps strong { color: var(--text); }
+
+  /* FOOTER */
+  .deploy-box {
+    background: #f8fafc; border: 1.5px solid var(--border);
+    border-radius: var(--radius); padding: 20px 22px; margin-top: 28px;
+  }
+  .deploy-box h2 { font-size: .95rem; font-weight: 800; color: var(--text); margin-bottom: 10px; }
+  .deploy-steps { counter-reset: step; list-style: none; display: flex; flex-direction: column; gap: 8px; }
+  .deploy-steps li {
+    counter-increment: step;
+    display: flex; gap: 10px; align-items: flex-start;
+    font-size: .83rem; color: var(--muted); line-height: 1.5;
+  }
+  .deploy-steps li::before {
+    content: counter(step);
+    flex-shrink: 0;
+    width: 22px; height: 22px;
+    background: var(--blue); color: #fff;
+    border-radius: 50%; font-size: .75rem; font-weight: 800;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .deploy-steps li strong { color: var(--text); }
+  .deploy-link {
+    display: inline-block; margin-top: 12px;
+    padding: 10px 20px; background: var(--blue); color: #fff;
+    border-radius: 8px; font-size: .88rem; font-weight: 700;
+    text-decoration: none; transition: background .15s;
+  }
+  .deploy-link:hover { background: #1d4ed8; }
+
+  @media (max-width: 600px) {
+    header { padding: 22px 16px; }
+    main { padding: 18px 12px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🔧 Painel de Manutenção</h1>
+  <p>Instale os aplicativos no celular da equipe</p>
+</header>
+
+<main>
+
+  <!-- CONFIGURAR URL -->
+  <div class="url-box">
+    <h2>🌐 Configure a URL do sistema</h2>
+    <p>Após publicar os arquivos na internet (veja instruções abaixo), cole aqui a URL raiz recebida para gerar os QR codes de instalação.</p>
+    <div class="url-row">
+      <input type="url" id="base-url" placeholder="Ex: https://manutencao-silvio.netlify.app" />
+      <button onclick="gerarQR()">Gerar QR Codes</button>
+    </div>
+    <div class="url-tip">
+      <strong>💡 Ainda não publicou?</strong>
+      Siga o passo a passo de "Como publicar" abaixo. É gratuito e leva menos de 5 minutos.
+      Depois volte aqui, cole a URL e gere os QR codes.
+    </div>
+  </div>
+
+  <!-- CARDS QR -->
+  <div class="cards-grid">
+
+    <!-- GESTOR MOBILE -->
+    <div class="qr-card" id="card-gestor">
+      <div class="card-icon">👤</div>
+      <h3>Gestor — Celular</h3>
+      <p>Acesso com senha. Crie e gerencie tarefas, arquive, exporte PDF e configure a equipe.</p>
+      <div class="qr-wrap" id="qr-gestor">
+        <div class="qr-placeholder">
+          <div class="ph-icon">📱</div>
+          <span>Cole a URL acima e clique em "Gerar QR Codes"</span>
+        </div>
+      </div>
+      <div class="steps">
+        <strong>Como instalar:</strong><br>
+        1. Abra a câmera do celular<br>
+        2. Aponte para o QR code<br>
+        3. Toque no link que aparecer<br>
+        4. Menu do navegador → <em>"Adicionar à tela inicial"</em>
+      </div>
+      <a href="#" id="link-gestor" class="btn-open btn-gestor" target="_blank" style="pointer-events:none;opacity:.4">
+        🔗 Abrir link direto
+      </a>
+    </div>
+
+    <!-- EQUIPE MOBILE -->
+    <div class="qr-card" id="card-equipe">
+      <div class="card-icon">🛠️</div>
+      <h3>Equipe — Celular</h3>
+      <p>Acesso livre. Visualize tarefas do dia, atualize status, registre data de execução e fotos.</p>
+      <div class="qr-wrap" id="qr-equipe">
+        <div class="qr-placeholder">
+          <div class="ph-icon">📱</div>
+          <span>Cole a URL acima e clique em "Gerar QR Codes"</span>
+        </div>
+      </div>
+      <div class="steps">
+        <strong>Como instalar:</strong><br>
+        1. Abra a câmera do celular<br>
+        2. Aponte para o QR code<br>
+        3. Toque no link que aparecer<br>
+        4. Menu do navegador → <em>"Adicionar à tela inicial"</em>
+      </div>
+      <a href="#" id="link-equipe" class="btn-open btn-equipe" target="_blank" style="pointer-events:none;opacity:.4">
+        🔗 Abrir link direto
+      </a>
+    </div>
+
+  </div>
+
+  <!-- COMO PUBLICAR -->
+  <div class="deploy-box">
+    <h2>🚀 Como publicar em 5 minutos (grátis)</h2>
+    <ol class="deploy-steps">
+      <li>
+        <span>Acesse <strong>netlify.com/drop</strong> no seu computador (não precisa criar conta)</span>
+      </li>
+      <li>
+        <span>Abra a pasta <strong>Manutenção_Diária</strong> no seu computador e arraste ela inteira para a página do Netlify</span>
+      </li>
+      <li>
+        <span>Aguarde o upload terminar — o Netlify gera uma <strong>URL pública</strong> automaticamente (ex: <em>shiny-fox-123.netlify.app</em>)</span>
+      </li>
+      <li>
+        <span>Copie essa URL, cole no campo acima e clique em <strong>"Gerar QR Codes"</strong></span>
+      </li>
+      <li>
+        <span>Mostre o QR code para cada membro da equipe escanear com a câmera do celular e adicionar à tela inicial</span>
+      </li>
+    </ol>
+    <a href="https://app.netlify.com/drop" target="_blank" class="deploy-link">
+      Abrir Netlify Drop →
+    </a>
+  </div>
+
+</main>
+
+<script>
+function gerarQR() {
+  let url = document.getElementById('base-url').value.trim().replace(/\/$/, '');
+  if (!url) { alert('Cole a URL do sistema primeiro!'); return; }
+  if (!url.startsWith('http')) { alert('A URL deve começar com https://'); return; }
+
+  const urlGestor = url + '/gestor-mobile.html';
+  const urlEquipe = url + '/equipe-mobile.html';
+
+  // QR Gestor
+  const wrapG = document.getElementById('qr-gestor');
+  wrapG.innerHTML = '';
+  new QRCode(wrapG, {
+    text: urlGestor,
+    width: 170, height: 170,
+    colorDark: '#1e3a8a', colorLight: '#ffffff',
+    correctLevel: QRCode.CorrectLevel.M
+  });
+
+  // QR Equipe
+  const wrapE = document.getElementById('qr-equipe');
+  wrapE.innerHTML = '';
+  new QRCode(wrapE, {
+    text: urlEquipe,
+    width: 170, height: 170,
+    colorDark: '#14532d', colorLight: '#ffffff',
+    correctLevel: QRCode.CorrectLevel.M
+  });
+
+  // Links diretos
+  const lg = document.getElementById('link-gestor');
+  lg.href = urlGestor;
+  lg.style.pointerEvents = 'auto';
+  lg.style.opacity = '1';
+
+  const le = document.getElementById('link-equipe');
+  le.href = urlEquipe;
+  le.style.pointerEvents = 'auto';
+  le.style.opacity = '1';
+}
+
+// URL do GitHub Pages (pré-configurada)
+const DEFAULT_URL = 'https://angelicastudios.github.io/manutencao-angelica';
+const saved = localStorage.getItem('manut_deploy_url') || DEFAULT_URL;
+if (saved) {
+  document.getElementById('base-url').value = saved;
+  gerarQR();
+}
+
+document.getElementById('base-url').addEventListener('change', () => {
+  localStorage.setItem('manut_deploy_url', document.getElementById('base-url').value.trim());
+});
+</script>
+</body>
+</html>
