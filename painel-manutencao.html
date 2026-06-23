@@ -652,10 +652,14 @@
           <span style="font-size:.74rem;font-weight:400;color:var(--muted)">(clique para expandir)</span>
         </summary>
         <div style="margin-top:14px">
-          <div style="display:flex;gap:8px;margin-bottom:12px">
-            <input type="text" id="new-func" placeholder="Nome do funcionário" style="flex:1" onkeydown="if(event.key==='Enter')addFunc()" />
+          <div style="display:flex;gap:8px;margin-bottom:6px;flex-wrap:wrap">
+            <input type="text" id="new-func" placeholder="Nome do funcionário" style="flex:1;min-width:160px" />
+            <input type="text" id="new-pin" placeholder="PIN (ex: 1234)" maxlength="8"
+              style="width:150px;letter-spacing:2px;font-family:monospace"
+              onkeydown="if(event.key==='Enter')addFunc()" />
             <button class="btn btn-primary" onclick="addFunc()">+ Adicionar</button>
           </div>
+          <p style="font-size:.76rem;color:var(--muted);margin-bottom:10px">O PIN é pedido ao funcionário no momento do login.</p>
           <div id="func-list" style="display:flex;flex-wrap:wrap;gap:8px"></div>
         </div>
       </details>
@@ -844,7 +848,11 @@ function initListeners() {
       renderArquivo();
   });
   db.collection('config').doc('funcionarios').onSnapshot(snap => {
-    funcs = (snap.exists && snap.data().nomes) ? snap.data().nomes : [];
+    if (snap.exists) {
+      const d = snap.data();
+      // suporte ao formato antigo {nomes:[...]} e novo {funcionarios:[{nome,pin},...]}
+      funcs = d.funcionarios || (d.nomes ? d.nomes.map(n => ({nome:n, pin:''})) : []);
+    } else { funcs = []; }
     if (currentRole) renderFuncs();
   });
 }
@@ -858,7 +866,7 @@ function renderIfActive() {
 async function dbSet(col, id, data)    { await db.collection(col).doc(id).set(data); }
 async function dbUpdate(col, id, flds) { await db.collection(col).doc(id).update(flds); }
 async function dbDelete(col, id)       { await db.collection(col).doc(id).delete(); }
-async function dbSaveFuncs(list)       { await db.collection('config').doc('funcionarios').set({ nomes: list }); }
+async function dbSaveFuncs(list)       { await db.collection('config').doc('funcionarios').set({ funcionarios: list }); }
 
 // ══════════════════════════════════════════════
 // AUTENTICAÇÃO
@@ -875,15 +883,57 @@ function loginEquipe(nome) {
 
 function carregarNomesEquipe() {
   db.collection('config').doc('funcionarios').get().then(snap => {
-    const nomes = (snap.exists && snap.data().nomes) ? snap.data().nomes : [];
+    let lista = [];
+    if (snap.exists) {
+      const d = snap.data();
+      lista = d.funcionarios || (d.nomes ? d.nomes.map(n => ({nome:n, pin:''})) : []);
+    }
     const el = document.getElementById('equipe-nomes');
     if (!el) return;
-    if (!nomes.length) {
+    if (!lista.length) {
       el.innerHTML = `<span style="font-size:.8rem;color:var(--muted);text-align:center">Nenhum funcionário cadastrado.</span>`;
     } else {
-      el.innerHTML = nomes.map(n =>
-        `<button class="btn btn-success" onclick="loginEquipe('${n.replace(/'/g,"\\'")}')">${n}</button>`
+      el.innerHTML = lista.map(f =>
+        `<button class="btn btn-success" onclick="pedirPinEquipe('${f.nome.replace(/'/g,"\\'")}')">${f.nome}</button>`
       ).join('');
+    }
+  });
+}
+
+function pedirPinEquipe(nome) {
+  const el = document.getElementById('equipe-nomes');
+  el.innerHTML = `
+    <div style="text-align:center;font-size:.85rem;margin-bottom:8px">
+      <strong>👷 ${escHtml(nome)}</strong> — Digite seu PIN:
+    </div>
+    <input type="password" id="pin-eq-input" maxlength="8" placeholder="••••"
+      style="width:100%;text-align:center;letter-spacing:6px;font-size:1.1rem;padding:10px;
+             border:1.5px solid var(--border);border-radius:8px;font-family:monospace"
+      onkeydown="if(event.key==='Enter')confirmarPinEquipe('${nome.replace(/'/g,"\\'")}')" />
+    <button class="btn btn-success" style="width:100%;margin-top:8px"
+      onclick="confirmarPinEquipe('${nome.replace(/'/g,"\\'")}')">✅ Entrar</button>
+    <button class="btn btn-ghost" style="width:100%;margin-top:4px"
+      onclick="carregarNomesEquipe()">← Voltar</button>
+  `;
+  setTimeout(() => document.getElementById('pin-eq-input')?.focus(), 80);
+}
+
+function confirmarPinEquipe(nome) {
+  const pin = (document.getElementById('pin-eq-input')?.value || '').trim();
+  if (!pin) { toast('⚠️ Digite o PIN!'); return; }
+  db.collection('config').doc('funcionarios').get().then(snap => {
+    let lista = [];
+    if (snap.exists) {
+      const d = snap.data();
+      lista = d.funcionarios || (d.nomes ? d.nomes.map(n => ({nome:n, pin:''})) : []);
+    }
+    const func = lista.find(f => f.nome === nome);
+    if (func && (func.pin === pin || func.pin === '')) {
+      loginEquipe(nome);
+    } else {
+      toast('❌ PIN incorreto!');
+      const inp = document.getElementById('pin-eq-input');
+      if (inp) { inp.value = ''; inp.focus(); }
     }
   });
 }
@@ -1253,7 +1303,7 @@ function editTask(id) {
   // Popula responsáveis
   const sel = document.getElementById('edit-resp');
   sel.innerHTML = '<option value="">Selecione…</option>' +
-    funcs.map(n => `<option value="${escHtml(n)}" ${t.resp===n?'selected':''}>${escHtml(n)}</option>`).join('');
+    funcs.map(f => `<option value="${escHtml(f.nome)}" ${t.resp===f.nome?'selected':''}>${escHtml(f.nome)}</option>`).join('');
 
   document.getElementById('modal-edit').classList.add('open');
 }
@@ -1379,19 +1429,21 @@ function closeLightbox() {
 // FUNCIONÁRIOS
 // ══════════════════════════════════════════════
 async function addFunc() {
-  const input = document.getElementById('new-func');
-  const nome  = input.value.trim();
+  const nome = document.getElementById('new-func').value.trim();
+  const pin  = document.getElementById('new-pin').value.trim();
   if (!nome) { toast('⚠️ Digite o nome!'); return; }
-  if (funcs.includes(nome)) { toast('⚠️ Já existe!'); return; }
-  const list = [...funcs, nome].sort((a,b) => a.localeCompare(b));
+  if (!pin || pin.length < 4) { toast('⚠️ PIN precisa ter ao menos 4 dígitos!'); return; }
+  if (funcs.find(f => f.nome === nome)) { toast('⚠️ Funcionário já existe!'); return; }
+  const list = [...funcs, {nome, pin}].sort((a,b) => a.nome.localeCompare(b.nome));
   await dbSaveFuncs(list);
-  input.value = '';
+  document.getElementById('new-func').value = '';
+  document.getElementById('new-pin').value  = '';
   toast('👷 Funcionário adicionado!');
 }
 
 async function removeFunc(nome) {
   if (!confirm(`Remover "${nome}"?`)) return;
-  await dbSaveFuncs(funcs.filter(f => f !== nome));
+  await dbSaveFuncs(funcs.filter(f => f.nome !== nome));
   toast('Funcionário removido.');
 }
 
@@ -1399,10 +1451,15 @@ function renderFuncs() {
   const el = document.getElementById('func-list');
   if (el) {
     el.innerHTML = funcs.length
-      ? funcs.map(f => `<span class="func-chip">👷 ${escHtml(f)}<button onclick="removeFunc('${escHtml(f)}')" title="Remover">✕</button></span>`).join('')
+      ? funcs.map(f => `
+          <span class="func-chip">
+            👷 ${escHtml(f.nome)}
+            <span style="font-size:.68rem;color:var(--muted);margin-left:4px;font-family:monospace">PIN:${escHtml(f.pin||'—')}</span>
+            <button onclick="removeFunc('${escHtml(f.nome)}')" title="Remover">✕</button>
+          </span>`).join('')
       : `<span style="font-size:.82rem;color:var(--muted)">Nenhum funcionário cadastrado.</span>`;
   }
-  const opts = funcs.map(f => `<option value="${escHtml(f)}">${escHtml(f)}</option>`).join('');
+  const opts = funcs.map(f => `<option value="${escHtml(f.nome)}">${escHtml(f.nome)}</option>`).join('');
 
   const sel = document.getElementById('f-resp');
   if (sel) { const c = sel.value; sel.innerHTML = '<option value="">Selecione…</option>' + opts; if (c) sel.value = c; }

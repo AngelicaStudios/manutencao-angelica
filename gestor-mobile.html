@@ -498,11 +498,14 @@
       <!-- Funcionários -->
       <div class="config-section">
         <h3>👷 Funcionários</h3>
-        <div style="display:flex;gap:8px">
-          <input type="text" class="field-input" id="new-func" placeholder="Nome do funcionário"
-            style="flex:1" onkeydown="if(event.key==='Enter')addFunc()" />
+        <div style="display:flex;gap:8px;margin-bottom:6px">
+          <input type="text" class="field-input" id="new-func" placeholder="Nome" style="flex:1" />
+          <input type="text" class="field-input" id="new-pin" placeholder="PIN" maxlength="8"
+            style="width:90px;letter-spacing:2px;font-family:monospace;text-align:center"
+            onkeydown="if(event.key==='Enter')addFunc()" />
           <button class="btn-sm btn-blue" onclick="addFunc()">+ Add</button>
         </div>
+        <p style="font-size:.72rem;color:var(--muted);margin:0 0 8px">PIN mínimo 4 dígitos — pedido no login do funcionário</p>
         <div class="func-chips" id="func-list"></div>
       </div>
 
@@ -560,7 +563,10 @@ function initListeners() {
     if (sec && sec.classList.contains('active')) renderArquivo();
   });
   db.collection('config').doc('funcionarios').onSnapshot(snap => {
-    funcs = (snap.exists && snap.data().nomes) ? snap.data().nomes : [];
+    if (snap.exists) {
+      const d = snap.data();
+      funcs = d.funcionarios || (d.nomes ? d.nomes.map(n => ({nome:n, pin:''})) : []);
+    } else { funcs = []; }
     renderFuncs();
   });
 }
@@ -568,7 +574,7 @@ function initListeners() {
 async function dbSet(col, id, data)    { await db.collection(col).doc(id).set(data); }
 async function dbUpdate(col, id, flds) { await db.collection(col).doc(id).update(flds); }
 async function dbDelete(col, id)       { await db.collection(col).doc(id).delete(); }
-async function dbSaveFuncs(list)       { await db.collection('config').doc('funcionarios').set({ nomes: list }); }
+async function dbSaveFuncs(list)       { await db.collection('config').doc('funcionarios').set({ funcionarios: list }); }
 
 // ════════════════════════
 // UTILS
@@ -893,19 +899,21 @@ function exportPDF() {
 // FUNCIONÁRIOS
 // ════════════════════════
 async function addFunc() {
-  const input = document.getElementById('new-func');
-  const nome  = input.value.trim();
+  const nome = document.getElementById('new-func').value.trim();
+  const pin  = document.getElementById('new-pin').value.trim();
   if (!nome) { toast('⚠️ Digite o nome!'); return; }
-  if (funcs.includes(nome)) { toast('⚠️ Já existe!'); return; }
-  const list = [...funcs, nome].sort((a,b) => a.localeCompare(b));
+  if (!pin || pin.length < 4) { toast('⚠️ PIN precisa ter ao menos 4 dígitos!'); return; }
+  if (funcs.find(f => f.nome === nome)) { toast('⚠️ Já existe!'); return; }
+  const list = [...funcs, {nome, pin}].sort((a,b) => a.nome.localeCompare(b.nome));
   await dbSaveFuncs(list);
-  input.value = '';
+  document.getElementById('new-func').value = '';
+  document.getElementById('new-pin').value  = '';
   toast('👷 Funcionário adicionado!');
 }
 
 async function removeFunc(nome) {
   if (!confirm(`Remover "${nome}"?`)) return;
-  await dbSaveFuncs(funcs.filter(f => f !== nome));
+  await dbSaveFuncs(funcs.filter(f => f.nome !== nome));
   toast('Removido.');
 }
 
@@ -913,10 +921,14 @@ function renderFuncs() {
   const el = document.getElementById('func-list');
   if (el) {
     el.innerHTML = funcs.length
-      ? funcs.map(f => `<span class="func-chip">👷 ${esc(f)}<button onclick="removeFunc('${esc(f)}')">✕</button></span>`).join('')
+      ? funcs.map(f => `
+          <span class="func-chip">👷 ${esc(f.nome)}
+            <span style="font-size:.68rem;color:var(--muted);margin-left:3px;font-family:monospace">PIN:${esc(f.pin||'—')}</span>
+            <button onclick="removeFunc('${esc(f.nome)}')">✕</button>
+          </span>`).join('')
       : `<span style="font-size:.8rem;color:var(--muted)">Nenhum funcionário cadastrado.</span>`;
   }
-  const opts = funcs.map(f => `<option value="${esc(f)}">${esc(f)}</option>`).join('');
+  const opts = funcs.map(f => `<option value="${esc(f.nome)}">${esc(f.nome)}</option>`).join('');
   const sel  = document.getElementById('f-resp');
   if (sel) { const c = sel.value; sel.innerHTML = '<option value="">Selecione…</option>' + opts; if (c) sel.value = c; }
 }
