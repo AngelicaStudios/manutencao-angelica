@@ -398,17 +398,38 @@
     background: #fff; border-radius: 12px;
     box-shadow: 0 2px 6px rgba(0,0,0,.07);
     border-left: 4px solid var(--border);
-    padding: 11px 13px;
-    display: flex; align-items: center; gap: 10px;
+    display: flex; flex-direction: column; overflow: hidden;
   }
   .limp-card.lc-ter { border-left-color: var(--blue); }
   .limp-card.lc-sex { border-left-color: var(--green); }
   .limp-card.lc-nao { border-left-color: var(--red); }
   .limp-card.lc-agu { border-left-color: var(--yellow); }
 
+  .limp-card-top { display: flex; align-items: center; gap: 10px; padding: 11px 13px; }
   .limp-card-info { flex: 1; min-width: 0; }
   .limp-card-apto { font-size: .97rem; font-weight: 800; }
   .limp-card-nome { font-size: .75rem; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  .limp-card-edit {
+    border-top: 1px solid var(--border);
+    padding: 8px 13px; display: flex; gap: 8px; align-items: center;
+    background: #fafbfc;
+  }
+  .limp-exec-sel {
+    flex: 0 0 auto; padding: 6px 8px;
+    border: 1.5px solid var(--border); border-radius: 8px;
+    font-size: .75rem; font-family: inherit; color: var(--text);
+    background: #fff; min-width: 100px; max-width: 130px;
+    appearance: none;
+  }
+  .limp-exec-sel:focus { outline: none; border-color: var(--blue); }
+  .limp-obs-input {
+    flex: 1; padding: 6px 8px;
+    border: 1.5px solid var(--border); border-radius: 8px;
+    font-size: .75rem; font-family: inherit; color: var(--text);
+    background: #fff;
+  }
+  .limp-obs-input:focus { outline: none; border-color: var(--blue); }
 
   .limp-badge {
     flex-shrink: 0; padding: 3px 10px;
@@ -1127,11 +1148,13 @@ function limpNormalize(r) {
   const status = (r.status || r.resposta || 'aguardando').toLowerCase();
   const dia    = (r.dia_semana || r.dia || '').toLowerCase();
   return {
-    apto:   String(r.apto || r.apartamento || '').trim(),
-    nome:   String(r.nome || r.inquilino || '').trim(),
-    numero: String(r.numero || r.celular || '').trim(),
-    status: status,
-    dia:    dia
+    apto:      String(r.apto || r.apartamento || '').trim(),
+    nome:      String(r.nome || r.inquilino || '').trim(),
+    numero:    String(r.numero || r.celular || '').trim(),
+    status:    status,
+    dia:       dia,
+    executor:  String(r.executor || '').trim(),
+    observacao: String(r.observacao || '').trim()
   };
 }
 
@@ -1146,8 +1169,10 @@ function limpNormalizeXlsx(r) {
     apto,
     nome,
     numero,
-    status: 'aguardando',
-    dia:    ''
+    status:    'aguardando',
+    dia:       '',
+    executor:  '',
+    observacao: ''
   };
 }
 
@@ -1234,16 +1259,53 @@ function limpRender() {
 
   el.innerHTML = filtered.map(r => {
     const info = limpGetStatusInfo(r.status, r.dia);
+    const aptoKey = esc(r.apto);
+    // Opções de executor a partir da lista de funcionários
+    const execOpts = ['', ...funcs.map(f => f.nome)].map(f =>
+      `<option value="${esc(f)}" ${r.executor===f?'selected':''}>${f || '👤 Executor…'}</option>`
+    ).join('');
     return `
       <div class="limp-card ${info.cardCls}">
-        <div class="limp-card-info">
-          <div class="limp-card-apto">🏠 ${esc(r.apto)}</div>
-          <div class="limp-card-nome">${esc(r.nome) || '<em style="color:#94a3b8">sem nome</em>'}</div>
+        <div class="limp-card-top">
+          <div class="limp-card-info">
+            <div class="limp-card-apto">🏠 ${aptoKey}</div>
+            <div class="limp-card-nome">${esc(r.nome) || '<em style="color:#94a3b8">sem nome</em>'}</div>
+          </div>
+          <span class="limp-badge ${info.cls}">${info.label}</span>
+          ${r.numero ? `<button class="limp-wa-btn" onclick="limpDispararUm('${esc(r.numero)}','${aptoKey}')">📲</button>` : ''}
         </div>
-        <span class="limp-badge ${info.cls}">${info.label}</span>
-        ${r.numero ? `<button class="limp-wa-btn" onclick="limpDispararUm('${esc(r.numero)}','${esc(r.apto)}')">📲</button>` : ''}
+        <div class="limp-card-edit">
+          <select class="limp-exec-sel" onchange="limpSaveExec('${aptoKey}',this.value)">${execOpts}</select>
+          <input class="limp-obs-input" type="text" value="${esc(r.observacao)}" placeholder="📝 Observação…"
+                 onblur="limpSaveObs('${aptoKey}',this.value)"
+                 onkeydown="if(event.key==='Enter')this.blur()" />
+        </div>
       </div>`;
   }).join('');
+}
+
+async function limpSaveExec(apto, executor) {
+  const row = limpData.find(r => r.apto === apto);
+  if (row) row.executor = executor;
+  try {
+    await fetch(`${LIMP_API}/api/agenda/${encodeURIComponent(apto)}/executor`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ executor })
+    });
+    toast(`👤 Executor salvo: ${executor || '—'}`);
+  } catch(e) { toast('⚠️ Erro ao salvar executor (offline?)'); }
+}
+
+async function limpSaveObs(apto, observacao) {
+  const row = limpData.find(r => r.apto === apto);
+  if (row) row.observacao = observacao;
+  try {
+    await fetch(`${LIMP_API}/api/agenda/${encodeURIComponent(apto)}/observacao`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ observacao })
+    });
+    toast('📝 Observação salva!');
+  } catch(e) { toast('⚠️ Erro ao salvar observação (offline?)'); }
 }
 
 async function limpDispararUm(numero, apto) {
