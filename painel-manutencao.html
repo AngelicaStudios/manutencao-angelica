@@ -898,6 +898,7 @@
           📲 Disparar WhatsApp
         </button>
         <button class="btn btn-ghost btn-sm" onclick="limpNovasSemana()">📅 Nova Semana</button>
+        <button class="btn btn-ghost btn-sm" onclick="limpCriarTarefas()" style="background:#e0f2fe;color:#075985;border-color:#bae6fd">📋 Criar Tarefas</button>
       </div>
 
       <!-- barra de filtros ativos -->
@@ -1972,6 +1973,59 @@ async function limpSaveObs(apto, observacao) {
 }
 
 /* ── nova semana ── */
+/* ── calcular próxima terça ou sexta ── */
+function limpProxData(dia) {
+  const hoje = new Date();
+  const dow   = hoje.getDay(); // 0=dom … 6=sab
+  const alvo  = dia === 'sexta' ? 5 : 2; // terça=2, sexta=5
+  let diff = alvo - dow;
+  if (diff <= 0) diff += 7;
+  const d = new Date(hoje);
+  d.setDate(hoje.getDate() + diff);
+  return d.toISOString().split('T')[0];
+}
+
+/* ── criar tarefas no painel a partir dos executores da limpeza ── */
+async function limpCriarTarefas() {
+  const comExec = limpData.filter(r => r.executor && r.executor.trim());
+  if (!comExec.length) {
+    toast('⚠️ Nenhum executor atribuído. Atribua executores antes de criar tarefas.', 'warn');
+    return;
+  }
+
+  // Agrupa por executor + dia
+  const grupos = {};
+  comExec.forEach(r => {
+    const exec = r.executor.trim();
+    const diaKey = (r.dia || '').toUpperCase().includes('SEX') ? 'sexta' : 'terca';
+    const key = exec + '|' + diaKey;
+    if (!grupos[key]) grupos[key] = { exec, diaKey, aptos: [] };
+    grupos[key].aptos.push(r.apto);
+  });
+
+  const lista = Object.values(grupos);
+  const preview = lista.map(g =>
+    `• ${g.exec} — ${g.aptos.length} apto(s) — ${g.diaKey === 'sexta' ? 'Sexta-feira' : 'Terça-feira'}\n  Aptos: ${g.aptos.join(', ')}`
+  ).join('\n');
+
+  if (!confirm(`Criar ${lista.length} tarefa(s) no painel de manutenção?\n\n${preview}`)) return;
+
+  let ok = 0;
+  for (const g of lista) {
+    const data = limpProxData(g.diaKey);
+    const diaLabel = g.diaKey === 'sexta' ? 'Sexta-feira' : 'Terça-feira';
+    const tarefa = {
+      id: uid(), apto: 'Limpeza', tipo: 'Limpeza Semanal',
+      prio: 'media', resp: g.exec, data,
+      desc: `${diaLabel} — Aptos: ${g.aptos.join(', ')}`,
+      status: 'pendente', obs: '', dataExec: '', fotos: [], criadoEm: Date.now()
+    };
+    await dbSet('tarefas', tarefa.id, tarefa);
+    ok++;
+  }
+  toast(`✅ ${ok} tarefa(s) criada(s) no painel!`, 'success');
+}
+
 async function limpNovasSemana() {
   if (!confirm('Resetar agenda para nova semana? Todos os status voltarão para PENDENTE.')) return;
   try {
