@@ -639,454 +639,7 @@
 
 </style>
 <!-- Firebase -->
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js">
-// ══════════════════════════════════════════════
-// LIMPEZA SEMANAL
-// ══════════════════════════════════════════════
-const LIMPEZA_API = 'https://limpeza.angelicastudios.com.br';
-
-let limpData     = [];   // dados brutos da API
-let limpFiltStat = '';   // filtro status
-let limpFiltExec = '';   // filtro executor
-let limpFuncs    = [];   // equipe cadastrada (reutiliza funcsNomes do painel)
-let limpModalStep = 1;
-
-/* ── helpers ── */
-function limpStatusLabel(s) {
-  const m = {
-    'AGUARDANDO': { cls:'lb-agu',  txt:'⏳ Aguardando' },
-    'aguardando': { cls:'lb-agu',  txt:'⏳ Aguardando' },
-    'aguardando_dia': { cls:'lb-agu', txt:'⏳ Escolhendo dia' },
-    'CONFIRMADO': { cls:'lb-agu',  txt:'✅ Confirmado'  },
-    'confirmado': { cls:'lb-agu',  txt:'✅ Confirmado'  },
-    'TERCA':      { cls:'lb-terca',txt:'📅 Terça-feira' },
-    'SEXTA':      { cls:'lb-sexta',txt:'📅 Sexta-feira' },
-    'NAO':        { cls:'lb-nao',  txt:'❌ Não quer'    },
-    'nao':        { cls:'lb-nao',  txt:'❌ Não quer'    },
-    'PENDENTE':   { cls:'lb-pendente',txt:'🕐 Pendente' },
-  };
-  const d = m[s] || { cls:'lb-vago', txt: s || '—' };
-  return `<span class="lb ${d.cls}">${d.txt}</span>`;
-}
-
-/* ── carrega da API e renderiza ── */
-// Normaliza status do banco (lowercase) para formato da UI
-function limpNormalize(row) {
-  const s = (row.status || '').toLowerCase();
-  const d = row.dia || '';
-  let status, dia;
-  if (s === 'nao')                              { status='NAO';       dia=''; }
-  else if (s === 'confirmado' && d.match(/er/)) { status='TERCA';     dia='TERCA'; }
-  else if (s === 'confirmado' && d.match(/ex/)) { status='SEXTA';     dia='SEXTA'; }
-  else if (s === 'aguardando' || s === 'aguardando_dia') { status='AGUARDANDO'; dia=''; }
-  else                                           { status='PENDENTE';  dia=''; }
-  return { ...row, status, dia, executor: row.executor||'', observacao: row.observacao||'' };
-}
-
-async function initLimpeza() {
-  try {
-    const r = await fetch(`${LIMPEZA_API}/api/agenda`);
-    if (!r.ok) throw new Error('API ' + r.status);
-    const raw = await r.json();
-    const arr = Array.isArray(raw) ? raw : (raw.agenda || []);
-    limpData = arr.map(limpNormalize);
-  } catch(e) {
-    // se API indisponível, mantém dados existentes e avisa
-    if (!limpData.length) {
-      toast('Carregue um arquivo XLSX ou verifique a conexão com o servidor.', 'error');
-      limpData = [];
-    } else {
-      toast('Servidor offline — exibindo dados em cache.', 'warning');
-    }
-  }
-  // pega lista de executores do painel (funcNomes) se disponível
-  if (typeof funcNomes !== 'undefined' && funcNomes.length) {
-    limpFuncs = funcNomes;
-  } else {
-    limpFuncs = ['Irani','Geone'];
-  }
-  limpRender();
-  document.getElementById('btn-disparar').disabled = limpData.length === 0;
-}
-
-/* ── render tabela ── */
-function limpRender() {
-  const tbody = document.getElementById('limp-tbody');
-  const fbar  = document.getElementById('limp-fbar');
-
-  // contagens stats
-  let ct = 0, cf = 0, ca = 0, cn = 0;
-  limpData.forEach(r => {
-    const s = r.status || '';
-    if (s === 'TERCA')           ct++;
-    else if (s === 'SEXTA')      cf++;
-    else if (s === 'NAO')        cn++;
-    else                         ca++;
-  });
-  ['ls-terca','ls-sexta','ls-agu','ls-nao'].forEach((id,i) => {
-    const el = document.getElementById(id);
-    if (el) el.textContent = [ct,cf,ca,cn][i];
-  });
-
-  // filtros
-  let visible = limpData.filter(r => {
-    const s = r.status || '';
-    const e = r.executor || '';
-    if (limpFiltStat && s !== limpFiltStat) return false;
-    if (limpFiltExec && e !== limpFiltExec) return false;
-    return true;
-  });
-
-  // barra de filtros ativos
-  let fbHtml = '';
-  if (limpFiltStat || limpFiltExec) {
-    fbHtml += '<span class="flbl">Filtros:</span>';
-    if (limpFiltStat) fbHtml += `<span class="ftag">${limpFiltStat} <button onclick="limpSetFilter('status','')">×</button></span>`;
-    if (limpFiltExec) fbHtml += `<span class="ftag fg">${limpFiltExec} <button onclick="limpSetFilter('exec','')">×</button></span>`;
-    fbHtml += `<button class="fclear" onclick="limpClearFilters()">Limpar tudo</button>`;
-  }
-  fbar.innerHTML = fbHtml;
-
-  // linhas
-  let rows = '';
-  visible.forEach(row => {
-    const apto  = escHtml(row.apto  || '');
-    const nome  = escHtml(row.nome  || '');
-    const fone  = row.numero || '';
-    const s     = row.status || '';
-    const dia   = row.dia    || '';
-    const exec  = row.executor   || '';
-    const obs   = row.observacao || '';
-
-    // select executor
-    const opts = ['', ...limpFuncs].map(f =>
-      `<option value="${escHtml(f)}" ${exec===f?'selected':''}>${f||'— sem executor —'}</option>`
-    ).join('');
-
-    rows += `<tr>
-      <td><strong>${apto}</strong></td>
-      <td>${nome}</td>
-      <td>${limpStatusLabel(s)}</td>
-      <td>${dia && (dia==='TERCA'||dia==='SEXTA') ? `<span class="lb ${dia==='TERCA'?'lb-terca':'lb-sexta'}">${dia==='TERCA'?'Terça-feira':'Sexta-feira'}</span>` : '—'}</td>
-      <td>
-        <select class="lsel-mini" onchange="limpSaveExec('${apto}',this.value)">${opts}</select>
-      </td>
-      <td>
-        <input class="lobs" type="text" value="${escHtml(obs)}" placeholder="Observação…"
-               onblur="limpSaveObs('${apto}',this.value)"
-               onkeydown="if(event.key==='Enter')limpSaveObs('${apto}',this.value)">
-      </td>
-    </tr>`;
-  });
-
-  tbody.innerHTML = rows || `<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--muted)">
-    ${limpData.length ? 'Nenhum resultado para os filtros selecionados.' : 'Nenhum dado carregado. Use o botão 📂 Carregar XLSX.'}
-  </td></tr>`;
-
-  document.getElementById('limp-info').textContent =
-    `${visible.length} de ${limpData.length} apartamentos`;
-
-  limpBuildDropdowns();
-
-  // destaca coluna filtrada
-  document.getElementById('th-status').classList.toggle('hf', !!limpFiltStat);
-  document.getElementById('th-exec'  ).classList.toggle('hf', !!limpFiltExec);
-}
-
-/* ── dropdown de coluna ── */
-function limpToggleDd(thId) {
-  const allThs = document.querySelectorAll('.limp-table th.col-filt');
-  allThs.forEach(t => { if (t.id !== thId) t.classList.remove('lopen'); });
-  document.getElementById(thId).classList.toggle('lopen');
-}
-
-document.addEventListener('click', () => {
-  document.querySelectorAll('.limp-table th.col-filt').forEach(t => t.classList.remove('lopen'));
-});
-
-function limpBuildDropdowns() {
-  // Status
-  const statuses = ['AGUARDANDO','TERCA','SEXTA','NAO','PENDENTE'];
-  const statLabels = { AGUARDANDO:'⏳ Aguardando', TERCA:'📅 Terça', SEXTA:'📅 Sexta', NAO:'❌ Não quer', PENDENTE:'🕐 Pendente' };
-  let sdHtml = `<div class="cdd-item ${!limpFiltStat?'csel':''}" onclick="limpSetFilter('status','')">
-    <span class="ck">${!limpFiltStat?'✓':''}</span>Todos
-  </div><div class="cdd-sep"></div>`;
-  statuses.forEach(s => {
-    sdHtml += `<div class="cdd-item ${limpFiltStat===s?'csel':''}" onclick="limpSetFilter('status','${s}')">
-      <span class="ck">${limpFiltStat===s?'✓':''}</span>${statLabels[s]||s}
-    </div>`;
-  });
-  document.getElementById('dd-status').innerHTML = sdHtml;
-
-  // Executor
-  const execs = [...new Set(limpData.map(r => r.executor||'').filter(Boolean))];
-  let edHtml = `<div class="cdd-item ${!limpFiltExec?'csel':''}" onclick="limpSetFilter('exec','')">
-    <span class="ck">${!limpFiltExec?'✓':''}</span>Todos
-  </div><div class="cdd-sep"></div>`;
-  if (!execs.length) edHtml += `<div class="cdd-item" style="opacity:.5;cursor:default">Nenhum atribuído</div>`;
-  execs.forEach(e => {
-    edHtml += `<div class="cdd-item ${limpFiltExec===e?'csel':''}" onclick="limpSetFilter('exec','${escHtml(e)}')">
-      <span class="ck">${limpFiltExec===e?'✓':''}</span>${escHtml(e)}
-    </div>`;
-  });
-  document.getElementById('dd-exec').innerHTML = edHtml;
-}
-
-function limpSetFilter(col, val) {
-  if (col === 'status') limpFiltStat = val;
-  else                  limpFiltExec = val;
-  document.querySelectorAll('.limp-table th.col-filt').forEach(t => t.classList.remove('lopen'));
-  limpRender();
-}
-
-function limpClearFilters() {
-  limpFiltStat = '';
-  limpFiltExec = '';
-  limpRender();
-}
-
-/* ── salvar executor / observação na API ── */
-async function limpSaveExec(apto, executor) {
-  const row = limpData.find(r => r.apto === apto);
-  if (row) row.executor = executor;
-  try {
-    await fetch(`${LIMPEZA_API}/api/agenda/${encodeURIComponent(apto)}/executor`, {
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ executor })
-    });
-  } catch(e) { toast('Erro ao salvar executor (offline?)', 'error'); }
-  limpRender();
-}
-
-async function limpSaveObs(apto, observacao) {
-  const row = limpData.find(r => r.apto === apto);
-  if (row) row.observacao = observacao;
-  try {
-    await fetch(`${LIMPEZA_API}/api/agenda/${encodeURIComponent(apto)}/observacao`, {
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ observacao })
-    });
-  } catch(e) { /* offline — só local */ }
-}
-
-/* ── nova semana ── */
-async function limpNovasSemana() {
-  if (!confirm('Resetar agenda para nova semana? Todos os status voltarão para PENDENTE.')) return;
-  try {
-    await fetch(`${LIMPEZA_API}/api/reset`, { method:'POST' });
-    await initLimpeza();
-    toast('Nova semana iniciada!', 'success');
-  } catch(e) {
-    toast('Erro ao resetar semana', 'error');
-  }
-}
-
-/* ── carregar XLSX ── */
-function limpLoadXlsx(input) {
-  const file = input.files[0];
-  if (!file) return;
-
-  // SheetJS pode não estar carregado — carrega sob demanda
-  function processXlsx(XLSX) {
-    const reader = new FileReader();
-    reader.onload = e => {
-      try {
-        const wb   = XLSX.read(e.target.result, { type:'array' });
-        const ws   = wb.Sheets[wb.SheetNames[0]];
-        const rows = XLSX.utils.sheet_to_json(ws, { defval:'' });
-
-        limpData = rows.map(r => {
-          // Aceita: Apto/apto, Nome do Inquilino/nome/Nome,
-          //         DDD + Celular WhatsApp → numero completo 55DDCCCCC@c.us
-          const apto = String(r['Apto'] || r['apto'] || r['APTO'] || '').trim();
-          const nome = String(r['Nome do Inquilino'] || r['Nome'] || r['nome'] || r['NOME'] || '').trim();
-
-          // Monta número WhatsApp: 55 + DDD + Celular
-          const ddd = String(r['DDD'] || r['ddd'] || '').replace(/\D/g,'');
-          const cel = String(r['Celular WhatsApp'] || r['Celular'] || r['celular']
-                          || r['numero'] || r['Numero'] || r['telefone'] || '').replace(/\D/g,'');
-          let numero = '';
-          if (ddd && cel)  numero = `55${ddd}${cel}@c.us`;
-          else if (cel)    numero = cel.length >= 10 ? `55${cel}@c.us` : `${cel}@c.us`;
-
-          return { apto, nome, numero, status:'PENDENTE', dia:'', executor:'', observacao:'' };
-        }).filter(r => r.apto);
-
-        toast(`${limpData.length} apartamentos carregados.`, 'success');
-        document.getElementById('btn-disparar').disabled = limpData.length === 0;
-        limpRender();
-      } catch(ex) {
-        toast('Erro ao ler XLSX: ' + ex.message, 'error');
-      }
-    };
-    reader.readAsArrayBuffer(file);
-  }
-
-  if (window.XLSX) { processXlsx(window.XLSX); return; }
-  const script = document.createElement('script');
-  script.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
-  script.onload = () => processXlsx(window.XLSX);
-  document.head.appendChild(script);
-}
-
-/* ════════════════════════════════════════════
-   MODAL DISPARO WHATSAPP
-════════════════════════════════════════════ */
-let limpSendList = [];
-const DELAY_SEG  = 30; // 30s entre envios — conta bloqueou com 3s em 22/06/2026
-
-function limpOpenModal() {
-  // destinatários = somente PENDENTE / AGUARDANDO (não enviados ainda)
-  limpSendList = limpData.filter(r => {
-    const s = r.status || 'PENDENTE';
-    return s === 'PENDENTE' || s === 'AGUARDANDO';
-  });
-
-  if (!limpSendList.length) {
-    toast('Nenhum inquilino pendente para disparar.', 'warning');
-    return;
-  }
-
-  limpModalStep = 1;
-  document.getElementById('limp-overlay').classList.remove('lhidden');
-  limpRenderModalStep(1);
-}
-
-function limpCloseModal(e) {
-  if (limpModalStep === 3) return; // bloqueado durante envio
-  document.getElementById('limp-overlay').classList.add('lhidden');
-}
-
-function limpModalNext() {
-  if (limpModalStep === 1) { limpModalStep = 2; limpRenderModalStep(2); }
-  else if (limpModalStep === 2) { limpModalStep = 3; limpRenderModalStep(3); limpStartSend(); }
-}
-
-function limpUpdateSteps(active) {
-  [1,2,3].forEach(n => {
-    const el = document.getElementById('ms' + n);
-    el.className = 'limp-mstep';
-    if (n < active)  el.classList.add('mdone');
-    if (n === active) el.classList.add('mact');
-  });
-}
-
-function limpRenderModalStep(step) {
-  limpUpdateSteps(step);
-  const body = document.getElementById('limp-mbdy');
-  const ftr  = document.getElementById('limp-mftr');
-  const btnN = document.getElementById('btn-m-next');
-
-  if (step === 1) {
-    const msg = `Olá! 😊\n\nPassando para confirmar a *limpeza semanal* do seu apartamento.\n\nVocê gostaria de agendar a limpeza *nessa semana*?\n\n➡️ Responda:\n*SIM* – quero agendar\n*NÃO* – não preciso essa semana`;
-    body.innerHTML = `
-      <div style="margin-bottom:12px;font-size:.84rem;color:var(--muted)">
-        Mensagem que será enviada a <strong>${limpSendList.length} inquilino(s)</strong>:
-      </div>
-      <div class="wpp-bubble">
-        <div class="wlbl">💬 Mensagem</div>
-        <div class="wb">${msg.replace(/
-/g,'<br>').replace(/\*(.*?)\*/g,'<b>$1</b>')}</div>
-      </div>
-      <div style="font-size:.82rem;color:var(--muted);margin-bottom:8px">Destinatários:</div>
-      <div class="dest-list">
-        ${limpSendList.map(r=>`
-          <div class="dest-row">
-            <span class="dapto">${escHtml(r.apto)}</span>
-            <span class="dnome">${escHtml(r.nome)}</span>
-            <span class="dfone">${r.numero||'sem número'}</span>
-          </div>`).join('')}
-      </div>`;
-    ftr.innerHTML = `
-      <button class="btn btn-ghost btn-sm" onclick="limpCloseModal()">Cancelar</button>
-      <button class="btn btn-primary btn-sm" onclick="limpModalNext()">Confirmar →</button>`;
-  }
-
-  if (step === 2) {
-    const tempoMin = Math.ceil((limpSendList.length * DELAY_SEG) / 60);
-    body.innerHTML = `
-      <div class="cfg-row cfgok">
-        <span>📋 Destinatários</span>
-        <strong>${limpSendList.length} inquilino(s)</strong>
-      </div>
-      <div class="cfg-row cfgok">
-        <span>⏱️ Intervalo entre envios</span>
-        <strong>${DELAY_SEG} segundos</strong>
-      </div>
-      <div class="cfg-row cfgok">
-        <span>🕐 Tempo estimado</span>
-        <strong>~${tempoMin} minuto(s)</strong>
-      </div>
-      <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:12px 14px;font-size:.82rem;color:#92400e;margin-top:4px">
-        ⚠️ Não feche esta janela durante o envio. O disparo usa ${DELAY_SEG}s de intervalo para proteger a conta.
-      </div>`;
-    ftr.innerHTML = `
-      <button class="btn btn-ghost btn-sm" onclick="limpCloseModal()">Cancelar</button>
-      <button class="btn btn-wpp btn-sm" onclick="limpModalNext()">📲 Iniciar envio</button>`;
-  }
-
-  if (step === 3) {
-    body.innerHTML = `
-      <div style="font-size:.84rem;font-weight:600;margin-bottom:10px">Enviando…</div>
-      <div class="pbar-wrap"><div class="pbar" id="lpbar" style="width:0%"></div></div>
-      <div style="font-size:.78rem;color:var(--muted);margin-bottom:12px" id="lp-status">Preparando…</div>
-      <div class="plog" id="lp-log"></div>`;
-    ftr.innerHTML = '';   // sem botões durante envio
-  }
-}
-
-async function limpStartSend() {
-  const total = limpSendList.length;
-  const log   = document.getElementById('lp-log');
-  const pbar  = document.getElementById('lpbar');
-  const pstat = document.getElementById('lp-status');
-
-  for (let i = 0; i < total; i++) {
-    const row   = limpSendList[i];
-    const apto  = row.apto;
-    const nome  = (row.nome || '').split(' ')[0];
-    const fone  = row.numero || '';
-
-    pstat.textContent = `Enviando ${i+1}/${total} — Apto ${apto}`;
-    pbar.style.width  = Math.round(((i) / total) * 100) + '%';
-
-    try {
-      const resp = await fetch(`${LIMPEZA_API}/api/disparar`, {
-        method:'POST', headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({ apto, nome, numero: fone })
-      });
-      if (resp.ok) {
-        log.innerHTML += `<div class="pok">✅ Apto ${apto} — ${nome} — enviado</div>`;
-      } else {
-        const txt = await resp.text();
-        log.innerHTML += `<div class="perr">❌ Apto ${apto} — erro ${resp.status}: ${txt.slice(0,60)}</div>`;
-      }
-    } catch(e) {
-      log.innerHTML += `<div class="perr">❌ Apto ${apto} — ${e.message}</div>`;
-    }
-    log.scrollTop = log.scrollHeight;
-
-    // aguarda delay (exceto no último)
-    if (i < total - 1) {
-      pstat.textContent = `Aguardando ${DELAY_SEG}s antes do próximo…`;
-      log.innerHTML += `<div class="pwait">⏳ aguardando ${DELAY_SEG}s…</div>`;
-      log.scrollTop = log.scrollHeight;
-      await new Promise(r => setTimeout(r, DELAY_SEG * 1000));
-    }
-  }
-
-  pbar.style.width = '100%';
-  pstat.textContent = `Concluído! ${total} mensagens enviadas.`;
-  log.innerHTML += `<div class="pok" style="font-weight:700;margin-top:6px">✅ Disparo concluído!</div>`;
-  log.scrollTop = log.scrollHeight;
-
-  document.getElementById('limp-mftr').innerHTML =
-    '<button class="btn btn-primary btn-sm" onclick="limpCloseModal();initLimpeza()">✓ Fechar e atualizar</button>';
-
-  limpModalStep = 0;  // permite fechar
-}
-
-</script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 <script src="firebase-config.js"></script>
 </head>
@@ -2185,6 +1738,454 @@ function renderFuncs() {
     entrar(role);
   }
 })();
+
+// ══════════════════════════════════════════════
+// LIMPEZA SEMANAL
+// ══════════════════════════════════════════════
+const LIMPEZA_API = 'https://limpeza.angelicastudios.com.br';
+
+let limpData     = [];   // dados brutos da API
+let limpFiltStat = '';   // filtro status
+let limpFiltExec = '';   // filtro executor
+let limpFuncs    = [];   // equipe cadastrada (reutiliza funcsNomes do painel)
+let limpModalStep = 1;
+
+/* ── helpers ── */
+function limpStatusLabel(s) {
+  const m = {
+    'AGUARDANDO': { cls:'lb-agu',  txt:'⏳ Aguardando' },
+    'aguardando': { cls:'lb-agu',  txt:'⏳ Aguardando' },
+    'aguardando_dia': { cls:'lb-agu', txt:'⏳ Escolhendo dia' },
+    'CONFIRMADO': { cls:'lb-agu',  txt:'✅ Confirmado'  },
+    'confirmado': { cls:'lb-agu',  txt:'✅ Confirmado'  },
+    'TERCA':      { cls:'lb-terca',txt:'📅 Terça-feira' },
+    'SEXTA':      { cls:'lb-sexta',txt:'📅 Sexta-feira' },
+    'NAO':        { cls:'lb-nao',  txt:'❌ Não quer'    },
+    'nao':        { cls:'lb-nao',  txt:'❌ Não quer'    },
+    'PENDENTE':   { cls:'lb-pendente',txt:'🕐 Pendente' },
+  };
+  const d = m[s] || { cls:'lb-vago', txt: s || '—' };
+  return `<span class="lb ${d.cls}">${d.txt}</span>`;
+}
+
+/* ── carrega da API e renderiza ── */
+// Normaliza status do banco (lowercase) para formato da UI
+function limpNormalize(row) {
+  const s = (row.status || '').toLowerCase();
+  const d = row.dia || '';
+  let status, dia;
+  if (s === 'nao')                              { status='NAO';       dia=''; }
+  else if (s === 'confirmado' && d.match(/er/)) { status='TERCA';     dia='TERCA'; }
+  else if (s === 'confirmado' && d.match(/ex/)) { status='SEXTA';     dia='SEXTA'; }
+  else if (s === 'aguardando' || s === 'aguardando_dia') { status='AGUARDANDO'; dia=''; }
+  else                                           { status='PENDENTE';  dia=''; }
+  return { ...row, status, dia, executor: row.executor||'', observacao: row.observacao||'' };
+}
+
+async function initLimpeza() {
+  try {
+    const r = await fetch(`${LIMPEZA_API}/api/agenda`);
+    if (!r.ok) throw new Error('API ' + r.status);
+    const raw = await r.json();
+    const arr = Array.isArray(raw) ? raw : (raw.agenda || []);
+    limpData = arr.map(limpNormalize);
+  } catch(e) {
+    // se API indisponível, mantém dados existentes e avisa
+    if (!limpData.length) {
+      toast('Carregue um arquivo XLSX ou verifique a conexão com o servidor.', 'error');
+      limpData = [];
+    } else {
+      toast('Servidor offline — exibindo dados em cache.', 'warning');
+    }
+  }
+  // pega lista de executores do painel (funcNomes) se disponível
+  if (typeof funcNomes !== 'undefined' && funcNomes.length) {
+    limpFuncs = funcNomes;
+  } else {
+    limpFuncs = ['Irani','Geone'];
+  }
+  limpRender();
+  document.getElementById('btn-disparar').disabled = limpData.length === 0;
+}
+
+/* ── render tabela ── */
+function limpRender() {
+  const tbody = document.getElementById('limp-tbody');
+  const fbar  = document.getElementById('limp-fbar');
+
+  // contagens stats
+  let ct = 0, cf = 0, ca = 0, cn = 0;
+  limpData.forEach(r => {
+    const s = r.status || '';
+    if (s === 'TERCA')           ct++;
+    else if (s === 'SEXTA')      cf++;
+    else if (s === 'NAO')        cn++;
+    else                         ca++;
+  });
+  ['ls-terca','ls-sexta','ls-agu','ls-nao'].forEach((id,i) => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = [ct,cf,ca,cn][i];
+  });
+
+  // filtros
+  let visible = limpData.filter(r => {
+    const s = r.status || '';
+    const e = r.executor || '';
+    if (limpFiltStat && s !== limpFiltStat) return false;
+    if (limpFiltExec && e !== limpFiltExec) return false;
+    return true;
+  });
+
+  // barra de filtros ativos
+  let fbHtml = '';
+  if (limpFiltStat || limpFiltExec) {
+    fbHtml += '<span class="flbl">Filtros:</span>';
+    if (limpFiltStat) fbHtml += `<span class="ftag">${limpFiltStat} <button onclick="limpSetFilter('status','')">×</button></span>`;
+    if (limpFiltExec) fbHtml += `<span class="ftag fg">${limpFiltExec} <button onclick="limpSetFilter('exec','')">×</button></span>`;
+    fbHtml += `<button class="fclear" onclick="limpClearFilters()">Limpar tudo</button>`;
+  }
+  fbar.innerHTML = fbHtml;
+
+  // linhas
+  let rows = '';
+  visible.forEach(row => {
+    const apto  = escHtml(row.apto  || '');
+    const nome  = escHtml(row.nome  || '');
+    const fone  = row.numero || '';
+    const s     = row.status || '';
+    const dia   = row.dia    || '';
+    const exec  = row.executor   || '';
+    const obs   = row.observacao || '';
+
+    // select executor
+    const opts = ['', ...limpFuncs].map(f =>
+      `<option value="${escHtml(f)}" ${exec===f?'selected':''}>${f||'— sem executor —'}</option>`
+    ).join('');
+
+    rows += `<tr>
+      <td><strong>${apto}</strong></td>
+      <td>${nome}</td>
+      <td>${limpStatusLabel(s)}</td>
+      <td>${dia && (dia==='TERCA'||dia==='SEXTA') ? `<span class="lb ${dia==='TERCA'?'lb-terca':'lb-sexta'}">${dia==='TERCA'?'Terça-feira':'Sexta-feira'}</span>` : '—'}</td>
+      <td>
+        <select class="lsel-mini" onchange="limpSaveExec('${apto}',this.value)">${opts}</select>
+      </td>
+      <td>
+        <input class="lobs" type="text" value="${escHtml(obs)}" placeholder="Observação…"
+               onblur="limpSaveObs('${apto}',this.value)"
+               onkeydown="if(event.key==='Enter')limpSaveObs('${apto}',this.value)">
+      </td>
+    </tr>`;
+  });
+
+  tbody.innerHTML = rows || `<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--muted)">
+    ${limpData.length ? 'Nenhum resultado para os filtros selecionados.' : 'Nenhum dado carregado. Use o botão 📂 Carregar XLSX.'}
+  </td></tr>`;
+
+  document.getElementById('limp-info').textContent =
+    `${visible.length} de ${limpData.length} apartamentos`;
+
+  limpBuildDropdowns();
+
+  // destaca coluna filtrada
+  document.getElementById('th-status').classList.toggle('hf', !!limpFiltStat);
+  document.getElementById('th-exec'  ).classList.toggle('hf', !!limpFiltExec);
+}
+
+/* ── dropdown de coluna ── */
+function limpToggleDd(thId) {
+  const allThs = document.querySelectorAll('.limp-table th.col-filt');
+  allThs.forEach(t => { if (t.id !== thId) t.classList.remove('lopen'); });
+  document.getElementById(thId).classList.toggle('lopen');
+}
+
+document.addEventListener('click', () => {
+  document.querySelectorAll('.limp-table th.col-filt').forEach(t => t.classList.remove('lopen'));
+});
+
+function limpBuildDropdowns() {
+  // Status
+  const statuses = ['AGUARDANDO','TERCA','SEXTA','NAO','PENDENTE'];
+  const statLabels = { AGUARDANDO:'⏳ Aguardando', TERCA:'📅 Terça', SEXTA:'📅 Sexta', NAO:'❌ Não quer', PENDENTE:'🕐 Pendente' };
+  let sdHtml = `<div class="cdd-item ${!limpFiltStat?'csel':''}" onclick="limpSetFilter('status','')">
+    <span class="ck">${!limpFiltStat?'✓':''}</span>Todos
+  </div><div class="cdd-sep"></div>`;
+  statuses.forEach(s => {
+    sdHtml += `<div class="cdd-item ${limpFiltStat===s?'csel':''}" onclick="limpSetFilter('status','${s}')">
+      <span class="ck">${limpFiltStat===s?'✓':''}</span>${statLabels[s]||s}
+    </div>`;
+  });
+  document.getElementById('dd-status').innerHTML = sdHtml;
+
+  // Executor
+  const execs = [...new Set(limpData.map(r => r.executor||'').filter(Boolean))];
+  let edHtml = `<div class="cdd-item ${!limpFiltExec?'csel':''}" onclick="limpSetFilter('exec','')">
+    <span class="ck">${!limpFiltExec?'✓':''}</span>Todos
+  </div><div class="cdd-sep"></div>`;
+  if (!execs.length) edHtml += `<div class="cdd-item" style="opacity:.5;cursor:default">Nenhum atribuído</div>`;
+  execs.forEach(e => {
+    edHtml += `<div class="cdd-item ${limpFiltExec===e?'csel':''}" onclick="limpSetFilter('exec','${escHtml(e)}')">
+      <span class="ck">${limpFiltExec===e?'✓':''}</span>${escHtml(e)}
+    </div>`;
+  });
+  document.getElementById('dd-exec').innerHTML = edHtml;
+}
+
+function limpSetFilter(col, val) {
+  if (col === 'status') limpFiltStat = val;
+  else                  limpFiltExec = val;
+  document.querySelectorAll('.limp-table th.col-filt').forEach(t => t.classList.remove('lopen'));
+  limpRender();
+}
+
+function limpClearFilters() {
+  limpFiltStat = '';
+  limpFiltExec = '';
+  limpRender();
+}
+
+/* ── salvar executor / observação na API ── */
+async function limpSaveExec(apto, executor) {
+  const row = limpData.find(r => r.apto === apto);
+  if (row) row.executor = executor;
+  try {
+    await fetch(`${LIMPEZA_API}/api/agenda/${encodeURIComponent(apto)}/executor`, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ executor })
+    });
+  } catch(e) { toast('Erro ao salvar executor (offline?)', 'error'); }
+  limpRender();
+}
+
+async function limpSaveObs(apto, observacao) {
+  const row = limpData.find(r => r.apto === apto);
+  if (row) row.observacao = observacao;
+  try {
+    await fetch(`${LIMPEZA_API}/api/agenda/${encodeURIComponent(apto)}/observacao`, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ observacao })
+    });
+  } catch(e) { /* offline — só local */ }
+}
+
+/* ── nova semana ── */
+async function limpNovasSemana() {
+  if (!confirm('Resetar agenda para nova semana? Todos os status voltarão para PENDENTE.')) return;
+  try {
+    await fetch(`${LIMPEZA_API}/api/reset`, { method:'POST' });
+    await initLimpeza();
+    toast('Nova semana iniciada!', 'success');
+  } catch(e) {
+    toast('Erro ao resetar semana', 'error');
+  }
+}
+
+/* ── carregar XLSX ── */
+function limpLoadXlsx(input) {
+  const file = input.files[0];
+  if (!file) return;
+
+  // SheetJS pode não estar carregado — carrega sob demanda
+  function processXlsx(XLSX) {
+    const reader = new FileReader();
+    reader.onload = e => {
+      try {
+        const wb   = XLSX.read(e.target.result, { type:'array' });
+        const ws   = wb.Sheets[wb.SheetNames[0]];
+        const rows = XLSX.utils.sheet_to_json(ws, { defval:'' });
+
+        limpData = rows.map(r => {
+          // Aceita: Apto/apto, Nome do Inquilino/nome/Nome,
+          //         DDD + Celular WhatsApp → numero completo 55DDCCCCC@c.us
+          const apto = String(r['Apto'] || r['apto'] || r['APTO'] || '').trim();
+          const nome = String(r['Nome do Inquilino'] || r['Nome'] || r['nome'] || r['NOME'] || '').trim();
+
+          // Monta número WhatsApp: 55 + DDD + Celular
+          const ddd = String(r['DDD'] || r['ddd'] || '').replace(/\D/g,'');
+          const cel = String(r['Celular WhatsApp'] || r['Celular'] || r['celular']
+                          || r['numero'] || r['Numero'] || r['telefone'] || '').replace(/\D/g,'');
+          let numero = '';
+          if (ddd && cel)  numero = `55${ddd}${cel}@c.us`;
+          else if (cel)    numero = cel.length >= 10 ? `55${cel}@c.us` : `${cel}@c.us`;
+
+          return { apto, nome, numero, status:'PENDENTE', dia:'', executor:'', observacao:'' };
+        }).filter(r => r.apto);
+
+        toast(`${limpData.length} apartamentos carregados.`, 'success');
+        document.getElementById('btn-disparar').disabled = limpData.length === 0;
+        limpRender();
+      } catch(ex) {
+        toast('Erro ao ler XLSX: ' + ex.message, 'error');
+      }
+    };
+    reader.readAsArrayBuffer(file);
+  }
+
+  if (window.XLSX) { processXlsx(window.XLSX); return; }
+  const script = document.createElement('script');
+  script.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+  script.onload = () => processXlsx(window.XLSX);
+  document.head.appendChild(script);
+}
+
+/* ════════════════════════════════════════════
+   MODAL DISPARO WHATSAPP
+════════════════════════════════════════════ */
+let limpSendList = [];
+const DELAY_SEG  = 30; // 30s entre envios — conta bloqueou com 3s em 22/06/2026
+
+function limpOpenModal() {
+  // destinatários = somente PENDENTE / AGUARDANDO (não enviados ainda)
+  limpSendList = limpData.filter(r => {
+    const s = r.status || 'PENDENTE';
+    return s === 'PENDENTE' || s === 'AGUARDANDO';
+  });
+
+  if (!limpSendList.length) {
+    toast('Nenhum inquilino pendente para disparar.', 'warning');
+    return;
+  }
+
+  limpModalStep = 1;
+  document.getElementById('limp-overlay').classList.remove('lhidden');
+  limpRenderModalStep(1);
+}
+
+function limpCloseModal(e) {
+  if (limpModalStep === 3) return; // bloqueado durante envio
+  document.getElementById('limp-overlay').classList.add('lhidden');
+}
+
+function limpModalNext() {
+  if (limpModalStep === 1) { limpModalStep = 2; limpRenderModalStep(2); }
+  else if (limpModalStep === 2) { limpModalStep = 3; limpRenderModalStep(3); limpStartSend(); }
+}
+
+function limpUpdateSteps(active) {
+  [1,2,3].forEach(n => {
+    const el = document.getElementById('ms' + n);
+    el.className = 'limp-mstep';
+    if (n < active)  el.classList.add('mdone');
+    if (n === active) el.classList.add('mact');
+  });
+}
+
+function limpRenderModalStep(step) {
+  limpUpdateSteps(step);
+  const body = document.getElementById('limp-mbdy');
+  const ftr  = document.getElementById('limp-mftr');
+  const btnN = document.getElementById('btn-m-next');
+
+  if (step === 1) {
+    const msg = `Olá! 😊\n\nPassando para confirmar a *limpeza semanal* do seu apartamento.\n\nVocê gostaria de agendar a limpeza *nessa semana*?\n\n➡️ Responda:\n*SIM* – quero agendar\n*NÃO* – não preciso essa semana`;
+    body.innerHTML = `
+      <div style="margin-bottom:12px;font-size:.84rem;color:var(--muted)">
+        Mensagem que será enviada a <strong>${limpSendList.length} inquilino(s)</strong>:
+      </div>
+      <div class="wpp-bubble">
+        <div class="wlbl">💬 Mensagem</div>
+        <div class="wb">${msg.replace(/
+/g,'<br>').replace(/\*(.*?)\*/g,'<b>$1</b>')}</div>
+      </div>
+      <div style="font-size:.82rem;color:var(--muted);margin-bottom:8px">Destinatários:</div>
+      <div class="dest-list">
+        ${limpSendList.map(r=>`
+          <div class="dest-row">
+            <span class="dapto">${escHtml(r.apto)}</span>
+            <span class="dnome">${escHtml(r.nome)}</span>
+            <span class="dfone">${r.numero||'sem número'}</span>
+          </div>`).join('')}
+      </div>`;
+    ftr.innerHTML = `
+      <button class="btn btn-ghost btn-sm" onclick="limpCloseModal()">Cancelar</button>
+      <button class="btn btn-primary btn-sm" onclick="limpModalNext()">Confirmar →</button>`;
+  }
+
+  if (step === 2) {
+    const tempoMin = Math.ceil((limpSendList.length * DELAY_SEG) / 60);
+    body.innerHTML = `
+      <div class="cfg-row cfgok">
+        <span>📋 Destinatários</span>
+        <strong>${limpSendList.length} inquilino(s)</strong>
+      </div>
+      <div class="cfg-row cfgok">
+        <span>⏱️ Intervalo entre envios</span>
+        <strong>${DELAY_SEG} segundos</strong>
+      </div>
+      <div class="cfg-row cfgok">
+        <span>🕐 Tempo estimado</span>
+        <strong>~${tempoMin} minuto(s)</strong>
+      </div>
+      <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:12px 14px;font-size:.82rem;color:#92400e;margin-top:4px">
+        ⚠️ Não feche esta janela durante o envio. O disparo usa ${DELAY_SEG}s de intervalo para proteger a conta.
+      </div>`;
+    ftr.innerHTML = `
+      <button class="btn btn-ghost btn-sm" onclick="limpCloseModal()">Cancelar</button>
+      <button class="btn btn-wpp btn-sm" onclick="limpModalNext()">📲 Iniciar envio</button>`;
+  }
+
+  if (step === 3) {
+    body.innerHTML = `
+      <div style="font-size:.84rem;font-weight:600;margin-bottom:10px">Enviando…</div>
+      <div class="pbar-wrap"><div class="pbar" id="lpbar" style="width:0%"></div></div>
+      <div style="font-size:.78rem;color:var(--muted);margin-bottom:12px" id="lp-status">Preparando…</div>
+      <div class="plog" id="lp-log"></div>`;
+    ftr.innerHTML = '';   // sem botões durante envio
+  }
+}
+
+async function limpStartSend() {
+  const total = limpSendList.length;
+  const log   = document.getElementById('lp-log');
+  const pbar  = document.getElementById('lpbar');
+  const pstat = document.getElementById('lp-status');
+
+  for (let i = 0; i < total; i++) {
+    const row   = limpSendList[i];
+    const apto  = row.apto;
+    const nome  = (row.nome || '').split(' ')[0];
+    const fone  = row.numero || '';
+
+    pstat.textContent = `Enviando ${i+1}/${total} — Apto ${apto}`;
+    pbar.style.width  = Math.round(((i) / total) * 100) + '%';
+
+    try {
+      const resp = await fetch(`${LIMPEZA_API}/api/disparar`, {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ apto, nome, numero: fone })
+      });
+      if (resp.ok) {
+        log.innerHTML += `<div class="pok">✅ Apto ${apto} — ${nome} — enviado</div>`;
+      } else {
+        const txt = await resp.text();
+        log.innerHTML += `<div class="perr">❌ Apto ${apto} — erro ${resp.status}: ${txt.slice(0,60)}</div>`;
+      }
+    } catch(e) {
+      log.innerHTML += `<div class="perr">❌ Apto ${apto} — ${e.message}</div>`;
+    }
+    log.scrollTop = log.scrollHeight;
+
+    // aguarda delay (exceto no último)
+    if (i < total - 1) {
+      pstat.textContent = `Aguardando ${DELAY_SEG}s antes do próximo…`;
+      log.innerHTML += `<div class="pwait">⏳ aguardando ${DELAY_SEG}s…</div>`;
+      log.scrollTop = log.scrollHeight;
+      await new Promise(r => setTimeout(r, DELAY_SEG * 1000));
+    }
+  }
+
+  pbar.style.width = '100%';
+  pstat.textContent = `Concluído! ${total} mensagens enviadas.`;
+  log.innerHTML += `<div class="pok" style="font-weight:700;margin-top:6px">✅ Disparo concluído!</div>`;
+  log.scrollTop = log.scrollHeight;
+
+  document.getElementById('limp-mftr').innerHTML =
+    '<button class="btn btn-primary btn-sm" onclick="limpCloseModal();initLimpeza()">✓ Fechar e atualizar</button>';
+
+  limpModalStep = 0;  // permite fechar
+}
+
+
 </script>
 </body>
 </html>
