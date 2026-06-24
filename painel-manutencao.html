@@ -2084,8 +2084,7 @@ function limpRenderModalStep(step) {
       </div>
       <div class="wpp-bubble">
         <div class="wlbl">💬 Mensagem</div>
-        <div class="wb">${msg.replace(/
-/g,'<br>').replace(/\*(.*?)\*/g,'<b>$1</b>')}</div>
+        <div class="wb">${msg.replace(/\n/g,'<br>').replace(/\*(.*?)\*/g,'<b>$1</b>')}</div>
       </div>
       <div style="font-size:.82rem;color:var(--muted);margin-bottom:8px">Destinatários:</div>
       <div class="dest-list">
