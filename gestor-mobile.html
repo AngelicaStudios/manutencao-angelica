@@ -348,6 +348,102 @@
     pointer-events: none; z-index: 400; white-space: nowrap;
   }
   #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  /* ══════════════════════
+     LIMPEZA SEMANAL — MOBILE
+  ══════════════════════ */
+  #sec-limpeza { padding: 0; }
+
+  .limp-actions {
+    padding: 10px 12px; background: #fff;
+    border-bottom: 1.5px solid var(--border);
+    display: flex; gap: 8px; flex-wrap: wrap;
+  }
+  .limp-actions .btn-sm { flex: 1; justify-content: center; min-width: 120px; }
+
+  .limp-stats-bar {
+    display: grid; grid-template-columns: repeat(4, 1fr);
+    background: #fff; border-bottom: 1.5px solid var(--border);
+  }
+  .limp-stat-m {
+    text-align: center; padding: 9px 4px;
+    border-right: 1px solid var(--border);
+  }
+  .limp-stat-m:last-child { border-right: none; }
+  .limp-stat-m .sn { font-size: 1.3rem; font-weight: 800; line-height: 1; }
+  .limp-stat-m .sl { font-size: .58rem; color: var(--muted); text-transform: uppercase; letter-spacing: .3px; margin-top: 2px; }
+  .limp-stat-m.s-ter .sn  { color: var(--blue); }
+  .limp-stat-m.s-sex .sn  { color: var(--green); }
+  .limp-stat-m.s-agu .sn  { color: var(--yellow); }
+  .limp-stat-m.s-nao .sn  { color: var(--red); }
+
+  .limp-filter-bar {
+    background: #fff; border-bottom: 1.5px solid var(--border);
+    padding: 8px 10px; display: flex; gap: 7px;
+    overflow-x: auto; -webkit-overflow-scrolling: touch;
+  }
+  .limp-filter-bar::-webkit-scrollbar { display: none; }
+  .limp-chip-f {
+    flex-shrink: 0; padding: 5px 12px;
+    border: 1.5px solid var(--border); border-radius: 20px;
+    font-size: .72rem; font-weight: 600;
+    cursor: pointer; background: #fff; color: var(--muted);
+    white-space: nowrap; transition: all .15s;
+  }
+  .limp-chip-f.active { background: var(--blue); color: #fff; border-color: var(--blue); }
+
+  .limp-list { padding: 10px 12px; display: flex; flex-direction: column; gap: 8px; }
+
+  .limp-card {
+    background: #fff; border-radius: 12px;
+    box-shadow: 0 2px 6px rgba(0,0,0,.07);
+    border-left: 4px solid var(--border);
+    padding: 11px 13px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .limp-card.lc-ter { border-left-color: var(--blue); }
+  .limp-card.lc-sex { border-left-color: var(--green); }
+  .limp-card.lc-nao { border-left-color: var(--red); }
+  .limp-card.lc-agu { border-left-color: var(--yellow); }
+
+  .limp-card-info { flex: 1; min-width: 0; }
+  .limp-card-apto { font-size: .97rem; font-weight: 800; }
+  .limp-card-nome { font-size: .75rem; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  .limp-badge {
+    flex-shrink: 0; padding: 3px 10px;
+    border-radius: 20px; font-size: .68rem; font-weight: 700;
+    text-transform: uppercase; letter-spacing: .3px;
+  }
+  .lb-ter { background: #dbeafe; color: #1e40af; }
+  .lb-sex { background: #dcfce7; color: #166534; }
+  .lb-nao { background: #fee2e2; color: #991b1b; }
+  .lb-agu { background: #fef3c7; color: #92400e; }
+  .lb-nr  { background: #f1f5f9; color: #475569; }
+
+  .limp-wa-btn {
+    flex-shrink: 0; background: #25d366; color: #fff;
+    border: none; border-radius: 8px; padding: 7px 10px;
+    font-size: .75rem; font-weight: 700; cursor: pointer;
+    display: flex; align-items: center; gap: 4px;
+    transition: background .15s;
+  }
+  .limp-wa-btn:active { background: #1da851; }
+
+  .limp-footer {
+    padding: 12px; display: flex; flex-direction: column; gap: 8px;
+    background: #fff; border-top: 1.5px solid var(--border);
+    position: sticky; bottom: calc(var(--nav-h) + var(--safe-b));
+  }
+
+  #limp-progress {
+    display: none; background: #fff;
+    border: 1px solid var(--border); border-radius: 10px;
+    padding: 10px 12px; margin: 0 12px 8px;
+    font-size: .8rem; color: var(--muted);
+  }
+  .progress-bar-wrap { background: var(--border); border-radius: 6px; height: 6px; margin-top: 6px; overflow: hidden; }
+  .progress-bar-fill { height: 100%; background: var(--green); border-radius: 6px; transition: width .3s; }
 </style>
 <!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
@@ -492,6 +588,54 @@
       <div id="arq-list" class="tasks-wrap" style="padding-top:0"></div>
     </div>
 
+    <!-- ══ LIMPEZA SEMANAL ══ -->
+    <div id="sec-limpeza" class="section">
+
+      <!-- Ações -->
+      <div class="limp-actions">
+        <button class="btn-sm btn-ghost" onclick="limpLoadXlsxMobile()">📂 Carregar XLSX</button>
+        <button class="btn-sm btn-blue" onclick="initLimpeza()">🔄 Atualizar</button>
+        <input type="file" id="limp-xlsx-input" accept=".xlsx,.xls" style="display:none" onchange="limpHandleXlsx(this)" />
+      </div>
+
+      <!-- Stats -->
+      <div class="limp-stats-bar" id="limp-stats-bar">
+        <div class="limp-stat-m s-ter"><div class="sn" id="ls-ter">0</div><div class="sl">Terça</div></div>
+        <div class="limp-stat-m s-sex"><div class="sn" id="ls-sex">0</div><div class="sl">Sexta</div></div>
+        <div class="limp-stat-m s-agu"><div class="sn" id="ls-agu">0</div><div class="sl">Aguard.</div></div>
+        <div class="limp-stat-m s-nao"><div class="sn" id="ls-nao">0</div><div class="sl">Não</div></div>
+      </div>
+
+      <!-- Filtros -->
+      <div class="limp-filter-bar">
+        <button class="limp-chip-f active" data-lf="todos" onclick="limpSetFilter(this)">Todos</button>
+        <button class="limp-chip-f" data-lf="terca" onclick="limpSetFilter(this)">📅 Terça</button>
+        <button class="limp-chip-f" data-lf="sexta" onclick="limpSetFilter(this)">📅 Sexta</button>
+        <button class="limp-chip-f" data-lf="aguardando" onclick="limpSetFilter(this)">⏳ Aguardando</button>
+        <button class="limp-chip-f" data-lf="nao" onclick="limpSetFilter(this)">❌ Não</button>
+        <button class="limp-chip-f" data-lf="nao_respondeu" onclick="limpSetFilter(this)">🔇 Sem resp.</button>
+      </div>
+
+      <!-- Progress -->
+      <div id="limp-progress">
+        <div id="limp-progress-txt">Enviando…</div>
+        <div class="progress-bar-wrap"><div class="progress-bar-fill" id="limp-progress-fill" style="width:0%"></div></div>
+      </div>
+
+      <!-- Lista -->
+      <div id="limp-list" class="limp-list">
+        <div class="empty"><div class="icon">🧹</div><p>Clique em Atualizar para carregar a agenda.</p></div>
+      </div>
+
+      <!-- Footer Disparar -->
+      <div class="limp-footer">
+        <button class="btn-full btn-green" onclick="limpDisparar()" id="limp-btn-disp" style="display:none">
+          📲 Disparar WhatsApp para Aguardando
+        </button>
+      </div>
+
+    </div>
+
     <!-- ══ CONFIG ══ -->
     <div id="sec-config" class="section">
 
@@ -527,6 +671,10 @@
     <button class="nav-btn" id="nav-arquivo" onclick="goSec('arquivo')">
       <span class="nav-icon">📁</span>
       <span class="nav-lbl">Arquivo</span>
+    </button>
+    <button class="nav-btn" id="nav-limpeza" onclick="goSec('limpeza')">
+      <span class="nav-icon">🧹</span>
+      <span class="nav-lbl">Limpeza</span>
     </button>
     <button class="nav-btn" id="nav-config" onclick="goSec('config')">
       <span class="nav-icon">⚙️</span>
@@ -629,6 +777,7 @@ function goSec(sec) {
   if (sec === 'tarefas') renderTarefas();
   if (sec === 'arquivo') renderArquivo();
   if (sec === 'config')  renderFuncs();
+  if (sec === 'limpeza') initLimpeza();
 }
 
 // ════════════════════════
@@ -962,6 +1111,259 @@ function openLightbox(taskId, idx, src) {
 function closeLightbox() {
   document.getElementById('lightbox').classList.remove('open');
   document.getElementById('lb-img').src = '';
+}
+
+// ════════════════════════
+// LIMPEZA SEMANAL
+// ════════════════════════
+const LIMP_API   = 'https://limpeza.angelicastudios.com.br';
+const LIMP_DELAY = 30000; // 30s entre envios
+let limpData    = [];
+let limpFilter  = 'todos';
+let limpSending = false;
+
+function limpNormalize(r) {
+  // Normaliza campos da API para formato padrão
+  const status = (r.status || r.resposta || 'aguardando').toLowerCase();
+  const dia    = (r.dia_semana || r.dia || '').toLowerCase();
+  return {
+    apto:   String(r.apto || r.apartamento || '').trim(),
+    nome:   String(r.nome || r.inquilino || '').trim(),
+    numero: String(r.numero || r.celular || '').trim(),
+    status: status,
+    dia:    dia
+  };
+}
+
+function limpNormalizeXlsx(r) {
+  // Normaliza campos do XLSX para formato padrão
+  const ddd = String(r['DDD'] || '').replace(/\D/g,'');
+  const cel = String(r['Celular WhatsApp'] || '').replace(/\D/g,'');
+  const numero = ddd && cel ? `55${ddd}${cel}@c.us` : '';
+  const apto = String(r['Apto'] || r['Apartamento'] || '').trim();
+  const nome = String(r['Nome do Inquilino'] || r['Nome'] || '').trim();
+  return {
+    apto,
+    nome,
+    numero,
+    status: 'aguardando',
+    dia:    ''
+  };
+}
+
+async function initLimpeza() {
+  const el = document.getElementById('limp-list');
+  if (el) el.innerHTML = `<div class="empty"><div class="icon">⏳</div><p>Carregando agenda…</p></div>`;
+  try {
+    const res = await fetch(LIMP_API + '/api/agenda');
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const arr = await res.json();
+    const normalized = arr.map(limpNormalize);
+    const seen = new Set();
+    limpData = normalized.filter(r => {
+      if (seen.has(r.apto)) return false;
+      seen.add(r.apto);
+      return true;
+    });
+    limpRender();
+  } catch(e) {
+    if (el) el.innerHTML = `<div class="empty"><div class="icon">⚠️</div><p>Erro ao carregar: ${esc(e.message)}<br><small>Carregue um XLSX manualmente.</small></p></div>`;
+  }
+}
+
+function limpSetFilter(btn) {
+  document.querySelectorAll('.limp-chip-f').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  limpFilter = btn.dataset.lf;
+  limpRender();
+}
+
+function limpGetStatusInfo(status, dia) {
+  const s = (status || '').toLowerCase();
+  const d = (dia || '').toLowerCase();
+  if (s === 'confirmado' || s === 'sim') {
+    if (d.includes('ter')) return { label: '✅ Terça', cls: 'lb-ter', cardCls: 'lc-ter' };
+    if (d.includes('sex')) return { label: '✅ Sexta', cls: 'lb-sex', cardCls: 'lc-sex' };
+    return { label: '✅ Confirmado', cls: 'lb-ter', cardCls: 'lc-ter' };
+  }
+  if (s === 'nao' || s === 'não' || s === 'recusado') return { label: '❌ Não', cls: 'lb-nao', cardCls: 'lc-nao' };
+  if (s === 'aguardando' || s === 'pendente' || s === '') return { label: '⏳ Aguardando', cls: 'lb-agu', cardCls: 'lc-agu' };
+  return { label: '🔇 Sem resp.', cls: 'lb-nr', cardCls: '' };
+}
+
+function limpMatchFilter(r) {
+  if (limpFilter === 'todos') return true;
+  const s = (r.status || '').toLowerCase();
+  const d = (r.dia || '').toLowerCase();
+  if (limpFilter === 'terca')      return (s === 'confirmado' || s === 'sim') && d.includes('ter');
+  if (limpFilter === 'sexta')      return (s === 'confirmado' || s === 'sim') && d.includes('sex');
+  if (limpFilter === 'aguardando') return s === 'aguardando' || s === 'pendente' || s === '';
+  if (limpFilter === 'nao')        return s === 'nao' || s === 'não' || s === 'recusado';
+  if (limpFilter === 'nao_respondeu') return !['confirmado','sim','nao','não','recusado','aguardando','pendente',''].includes(s);
+  return true;
+}
+
+function limpRender() {
+  // Stats
+  const terQ  = limpData.filter(r => { const s=r.status.toLowerCase(),d=r.dia.toLowerCase(); return (s==='confirmado'||s==='sim') && d.includes('ter'); }).length;
+  const sexQ  = limpData.filter(r => { const s=r.status.toLowerCase(),d=r.dia.toLowerCase(); return (s==='confirmado'||s==='sim') && d.includes('sex'); }).length;
+  const aguQ  = limpData.filter(r => { const s=r.status.toLowerCase(); return s==='aguardando'||s==='pendente'||s===''; }).length;
+  const naoQ  = limpData.filter(r => { const s=r.status.toLowerCase(); return s==='nao'||s==='não'||s==='recusado'; }).length;
+  document.getElementById('ls-ter').textContent = terQ;
+  document.getElementById('ls-sex').textContent = sexQ;
+  document.getElementById('ls-agu').textContent = aguQ;
+  document.getElementById('ls-nao').textContent = naoQ;
+
+  // Botão disparar
+  const btnDisp = document.getElementById('limp-btn-disp');
+  if (btnDisp) btnDisp.style.display = aguQ > 0 ? 'flex' : 'none';
+
+  // Lista filtrada
+  const filtered = limpData.filter(limpMatchFilter);
+  const el = document.getElementById('limp-list');
+  if (!el) return;
+
+  if (!limpData.length) {
+    el.innerHTML = `<div class="empty"><div class="icon">🧹</div><p>Nenhum dado carregado.</p></div>`;
+    return;
+  }
+  if (!filtered.length) {
+    el.innerHTML = `<div class="empty"><div class="icon">🔍</div><p>Nenhum resultado neste filtro.</p></div>`;
+    return;
+  }
+
+  el.innerHTML = filtered.map(r => {
+    const info = limpGetStatusInfo(r.status, r.dia);
+    return `
+      <div class="limp-card ${info.cardCls}">
+        <div class="limp-card-info">
+          <div class="limp-card-apto">🏠 ${esc(r.apto)}</div>
+          <div class="limp-card-nome">${esc(r.nome) || '<em style="color:#94a3b8">sem nome</em>'}</div>
+        </div>
+        <span class="limp-badge ${info.cls}">${info.label}</span>
+        ${r.numero ? `<button class="limp-wa-btn" onclick="limpDispararUm('${esc(r.numero)}','${esc(r.apto)}')">📲</button>` : ''}
+      </div>`;
+  }).join('');
+}
+
+async function limpDispararUm(numero, apto) {
+  if (!confirm(`Disparar WhatsApp para ${apto}?`)) return;
+  try {
+    const res = await fetch(LIMP_API + '/api/disparar', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ numero })
+    });
+    const data = await res.json();
+    if (data.ok) {
+      toast(`✅ Enviado para ${apto}!`);
+      setTimeout(initLimpeza, 2000);
+    } else {
+      toast(`⚠️ Erro: ${data.detail || 'falhou'}`);
+    }
+  } catch(e) {
+    toast('❌ Erro de conexão');
+  }
+}
+
+async function limpDisparar() {
+  if (limpSending) { toast('⚠️ Envio já em andamento!'); return; }
+  const aguardando = limpData.filter(r => {
+    const s = (r.status || '').toLowerCase();
+    return (s === 'aguardando' || s === 'pendente' || s === '') && r.numero;
+  });
+  if (!aguardando.length) { toast('⚠️ Nenhum aguardando com número.'); return; }
+  if (!confirm(`Disparar WhatsApp para ${aguardando.length} inquilinos?\n\nIntervalo: 30s entre envios.`)) return;
+
+  limpSending = true;
+  const prog = document.getElementById('limp-progress');
+  const progTxt = document.getElementById('limp-progress-txt');
+  const progFill = document.getElementById('limp-progress-fill');
+  if (prog) prog.style.display = 'block';
+
+  let ok = 0, fail = 0;
+  for (let i = 0; i < aguardando.length; i++) {
+    const r = aguardando[i];
+    if (prog) {
+      progTxt.textContent = `Enviando ${i+1}/${aguardando.length} — ${r.apto}`;
+      progFill.style.width = ((i / aguardando.length) * 100) + '%';
+    }
+    try {
+      const res = await fetch(LIMP_API + '/api/disparar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ numero: r.numero })
+      });
+      const d = await res.json();
+      if (d.ok) ok++; else fail++;
+    } catch(e) { fail++; }
+
+    if (i < aguardando.length - 1) {
+      // Aguarda 30s entre envios para evitar bloqueio
+      let restante = 30;
+      while (restante > 0) {
+        if (prog) progTxt.textContent = `Aguardando ${restante}s — próximo: ${aguardando[i+1]?.apto || ''}`;
+        await new Promise(res => setTimeout(res, 1000));
+        restante--;
+      }
+    }
+  }
+
+  if (prog) {
+    progFill.style.width = '100%';
+    progTxt.textContent = `Concluído! ✅ ${ok} enviados, ❌ ${fail} falhas`;
+    setTimeout(() => { prog.style.display = 'none'; }, 4000);
+  }
+  limpSending = false;
+  toast(`✅ ${ok} enviados, ❌ ${fail} falhas`);
+  setTimeout(initLimpeza, 2000);
+}
+
+function limpLoadXlsxMobile() {
+  document.getElementById('limp-xlsx-input').click();
+}
+
+function limpHandleXlsx(input) {
+  const file = input.files[0];
+  if (!file) return;
+  toast('⏳ Lendo XLSX…');
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      if (typeof XLSX === 'undefined') {
+        // Carregar SheetJS dinamicamente
+        const s = document.createElement('script');
+        s.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+        s.onload = () => limpParseXlsx(e.target.result, input);
+        document.head.appendChild(s);
+      } else {
+        limpParseXlsx(e.target.result, input);
+      }
+    } catch(err) {
+      toast('❌ Erro ao ler XLSX: ' + err.message);
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function limpParseXlsx(buffer, input) {
+  try {
+    const wb = XLSX.read(buffer, { type: 'array' });
+    const ws = wb.Sheets[wb.SheetNames[0]];
+    const rows = XLSX.utils.sheet_to_json(ws, { defval: '' });
+    const normalized = rows.map(limpNormalizeXlsx).filter(r => r.apto);
+    const seen = new Set();
+    limpData = normalized.filter(r => {
+      if (seen.has(r.apto)) return false;
+      seen.add(r.apto);
+      return true;
+    });
+    input.value = '';
+    toast(`✅ ${limpData.length} apartamentos carregados`);
+    limpRender();
+  } catch(err) {
+    toast('❌ Erro ao processar XLSX: ' + err.message);
+  }
 }
 
 // ════════════════════════
