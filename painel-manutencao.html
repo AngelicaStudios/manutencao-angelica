@@ -1894,6 +1894,7 @@ function limpRender() {
 
 /* ── dropdown de coluna ── */
 function limpToggleDd(thId) {
+  event.stopPropagation();
   const allThs = document.querySelectorAll('.limp-table th.col-filt');
   allThs.forEach(t => { if (t.id !== thId) t.classList.remove('lopen'); });
   document.getElementById(thId).classList.toggle('lopen');
@@ -2010,6 +2011,10 @@ function limpLoadXlsx(input) {
 
           return { apto, nome, numero, status:'PENDENTE', dia:'', executor:'', observacao:'' };
         }).filter(r => r.apto);
+
+        // Deduplica por apto — mantém primeira ocorrência
+        const seen = new Set();
+        limpData = limpData.filter(r => { if (seen.has(r.apto)) return false; seen.add(r.apto); return true; });
 
         toast(`${limpData.length} apartamentos carregados.`, 'success');
         document.getElementById('btn-disparar').disabled = limpData.length === 0;
