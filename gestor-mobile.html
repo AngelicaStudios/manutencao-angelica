@@ -917,6 +917,21 @@ async function removeFunc(nome) {
   toast('Removido.');
 }
 
+function abrirEditFunc(nome) {
+  const f = funcs.find(x => x.nome === nome);
+  if (!f) return;
+  const novoNome = prompt(`Novo nome (atual: ${f.nome}):`, f.nome);
+  if (novoNome === null) return;
+  const novoPin  = prompt(`Novo PIN (atual: ${f.pin||'—'}):`, f.pin || '');
+  if (novoPin === null) return;
+  if (!novoNome.trim()) { toast('⚠️ Nome não pode ser vazio!'); return; }
+  if (!novoPin.trim() || novoPin.trim().length < 4) { toast('⚠️ PIN precisa ter ao menos 4 dígitos!'); return; }
+  const list = funcs.map(f2 => f2.nome === nome
+    ? {nome: novoNome.trim(), pin: novoPin.trim()} : f2
+  ).sort((a,b) => a.nome.localeCompare(b.nome));
+  dbSaveFuncs(list).then(() => toast('✅ Funcionário atualizado!'));
+}
+
 function renderFuncs() {
   const el = document.getElementById('func-list');
   if (el) {
@@ -924,6 +939,7 @@ function renderFuncs() {
       ? funcs.map(f => `
           <span class="func-chip">👷 ${esc(f.nome)}
             <span style="font-size:.68rem;color:var(--muted);margin-left:3px;font-family:monospace">PIN:${esc(f.pin||'—')}</span>
+            <button onclick="abrirEditFunc('${esc(f.nome)}')" title="Editar" style="color:#93c5fd">✏️</button>
             <button onclick="removeFunc('${esc(f.nome)}')">✕</button>
           </span>`).join('')
       : `<span style="font-size:.8rem;color:var(--muted)">Nenhum funcionário cadastrado.</span>`;

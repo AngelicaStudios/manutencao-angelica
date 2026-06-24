@@ -489,6 +489,8 @@
     line-height: 1; transition: color .15s;
   }
   .func-chip button:hover { color: var(--danger); }
+  .func-chip .btn-edit-func { color: #93c5fd; }
+  .func-chip .btn-edit-func:hover { color: var(--primary); }
 
   details > summary::-webkit-details-marker { display: none; }
   details[open] summary span:last-child { display: none; }
@@ -757,6 +759,28 @@
     </div>
 
   </main>
+</div>
+
+<!-- Modal Editar Funcionário -->
+<div id="modal-func" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:1200;align-items:center;justify-content:center;padding:16px">
+  <div class="modal-box" style="width:340px">
+    <h3>✏️ Editar Funcionário</h3>
+    <input type="hidden" id="edit-func-original" />
+    <div class="form-group">
+      <label>Nome</label>
+      <input type="text" id="edit-func-nome" placeholder="Nome do funcionário" />
+    </div>
+    <div class="form-group">
+      <label>PIN</label>
+      <input type="text" id="edit-func-pin" placeholder="PIN (mín. 4 dígitos)" maxlength="8"
+        style="letter-spacing:3px;font-family:monospace"
+        onkeydown="if(event.key==='Enter')salvarEditFunc()" />
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-primary" onclick="salvarEditFunc()">💾 Salvar</button>
+      <button class="btn btn-ghost" onclick="fecharEditFunc()">Cancelar</button>
+    </div>
+  </div>
 </div>
 
 <!-- Modal Editar Tarefa -->
@@ -1447,6 +1471,38 @@ async function removeFunc(nome) {
   toast('Funcionário removido.');
 }
 
+function abrirEditFunc(nome) {
+  const f = funcs.find(x => x.nome === nome);
+  if (!f) return;
+  document.getElementById('edit-func-original').value = nome;
+  document.getElementById('edit-func-nome').value     = f.nome;
+  document.getElementById('edit-func-pin').value      = f.pin || '';
+  const modal = document.getElementById('modal-func');
+  modal.style.display = 'flex';
+  setTimeout(() => document.getElementById('edit-func-nome').focus(), 80);
+}
+
+function fecharEditFunc() {
+  document.getElementById('modal-func').style.display = 'none';
+}
+
+async function salvarEditFunc() {
+  const original = document.getElementById('edit-func-original').value;
+  const novoNome = document.getElementById('edit-func-nome').value.trim();
+  const novoPin  = document.getElementById('edit-func-pin').value.trim();
+  if (!novoNome) { toast('⚠️ Digite o nome!'); return; }
+  if (!novoPin || novoPin.length < 4) { toast('⚠️ PIN precisa ter ao menos 4 dígitos!'); return; }
+  // Verifica duplicata (ignorando o próprio)
+  if (novoNome !== original && funcs.find(f => f.nome === novoNome)) {
+    toast('⚠️ Já existe um funcionário com esse nome!'); return;
+  }
+  const list = funcs.map(f => f.nome === original ? {nome: novoNome, pin: novoPin} : f)
+                    .sort((a,b) => a.nome.localeCompare(b.nome));
+  await dbSaveFuncs(list);
+  fecharEditFunc();
+  toast('✅ Funcionário atualizado!');
+}
+
 function renderFuncs() {
   const el = document.getElementById('func-list');
   if (el) {
@@ -1455,6 +1511,7 @@ function renderFuncs() {
           <span class="func-chip">
             👷 ${escHtml(f.nome)}
             <span style="font-size:.68rem;color:var(--muted);margin-left:4px;font-family:monospace">PIN:${escHtml(f.pin||'—')}</span>
+            <button class="btn-edit-func" onclick="abrirEditFunc('${escHtml(f.nome)}')" title="Editar">✏️</button>
             <button onclick="removeFunc('${escHtml(f.nome)}')" title="Remover">✕</button>
           </span>`).join('')
       : `<span style="font-size:.82rem;color:var(--muted)">Nenhum funcionário cadastrado.</span>`;
