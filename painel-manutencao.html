@@ -1788,7 +1788,9 @@ async function initLimpeza() {
     if (!r.ok) throw new Error('API ' + r.status);
     const raw = await r.json();
     const arr = Array.isArray(raw) ? raw : (raw.agenda || []);
-    limpData = arr.map(limpNormalize);
+    const normalized = arr.map(limpNormalize);
+    const seen = new Set();
+    limpData = normalized.filter(r => { if (seen.has(r.apto)) return false; seen.add(r.apto); return true; });
   } catch(e) {
     // se API indisponível, mantém dados existentes e avisa
     if (!limpData.length) {
