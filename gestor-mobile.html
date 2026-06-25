@@ -183,14 +183,26 @@
     display: flex; gap: 0;
     background: #fff; border-bottom: 1.5px solid var(--border);
   }
-  .cnt { flex: 1; text-align: center; padding: 10px 4px; border-right: 1px solid var(--border); }
+  .cnt {
+    flex: 1; text-align: center; padding: 10px 4px; position: relative;
+    border: none; background: none; cursor: pointer; font-family: inherit;
+    border-right: 1px solid var(--border);
+    transition: background .15s; -webkit-tap-highlight-color: transparent;
+  }
   .cnt:last-child { border-right: none; }
+  .cnt:active { opacity: .75; }
   .cnt .num { font-size: 1.4rem; font-weight: 800; line-height: 1; }
   .cnt .lbl { font-size: .6rem; color: var(--muted); text-transform: uppercase; letter-spacing: .3px; margin-top: 2px; }
   .cnt.c-total .num { color: var(--text); }
   .cnt.c-pend  .num { color: var(--yellow); }
   .cnt.c-and   .num { color: var(--blue); }
   .cnt.c-conc  .num { color: var(--green); }
+  .cnt.cnt-active { background: #f8fafc; }
+  .cnt.cnt-active::after { content:''; position:absolute; bottom:0; left:0; right:0; height:3px; }
+  .cnt.c-total.cnt-active::after { background: var(--text); }
+  .cnt.c-pend.cnt-active::after  { background: var(--yellow); }
+  .cnt.c-and.cnt-active::after   { background: var(--blue); }
+  .cnt.c-conc.cnt-active::after  { background: var(--green); }
 
   /* ══════════════════════
      FILTROS
@@ -465,6 +477,54 @@
   }
   .progress-bar-wrap { background: var(--border); border-radius: 6px; height: 6px; margin-top: 6px; overflow: hidden; }
   .progress-bar-fill { height: 100%; background: var(--green); border-radius: 6px; transition: width .3s; }
+
+  /* ══════════════════════
+     CARD ACTIONS (2-btn)
+  ══════════════════════ */
+  .card-act-btn.dimmed { opacity: .35; cursor: not-allowed; }
+  .card-act-btn:disabled { opacity: .35; cursor: not-allowed; }
+
+  /* ══════════════════════
+     DRAWER TAREFA
+  ══════════════════════ */
+  #task-drawer { position: fixed; inset: 0; z-index: 300; display: none; }
+  #task-drawer.open { display: block; }
+  .drawer-overlay { position: absolute; inset: 0; background: rgba(0,0,0,.45); }
+  .drawer-panel {
+    position: absolute; bottom: 0; left: 0; right: 0;
+    background: #fff; border-radius: 20px 20px 0 0;
+    max-height: 90vh; overflow-y: auto;
+    transform: translateY(100%);
+    transition: transform .3s cubic-bezier(.32,.72,0,1);
+  }
+  #task-drawer.open .drawer-panel { transform: translateY(0); }
+  .drawer-handle { width: 40px; height: 4px; background: #e2e8f0; border-radius: 2px; margin: 12px auto 4px; }
+  .drawer-hdr { padding: 6px 16px 14px; border-bottom: 1.5px solid var(--border); }
+  .drawer-title { font-size: 1.05rem; font-weight: 800; color: var(--text); }
+  .drawer-sub { font-size: .75rem; color: var(--muted); margin-top: 2px; }
+  .drawer-body { padding: 14px 16px; display: flex; flex-direction: column; gap: 12px; }
+  .drawer-row { display: flex; gap: 10px; }
+  .drawer-row .drawer-field { flex: 1; }
+  .drawer-field { display: flex; flex-direction: column; gap: 4px; }
+  .drawer-lbl { font-size: .68rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .4px; }
+  .drawer-input {
+    width: 100%; padding: 10px 12px;
+    border: 1.5px solid var(--border); border-radius: 10px;
+    font-size: .9rem; font-family: inherit; color: var(--text); background: #fff;
+  }
+  .drawer-input:focus { outline: none; border-color: var(--blue); }
+  textarea.drawer-input { resize: none; min-height: 72px; }
+  select.drawer-input { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2364748b' d='M6 8L1 3h10z'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; padding-right: 32px; }
+  .drawer-obs {
+    font-size: .84rem; background: #f8fafc; border: 1px solid var(--border);
+    border-radius: 8px; padding: 10px; color: var(--muted); line-height: 1.5;
+  }
+  .drawer-footer {
+    padding: 12px 16px;
+    padding-bottom: calc(12px + var(--safe-b));
+    border-top: 1.5px solid var(--border);
+    display: flex; gap: 8px; position: sticky; bottom: 0; background: #fff;
+  }
 </style>
 <!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
@@ -508,10 +568,7 @@
       <div class="counters-bar" id="counters"></div>
       <div class="filter-bar">
         <input type="date" class="date-filter" id="filter-date" onchange="renderTarefas()" />
-        <button class="filter-chip active" data-s="" onclick="setFilter(this)">Todas</button>
-        <button class="filter-chip" data-s="pendente"  onclick="setFilter(this)">⏳ Pendentes</button>
-        <button class="filter-chip" data-s="andamento" onclick="setFilter(this)">🔄 Andamento</button>
-        <button class="filter-chip" data-s="concluida" onclick="setFilter(this)">✅ Concluídas</button>
+        <button class="filter-chip active" id="chip-todas" onclick="setCounterFilter('')">Todas</button>
       </div>
 
       <!-- Ações rápidas -->
@@ -706,6 +763,77 @@
 
 </div>
 
+<!-- Drawer Tarefa -->
+<div id="task-drawer">
+  <div class="drawer-overlay" onclick="closeDrawer()"></div>
+  <div class="drawer-panel">
+    <div class="drawer-handle"></div>
+    <div class="drawer-hdr">
+      <div class="drawer-title" id="dr-title">Tarefa</div>
+      <div class="drawer-sub" id="dr-sub"></div>
+    </div>
+    <div class="drawer-body">
+      <input type="hidden" id="dr-id" />
+      <div class="drawer-field">
+        <div class="drawer-lbl">Apartamento / Unidade</div>
+        <input type="text" class="drawer-input" id="dr-apto" />
+      </div>
+      <div class="drawer-row">
+        <div class="drawer-field">
+          <div class="drawer-lbl">Tipo de serviço</div>
+          <select class="drawer-input" id="dr-tipo">
+            <option>Elétrica</option><option>Hidráulica</option><option>Limpeza</option>
+            <option>Pintura</option><option>Marcenaria</option><option>Ar-condicionado</option>
+            <option>Portão / Interfone</option><option>Inspeção geral</option><option>Outro</option>
+          </select>
+        </div>
+        <div class="drawer-field">
+          <div class="drawer-lbl">Data prevista</div>
+          <input type="date" class="drawer-input" id="dr-data" />
+        </div>
+      </div>
+      <div class="drawer-row">
+        <div class="drawer-field">
+          <div class="drawer-lbl">Responsável</div>
+          <select class="drawer-input" id="dr-resp"></select>
+        </div>
+        <div class="drawer-field">
+          <div class="drawer-lbl">Status</div>
+          <select class="drawer-input" id="dr-status">
+            <option value="pendente">⏳ Pendente</option>
+            <option value="andamento">🔄 Andamento</option>
+            <option value="concluida">✅ Concluída</option>
+          </select>
+        </div>
+      </div>
+      <div class="drawer-field">
+        <div class="drawer-lbl">Prioridade</div>
+        <select class="drawer-input" id="dr-prio">
+          <option value="alta">🔴 Alta</option>
+          <option value="media">🟡 Média</option>
+          <option value="baixa">🟢 Baixa</option>
+        </select>
+      </div>
+      <div class="drawer-field">
+        <div class="drawer-lbl">Descrição</div>
+        <textarea class="drawer-input" id="dr-desc" rows="3"></textarea>
+      </div>
+      <div class="drawer-field" id="dr-obs-wrap" style="display:none">
+        <div class="drawer-lbl">📝 Obs. da equipe (leitura)</div>
+        <div class="drawer-obs" id="dr-obs"></div>
+      </div>
+      <div class="drawer-field" id="dr-fotos-wrap" style="display:none">
+        <div class="drawer-lbl">📷 Fotos da equipe</div>
+        <div class="card-fotos" id="dr-fotos" style="padding:0;margin-top:4px"></div>
+      </div>
+    </div>
+    <div class="drawer-footer">
+      <button class="btn-full btn-blue" style="flex:2" onclick="saveDrawer()">💾 Salvar alterações</button>
+      <button class="btn-full btn-ghost" style="flex:1" onclick="closeDrawer()">Fechar</button>
+    </div>
+  </div>
+</div>
+
 <!-- Lightbox -->
 <div id="lightbox" onclick="closeLightbox()">
   <img id="lb-img" src="" alt="" onclick="event.stopPropagation()" />
@@ -807,12 +935,14 @@ function goSec(sec) {
 // ════════════════════════
 let activeStatus = '';
 
-function setFilter(btn) {
-  document.querySelectorAll('.filter-chip').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
-  activeStatus = btn.dataset.s;
+function setCounterFilter(status) {
+  activeStatus = (activeStatus === status && status !== '') ? '' : status;
+  const chipTodas = document.getElementById('chip-todas');
+  if (chipTodas) chipTodas.classList.toggle('active', activeStatus === '');
   renderTarefas();
 }
+
+function setFilter(btn) { setCounterFilter(btn.dataset.s || ''); }
 
 // ════════════════════════
 // PRIORIDADE
@@ -836,10 +966,18 @@ function renderTarefas() {
   const conc = tasks.filter(t => t.status === 'concluida').length;
   const cEl  = document.getElementById('counters');
   if (cEl) cEl.innerHTML = `
-    <div class="cnt c-total"><div class="num">${tasks.length}</div><div class="lbl">Total</div></div>
-    <div class="cnt c-pend"><div class="num">${pend}</div><div class="lbl">Pendentes</div></div>
-    <div class="cnt c-and"><div class="num">${and}</div><div class="lbl">Andamento</div></div>
-    <div class="cnt c-conc"><div class="num">${conc}</div><div class="lbl">Concluídas</div></div>
+    <button class="cnt c-total${activeStatus===''?        ' cnt-active':''}" onclick="setCounterFilter('')">
+      <div class="num">${tasks.length}</div><div class="lbl">Total</div>
+    </button>
+    <button class="cnt c-pend${activeStatus==='pendente'?  ' cnt-active':''}" onclick="setCounterFilter('pendente')">
+      <div class="num">${pend}</div><div class="lbl">Pendentes</div>
+    </button>
+    <button class="cnt c-and${activeStatus==='andamento'? ' cnt-active':''}" onclick="setCounterFilter('andamento')">
+      <div class="num">${and}</div><div class="lbl">Andamento</div>
+    </button>
+    <button class="cnt c-conc${activeStatus==='concluida'?' cnt-active':''}" onclick="setCounterFilter('concluida')">
+      <div class="num">${conc}</div><div class="lbl">Concluídas</div>
+    </button>
   `;
 
   let list = tasks.filter(t =>
@@ -886,36 +1024,29 @@ function taskCardHTML(t, isArq) {
 
   const sTagCls = { pendente:'tag-pend', andamento:'tag-and', concluida:'tag-conc' }[t.status] || '';
   const sLabel  = { pendente:'⏳ Pendente', andamento:'🔄 Andamento', concluida:'✅ Concluída' }[t.status] || '';
-  const pTagCls = { alta:'tag-alta', media:'tag-media', baixa:'tag-baixa' }[t.prio] || '';
-  const pLabel  = { alta:'🔴 Alta', media:'🟡 Média', baixa:'🟢 Baixa' }[t.prio] || '';
 
-  const fotosHtml = (t.fotos && t.fotos.length)
-    ? `<div class="card-fotos">${t.fotos.map((f,i)=>
-        `<img class="foto-thumb" src="${f}" onclick="openLightbox('${t.id}',${i},'${isArq?'arq':'task'}')">`
-      ).join('')}</div>` : '';
-
+  const fotoCnt = (t.fotos && t.fotos.length) || 0;
   const obsHtml  = t.obs     ? `<div class="card-obs"><strong>📝</strong> ${esc(t.obs)}</div>` : '';
   const execHtml = t.dataExec? `<div class="card-exec">✅ Executado: ${fmtDate(t.dataExec)}</div>` : '';
 
+  const bodyClick = isArq ? '' : `onclick="openDrawer('${t.id}')" style="cursor:pointer"`;
+
   const actions = isArq ? '' : `
     <div class="card-actions">
-      <button class="card-act-btn" onclick="quickStatus('${t.id}','pendente')">
-        <span class="act-icon">⏳</span>Pendente
+      <button class="card-act-btn${fotoCnt ? '' : ' dimmed'}"
+        onclick="event.stopPropagation();openFotos('${t.id}')"
+        ${fotoCnt ? '' : 'disabled'}>
+        <span class="act-icon">📷</span>Ver fotos (${fotoCnt})
       </button>
-      <button class="card-act-btn" onclick="quickStatus('${t.id}','andamento')">
-        <span class="act-icon">🔄</span>Andamento
-      </button>
-      <button class="card-act-btn" onclick="quickStatus('${t.id}','concluida')">
-        <span class="act-icon">✅</span>Concluída
-      </button>
-      <button class="card-act-btn del" onclick="deleteTask('${t.id}')">
+      <button class="card-act-btn del"
+        onclick="event.stopPropagation();deleteTask('${t.id}')">
         <span class="act-icon">🗑️</span>Excluir
       </button>
     </div>`;
 
   return `
     <div class="task-card${isArq?' archived':''}" data-prio="${t.prio}" id="card-${t.id}">
-      <div class="card-body">
+      <div class="card-body" ${bodyClick}>
         <div class="card-row1">
           <div class="card-tipo">${esc(t.tipo)}</div>
           ${!isArq ? `<div class="card-date ${dateCls}">${dateLabel}</div>` : ''}
@@ -926,12 +1057,10 @@ function taskCardHTML(t, isArq) {
           ${isArq
             ? `<span class="tag tag-arq">📁 ${fmtDate(t.data)}</span>`
             : `<span class="tag ${sTagCls}">${sLabel}</span>`}
-          <span class="tag ${pTagCls}">${pLabel}</span>
         </div>
         ${t.desc ? `<div class="card-desc">${esc(t.desc)}</div>` : ''}
         ${obsHtml}${execHtml}
       </div>
-      ${fotosHtml}
       ${actions}
     </div>`;
 }
@@ -1118,6 +1247,68 @@ function renderFuncs() {
   const opts = funcs.map(f => `<option value="${esc(f.nome)}">${esc(f.nome)}</option>`).join('');
   const sel  = document.getElementById('f-resp');
   if (sel) { const c = sel.value; sel.innerHTML = '<option value="">Selecione…</option>' + opts; if (c) sel.value = c; }
+}
+
+// ════════════════════════
+// DRAWER TAREFA
+// ════════════════════════
+function openDrawer(id) {
+  const t = tasks.find(x => x.id === id);
+  if (!t) return;
+  document.getElementById('dr-id').value   = t.id;
+  document.getElementById('dr-title').textContent = `${t.tipo} — Apto ${t.apto}`;
+  document.getElementById('dr-sub').textContent   = `${fmtDate(t.data)}  ·  ${t.resp || 'Sem responsável'}`;
+  document.getElementById('dr-apto').value   = t.apto;
+  document.getElementById('dr-tipo').value   = t.tipo;
+  document.getElementById('dr-data').value   = t.data;
+  document.getElementById('dr-status').value = t.status;
+  document.getElementById('dr-prio').value   = t.prio;
+  document.getElementById('dr-desc').value   = t.desc || '';
+  const opts = funcs.map(f => `<option value="${esc(f.nome)}">${esc(f.nome)}</option>`).join('');
+  const drResp = document.getElementById('dr-resp');
+  drResp.innerHTML = '<option value="">Sem responsável</option>' + opts;
+  drResp.value = t.resp || '';
+  const obsWrap = document.getElementById('dr-obs-wrap');
+  if (t.obs) { obsWrap.style.display = ''; document.getElementById('dr-obs').textContent = t.obs; }
+  else { obsWrap.style.display = 'none'; }
+  const fotosWrap = document.getElementById('dr-fotos-wrap');
+  const fotosEl   = document.getElementById('dr-fotos');
+  if (t.fotos && t.fotos.length) {
+    fotosWrap.style.display = '';
+    fotosEl.innerHTML = t.fotos.map((f, i) =>
+      `<img class="foto-thumb" src="${f}" onclick="openLightbox('${t.id}',${i},'task')">`
+    ).join('');
+  } else { fotosWrap.style.display = 'none'; fotosEl.innerHTML = ''; }
+  document.getElementById('task-drawer').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeDrawer() {
+  document.getElementById('task-drawer').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+async function saveDrawer() {
+  const id = document.getElementById('dr-id').value;
+  const updates = {
+    apto:   document.getElementById('dr-apto').value.trim(),
+    tipo:   document.getElementById('dr-tipo').value,
+    data:   document.getElementById('dr-data').value,
+    resp:   document.getElementById('dr-resp').value,
+    status: document.getElementById('dr-status').value,
+    prio:   document.getElementById('dr-prio').value,
+    desc:   document.getElementById('dr-desc').value.trim(),
+  };
+  if (!updates.apto) { toast('⚠️ Informe o apartamento!'); return; }
+  await dbUpdate('tarefas', id, updates);
+  toast('✅ Tarefa atualizada!');
+  closeDrawer();
+}
+
+function openFotos(id) {
+  const t = tasks.find(x => x.id === id);
+  if (!t || !t.fotos || !t.fotos.length) return;
+  openLightbox(id, 0, 'task');
 }
 
 // ════════════════════════

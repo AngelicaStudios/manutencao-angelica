@@ -457,13 +457,36 @@
     background: var(--card); border-radius: var(--radius);
     padding: 12px 16px; box-shadow: var(--shadow);
     display: flex; flex-direction: column; gap: 2px;
+    border: none; font-family: inherit; text-align: left;
+    cursor: pointer; position: relative; overflow: hidden;
+    transition: box-shadow .15s, transform .1s;
   }
+  .counter:hover { box-shadow: 0 4px 14px rgba(0,0,0,.14); }
+  .counter:active { transform: scale(.98); }
   .counter .num { font-size: 1.7rem; font-weight: 800; }
   .counter .lbl { font-size: .72rem; color: var(--muted); text-transform: uppercase; letter-spacing: .4px; }
   .counter.c-pend  .num { color: var(--warning); }
   .counter.c-and   .num { color: var(--primary); }
   .counter.c-conc  .num { color: var(--success); }
   .counter.c-total .num { color: var(--text); }
+  .counter.counter-active { background: #f8fafc; }
+  .counter.c-pend.counter-active  { box-shadow: 0 0 0 2px var(--warning) inset; }
+  .counter.c-and.counter-active   { box-shadow: 0 0 0 2px var(--primary) inset; }
+  .counter.c-conc.counter-active  { box-shadow: 0 0 0 2px var(--success) inset; }
+  .counter.c-total.counter-active { box-shadow: 0 0 0 2px var(--text) inset; }
+
+  /* ── BTN VER FOTOS ── */
+  .btn-fotos {
+    display: flex; align-items: center; gap: 5px;
+    background: #f0f9ff; color: #0369a1;
+    border: 1px solid #bae6fd; border-radius: 6px;
+    padding: 5px 12px; font-size: .78rem; font-weight: 700;
+    cursor: pointer; transition: background .15s;
+  }
+  .btn-fotos:hover:not(:disabled) { background: #e0f2fe; }
+  .btn-fotos:disabled { opacity: .38; cursor: not-allowed; }
+  .task-card.clickable { cursor: pointer; }
+  .task-card.clickable:hover { box-shadow: 0 4px 12px rgba(0,0,0,.12); }
 
   .section-title {
     font-size: .82rem; font-weight: 700; color: var(--muted);
@@ -770,6 +793,9 @@
           <div id="func-list" style="display:flex;flex-wrap:wrap;gap:8px"></div>
         </div>
       </details>
+
+      <!-- Contadores gestor (filtros rápidos) -->
+      <div class="counters" id="g-counters"></div>
 
       <!-- Filtros gestor -->
       <div class="filters">
@@ -1304,6 +1330,16 @@ async function addTask() {
 // ══════════════════════════════════════════════
 // FILTROS
 // ══════════════════════════════════════════════
+function setGestorFilter(status) {
+  const sel = document.getElementById('g-filter-status');
+  if (sel) sel.value = (sel.value === status && status !== '') ? '' : status;
+  renderGestor();
+}
+function setEquipeFilter(status) {
+  const sel = document.getElementById('e-filter-status');
+  if (sel) sel.value = (sel.value === status && status !== '') ? '' : status;
+  renderEquipe();
+}
 function clearFilters(p) {
   ['date','status','prio','resp'].forEach(f => {
     const el = document.getElementById(p + '-filter-' + f);
@@ -1333,6 +1369,27 @@ function applyFilters(list, p) {
 // ══════════════════════════════════════════════
 function renderGestor() {
   document.getElementById('f-data').value = document.getElementById('f-data').value || today();
+
+  const pend = tasks.filter(t => t.status === 'pendente').length;
+  const and  = tasks.filter(t => t.status === 'andamento').length;
+  const conc = tasks.filter(t => t.status === 'concluida').length;
+  const stFilter = (document.getElementById('g-filter-status') || {}).value || '';
+  const gCnt = document.getElementById('g-counters');
+  if (gCnt) gCnt.innerHTML = `
+    <button class="counter c-total${stFilter===''?' counter-active':''}" onclick="setGestorFilter('')">
+      <div class="num">${tasks.length}</div><div class="lbl">Total</div>
+    </button>
+    <button class="counter c-pend${stFilter==='pendente'?' counter-active':''}" onclick="setGestorFilter('pendente')">
+      <div class="num">${pend}</div><div class="lbl">Pendentes</div>
+    </button>
+    <button class="counter c-and${stFilter==='andamento'?' counter-active':''}" onclick="setGestorFilter('andamento')">
+      <div class="num">${and}</div><div class="lbl">Em andamento</div>
+    </button>
+    <button class="counter c-conc${stFilter==='concluida'?' counter-active':''}" onclick="setGestorFilter('concluida')">
+      <div class="num">${conc}</div><div class="lbl">Concluídas</div>
+    </button>
+  `;
+
   let list = applyFilters(tasks, 'g');
   list.sort((a,b) => a.data.localeCompare(b.data) || prioOrder(a.prio) - prioOrder(b.prio));
 
@@ -1359,11 +1416,20 @@ function renderEquipe() {
   const and  = minhas.filter(t => t.status === 'andamento').length;
   const conc = minhas.filter(t => t.status === 'concluida').length;
 
+  const eStFilter = (document.getElementById('e-filter-status') || {}).value || '';
   document.getElementById('counters').innerHTML = `
-    <div class="counter c-total"><div class="num">${minhas.length}</div><div class="lbl">Minhas</div></div>
-    <div class="counter c-pend"><div class="num">${pend}</div><div class="lbl">Pendentes</div></div>
-    <div class="counter c-and"><div class="num">${and}</div><div class="lbl">Em andamento</div></div>
-    <div class="counter c-conc"><div class="num">${conc}</div><div class="lbl">Concluídas</div></div>
+    <button class="counter c-total${eStFilter===''?' counter-active':''}" onclick="setEquipeFilter('')">
+      <div class="num">${minhas.length}</div><div class="lbl">Minhas</div>
+    </button>
+    <button class="counter c-pend${eStFilter==='pendente'?' counter-active':''}" onclick="setEquipeFilter('pendente')">
+      <div class="num">${pend}</div><div class="lbl">Pendentes</div>
+    </button>
+    <button class="counter c-and${eStFilter==='andamento'?' counter-active':''}" onclick="setEquipeFilter('andamento')">
+      <div class="num">${and}</div><div class="lbl">Em andamento</div>
+    </button>
+    <button class="counter c-conc${eStFilter==='concluida'?' counter-active':''}" onclick="setEquipeFilter('concluida')">
+      <div class="num">${conc}</div><div class="lbl">Concluídas</div>
+    </button>
   `;
 
   let list = applyFilters(minhas, 'e');
@@ -1414,13 +1480,16 @@ function taskCardHTML(t, view) {
   const dataExecHtml = t.dataExec
     ? `<div style="font-size:.78rem;color:var(--success);margin-top:4px">✅ Executado em: <strong>${fmtDate(t.dataExec)}</strong></div>` : '';
 
-  const deleteBtn = ''; // substituído por card-actions
+  const fotoCnt = (t.fotos && t.fotos.length) || 0;
 
   // Barra de ações para o gestor
   const gestorActions = (view === 'gestor') ? `
     <div class="card-actions">
-      <button class="btn-edit" onclick="editTask('${t.id}')">✏️ Editar</button>
-      <button class="btn-del-card" onclick="deleteTask('${t.id}')">🗑️ Excluir</button>
+      <button class="btn-fotos" onclick="event.stopPropagation();${fotoCnt ? `openLightbox('${t.id}',0,'task')` : ''}"
+        ${fotoCnt ? '' : 'disabled'}>
+        📷 Ver fotos (${fotoCnt})
+      </button>
+      <button class="btn-del-card" onclick="event.stopPropagation();deleteTask('${t.id}')">🗑️ Excluir</button>
     </div>` : '';
 
   let panel = '';
@@ -1459,9 +1528,11 @@ function taskCardHTML(t, view) {
     `;
   }
 
+  const cardClick = (view === 'gestor') ? `onclick="editTask('${t.id}')"` : '';
+
   return `
-    <div class="task-card${isArq ? ' archived' : ''}" data-priority="${t.prio}" id="card-${t.id}">
-      ${deleteBtn}
+    <div class="task-card${isArq ? ' archived' : ''}${view === 'gestor' ? ' clickable' : ''}"
+      data-priority="${t.prio}" id="card-${t.id}" ${cardClick}>
       <div class="task-header">
         <div class="task-title">${escHtml(t.tipo)}</div>
         ${!isArq ? `<div class="task-date ${info.cls}">${info.label}</div>` : ''}
@@ -1472,12 +1543,11 @@ function taskCardHTML(t, view) {
         ${isArq
           ? `<span class="badge badge-arquivada">📁 Arquivada · ${fmtDate(t.data)}</span>`
           : `<span class="badge badge-${t.status}">${labelStatus(t.status)}</span>`}
-        <span class="badge badge-${t.prio}">${labelPrio(t.prio)}</span>
       </div>
       ${t.desc ? `<div class="task-desc">${escHtml(t.desc)}</div>` : ''}
       ${obsHtml}
       ${dataExecHtml}
-      ${view === 'gestor' || isArq ? fotosHtml : ''}
+      ${isArq ? fotosHtml : ''}
       ${panel}
       ${gestorActions}
     </div>
