@@ -183,27 +183,14 @@
     display: flex; gap: 0;
     background: #fff; border-bottom: 1.5px solid var(--border);
   }
-  .cnt {
-    flex: 1; text-align: center; padding: 10px 4px;
-    border-right: 1px solid var(--border); position: relative;
-    border: none; background: none; cursor: pointer; font-family: inherit;
-    border-right: 1px solid var(--border);
-    transition: background .15s; -webkit-tap-highlight-color: transparent;
-  }
+  .cnt { flex: 1; text-align: center; padding: 10px 4px; border-right: 1px solid var(--border); }
   .cnt:last-child { border-right: none; }
-  .cnt:active { opacity: .75; }
   .cnt .num { font-size: 1.4rem; font-weight: 800; line-height: 1; }
   .cnt .lbl { font-size: .6rem; color: var(--muted); text-transform: uppercase; letter-spacing: .3px; margin-top: 2px; }
   .cnt.c-total .num { color: var(--text); }
   .cnt.c-pend  .num { color: var(--yellow); }
   .cnt.c-and   .num { color: var(--blue); }
   .cnt.c-conc  .num { color: var(--green); }
-  .cnt.cnt-active { background: #f8fafc; }
-  .cnt.cnt-active::after { content:''; position:absolute; bottom:0; left:0; right:0; height:3px; }
-  .cnt.c-total.cnt-active::after { background: var(--text); }
-  .cnt.c-pend.cnt-active::after  { background: var(--yellow); }
-  .cnt.c-and.cnt-active::after   { background: var(--blue); }
-  .cnt.c-conc.cnt-active::after  { background: var(--green); }
 
   /* ══════════════════════
      FILTROS
@@ -363,52 +350,46 @@
   #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
   /* ══════════════════════
-     CARD ACTIONS (2-btn)
+     LIMPEZA SEMANAL
   ══════════════════════ */
-  .card-act-btn.dimmed { opacity: .35; cursor: not-allowed; }
-  .card-act-btn:disabled { opacity: .35; cursor: not-allowed; }
-
-  /* ══════════════════════
-     DRAWER TAREFA
-  ══════════════════════ */
-  #task-drawer { position: fixed; inset: 0; z-index: 300; display: none; }
-  #task-drawer.open { display: block; }
-  .drawer-overlay { position: absolute; inset: 0; background: rgba(0,0,0,.45); }
-  .drawer-panel {
-    position: absolute; bottom: 0; left: 0; right: 0;
-    background: #fff; border-radius: 20px 20px 0 0;
-    max-height: 90vh; overflow-y: auto;
-    transform: translateY(100%);
-    transition: transform .3s cubic-bezier(.32,.72,0,1);
-  }
-  #task-drawer.open .drawer-panel { transform: translateY(0); }
-  .drawer-handle { width: 40px; height: 4px; background: #e2e8f0; border-radius: 2px; margin: 12px auto 4px; }
-  .drawer-hdr { padding: 6px 16px 14px; border-bottom: 1.5px solid var(--border); }
-  .drawer-title { font-size: 1.05rem; font-weight: 800; color: var(--text); }
-  .drawer-sub { font-size: .75rem; color: var(--muted); margin-top: 2px; }
-  .drawer-body { padding: 14px 16px; display: flex; flex-direction: column; gap: 12px; }
-  .drawer-row { display: flex; gap: 10px; }
-  .drawer-row .drawer-field { flex: 1; }
-  .drawer-field { display: flex; flex-direction: column; gap: 4px; }
-  .drawer-lbl { font-size: .68rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .4px; }
-  .drawer-input {
-    width: 100%; padding: 10px 12px;
-    border: 1.5px solid var(--border); border-radius: 10px;
-    font-size: .9rem; font-family: inherit; color: var(--text); background: #fff;
-  }
-  .drawer-input:focus { outline: none; border-color: var(--blue); }
-  textarea.drawer-input { resize: none; min-height: 72px; }
-  select.drawer-input { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2364748b' d='M6 8L1 3h10z'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; padding-right: 32px; }
-  .drawer-obs {
-    font-size: .84rem; background: #f8fafc; border: 1px solid var(--border);
-    border-radius: 8px; padding: 10px; color: var(--muted); line-height: 1.5;
-  }
-  .drawer-footer {
-    padding: 12px 16px;
-    padding-bottom: calc(12px + var(--safe-b));
-    border-top: 1.5px solid var(--border);
-    display: flex; gap: 8px; position: sticky; bottom: 0; background: #fff;
-  }
+  #sec-limpeza { padding: 0; }
+  .limp-actions { padding: 10px 12px; background: #fff; border-bottom: 1.5px solid var(--border); display: flex; gap: 8px; flex-wrap: wrap; }
+  .limp-stats-bar { display: grid; grid-template-columns: repeat(4, 1fr); background: #fff; border-bottom: 1.5px solid var(--border); }
+  .limp-stat-m { text-align: center; padding: 10px 4px; border-right: 1px solid var(--border); }
+  .limp-stat-m:last-child { border-right: none; }
+  .limp-stat-m .sn { font-size: 1.35rem; font-weight: 800; line-height: 1; }
+  .limp-stat-m .sl { font-size: .6rem; color: var(--muted); text-transform: uppercase; letter-spacing: .3px; margin-top: 2px; }
+  .s-ter .sn { color: var(--blue); }
+  .s-sex .sn { color: var(--green); }
+  .s-agu .sn { color: var(--yellow); }
+  .s-nao .sn { color: var(--red); }
+  .limp-filter-bar { background: #fff; border-bottom: 1.5px solid var(--border); padding: 8px 10px; display: flex; gap: 7px; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .limp-filter-bar::-webkit-scrollbar { display: none; }
+  .limp-chip-f { flex-shrink: 0; padding: 5px 13px; border: 1.5px solid var(--border); border-radius: 20px; font-size: .73rem; font-weight: 600; cursor: pointer; background: #fff; color: var(--muted); white-space: nowrap; }
+  .limp-chip-f.active { background: var(--blue); color: #fff; border-color: var(--blue); }
+  .limp-list { padding: 10px 12px; display: flex; flex-direction: column; gap: 10px; }
+  .limp-card { background: #fff; border-radius: 12px; box-shadow: 0 2px 6px rgba(0,0,0,.07); border-left: 4px solid var(--border); display: flex; flex-direction: column; overflow: hidden; }
+  .limp-card.lc-ter { border-left-color: var(--blue); }
+  .limp-card.lc-sex { border-left-color: var(--green); }
+  .limp-card.lc-agu { border-left-color: var(--yellow); }
+  .limp-card.lc-nao { border-left-color: var(--red); }
+  .limp-card.lc-nr  { border-left-color: #94a3b8; }
+  .limp-card-top { display: flex; align-items: center; gap: 10px; padding: 11px 13px; }
+  .limp-card-info { flex: 1; min-width: 0; }
+  .limp-card-apto { font-size: .9rem; font-weight: 800; }
+  .limp-card-nome { font-size: .76rem; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .limp-badge { flex-shrink: 0; padding: 3px 9px; border-radius: 20px; font-size: .68rem; font-weight: 700; }
+  .lb-ter { background: #dbeafe; color: #1e40af; }
+  .lb-sex { background: #dcfce7; color: #166534; }
+  .lb-agu { background: #fef3c7; color: #92400e; }
+  .lb-nao { background: #fee2e2; color: #991b1b; }
+  .lb-nr  { background: #f1f5f9; color: #475569; }
+  .limp-wa-btn { flex-shrink: 0; padding: 6px 10px; background: #dcfce7; border: 1.5px solid #86efac; border-radius: 8px; font-size: .85rem; cursor: pointer; }
+  .limp-card-edit { border-top: 1px solid var(--border); padding: 8px 13px; display: flex; gap: 8px; align-items: center; background: #fafbfc; }
+  .limp-exec-sel { flex: 0 0 auto; padding: 6px 8px; border: 1.5px solid var(--border); border-radius: 8px; font-size: .75rem; min-width: 100px; max-width: 140px; appearance: none; background: #fff; font-family: inherit; }
+  .limp-obs-input { flex: 1; padding: 6px 8px; border: 1.5px solid var(--border); border-radius: 8px; font-size: .75rem; font-family: inherit; }
+  .limp-progress { padding: 10px 12px; font-size: .8rem; color: var(--muted); text-align: center; }
+  .limp-footer { padding: 10px 12px 6px; }
 </style>
 <!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
@@ -452,7 +433,10 @@
       <div class="counters-bar" id="counters"></div>
       <div class="filter-bar">
         <input type="date" class="date-filter" id="filter-date" onchange="renderTarefas()" />
-        <button class="filter-chip active" onclick="setCounterFilter('');this.classList.add('active')" id="chip-todas">Todas</button>
+        <button class="filter-chip active" data-s="" onclick="setFilter(this)">Todas</button>
+        <button class="filter-chip" data-s="pendente"  onclick="setFilter(this)">⏳ Pendentes</button>
+        <button class="filter-chip" data-s="andamento" onclick="setFilter(this)">🔄 Andamento</button>
+        <button class="filter-chip" data-s="concluida" onclick="setFilter(this)">✅ Concluídas</button>
       </div>
 
       <!-- Ações rápidas -->
@@ -550,6 +534,37 @@
       <div id="arq-list" class="tasks-wrap" style="padding-top:0"></div>
     </div>
 
+    <!-- ══ LIMPEZA SEMANAL ══ -->
+    <div id="sec-limpeza" class="section">
+      <div class="limp-actions">
+        <button class="btn-sm btn-ghost" onclick="limpLoadXlsxMobile()">📂 XLSX</button>
+        <button class="btn-sm btn-blue" onclick="initLimpeza()">🔄 Atualizar</button>
+        <button class="btn-sm" style="background:#e0f2fe;color:#075985;border:1.5px solid #bae6fd;border-radius:10px;font-weight:700;padding:10px 14px;cursor:pointer;" onclick="limpCriarTarefas()">📋 Criar Tarefas</button>
+        <input type="file" id="limp-xlsx-input" accept=".xlsx,.xls" style="display:none" onchange="limpHandleXlsx(this)" />
+      </div>
+      <div class="limp-stats-bar" id="limp-stats-bar">
+        <div class="limp-stat-m s-ter"><div class="sn" id="ls-ter">0</div><div class="sl">Terça</div></div>
+        <div class="limp-stat-m s-sex"><div class="sn" id="ls-sex">0</div><div class="sl">Sexta</div></div>
+        <div class="limp-stat-m s-agu"><div class="sn" id="ls-agu">0</div><div class="sl">Aguard.</div></div>
+        <div class="limp-stat-m s-nao"><div class="sn" id="ls-nao">0</div><div class="sl">Não</div></div>
+      </div>
+      <div class="limp-filter-bar">
+        <button class="limp-chip-f active" data-lf="todos" onclick="limpSetFilter(this)">Todos</button>
+        <button class="limp-chip-f" data-lf="terca" onclick="limpSetFilter(this)">📅 Terça</button>
+        <button class="limp-chip-f" data-lf="sexta" onclick="limpSetFilter(this)">📅 Sexta</button>
+        <button class="limp-chip-f" data-lf="aguardando" onclick="limpSetFilter(this)">⏳ Aguardando</button>
+        <button class="limp-chip-f" data-lf="nao" onclick="limpSetFilter(this)">❌ Não</button>
+        <button class="limp-chip-f" data-lf="nao_respondeu" onclick="limpSetFilter(this)">🔇 Sem resp.</button>
+      </div>
+      <div class="limp-progress" id="limp-progress">Toque em Atualizar para carregar.</div>
+      <div id="limp-list" class="limp-list"></div>
+      <div class="limp-footer">
+        <button class="btn-full btn-green" onclick="limpDisparar()" id="limp-btn-disp" style="display:none">
+          📲 Disparar WhatsApp para Aguardando
+        </button>
+      </div>
+    </div>
+
     <!-- ══ CONFIG ══ -->
     <div id="sec-config" class="section">
 
@@ -566,7 +581,6 @@
         <p style="font-size:.72rem;color:var(--muted);margin:0 0 8px">PIN mínimo 4 dígitos — pedido no login do funcionário</p>
         <div class="func-chips" id="func-list"></div>
       </div>
-
 
     </div>
 
@@ -586,99 +600,16 @@
       <span class="nav-icon">📁</span>
       <span class="nav-lbl">Arquivo</span>
     </button>
+    <button class="nav-btn" id="nav-limpeza" onclick="goSec('limpeza')">
+      <span class="nav-icon">🧹</span>
+      <span class="nav-lbl">Limpeza</span>
+    </button>
     <button class="nav-btn" id="nav-config" onclick="goSec('config')">
       <span class="nav-icon">⚙️</span>
       <span class="nav-lbl">Config</span>
     </button>
   </nav>
 
-</div>
-
-<!-- ═══════════════════════════
-     DRAWER TAREFA
-═══════════════════════════ -->
-<div id="task-drawer">
-  <div class="drawer-overlay" onclick="closeDrawer()"></div>
-  <div class="drawer-panel">
-    <div class="drawer-handle"></div>
-    <div class="drawer-hdr">
-      <div class="drawer-title" id="dr-title">Tarefa</div>
-      <div class="drawer-sub" id="dr-sub"></div>
-    </div>
-    <div class="drawer-body">
-      <input type="hidden" id="dr-id" />
-
-      <div class="drawer-field">
-        <div class="drawer-lbl">Apartamento / Unidade</div>
-        <input type="text" class="drawer-input" id="dr-apto" />
-      </div>
-
-      <div class="drawer-row">
-        <div class="drawer-field">
-          <div class="drawer-lbl">Tipo de serviço</div>
-          <select class="drawer-input" id="dr-tipo">
-            <option>Elétrica</option>
-            <option>Hidráulica</option>
-            <option>Limpeza</option>
-            <option>Pintura</option>
-            <option>Marcenaria</option>
-            <option>Ar-condicionado</option>
-            <option>Portão / Interfone</option>
-            <option>Inspeção geral</option>
-            <option>Outro</option>
-          </select>
-        </div>
-        <div class="drawer-field">
-          <div class="drawer-lbl">Data prevista</div>
-          <input type="date" class="drawer-input" id="dr-data" />
-        </div>
-      </div>
-
-      <div class="drawer-row">
-        <div class="drawer-field">
-          <div class="drawer-lbl">Responsável</div>
-          <select class="drawer-input" id="dr-resp"></select>
-        </div>
-        <div class="drawer-field">
-          <div class="drawer-lbl">Status</div>
-          <select class="drawer-input" id="dr-status">
-            <option value="pendente">⏳ Pendente</option>
-            <option value="andamento">🔄 Andamento</option>
-            <option value="concluida">✅ Concluída</option>
-          </select>
-        </div>
-      </div>
-
-      <div class="drawer-field">
-        <div class="drawer-lbl">Prioridade</div>
-        <select class="drawer-input" id="dr-prio">
-          <option value="alta">🔴 Alta</option>
-          <option value="media">🟡 Média</option>
-          <option value="baixa">🟢 Baixa</option>
-        </select>
-      </div>
-
-      <div class="drawer-field">
-        <div class="drawer-lbl">Descrição</div>
-        <textarea class="drawer-input" id="dr-desc" rows="3"></textarea>
-      </div>
-
-      <div class="drawer-field" id="dr-obs-wrap" style="display:none">
-        <div class="drawer-lbl">📝 Obs. da equipe (leitura)</div>
-        <div class="drawer-obs" id="dr-obs"></div>
-      </div>
-
-      <div class="drawer-field" id="dr-fotos-wrap" style="display:none">
-        <div class="drawer-lbl">📷 Fotos da equipe</div>
-        <div class="card-fotos" id="dr-fotos" style="padding:0;margin-top:4px"></div>
-      </div>
-    </div>
-
-    <div class="drawer-footer">
-      <button class="btn-full btn-blue" style="flex:2" onclick="saveDrawer()">💾 Salvar alterações</button>
-      <button class="btn-full btn-ghost" style="flex:1" onclick="closeDrawer()">Fechar</button>
-    </div>
-  </div>
 </div>
 
 <!-- Lightbox -->
@@ -774,6 +705,7 @@ function goSec(sec) {
   if (sec === 'tarefas') renderTarefas();
   if (sec === 'arquivo') renderArquivo();
   if (sec === 'config')  renderFuncs();
+  if (sec === 'limpeza') initLimpeza();
 }
 
 // ════════════════════════
@@ -781,18 +713,11 @@ function goSec(sec) {
 // ════════════════════════
 let activeStatus = '';
 
-function setCounterFilter(status) {
-  // Toggle: clicking active counter clears the filter
-  activeStatus = (activeStatus === status && status !== '') ? '' : status;
-  // Sync the "Todas" chip
-  const chipTodas = document.getElementById('chip-todas');
-  if (chipTodas) chipTodas.classList.toggle('active', activeStatus === '');
-  renderTarefas();
-}
-
-// backward-compat alias
 function setFilter(btn) {
-  setCounterFilter(btn.dataset.s || '');
+  document.querySelectorAll('.filter-chip').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  activeStatus = btn.dataset.s;
+  renderTarefas();
 }
 
 // ════════════════════════
@@ -817,18 +742,10 @@ function renderTarefas() {
   const conc = tasks.filter(t => t.status === 'concluida').length;
   const cEl  = document.getElementById('counters');
   if (cEl) cEl.innerHTML = `
-    <button class="cnt c-total${activeStatus===''?        ' cnt-active':''}" onclick="setCounterFilter('')">
-      <div class="num">${tasks.length}</div><div class="lbl">Total</div>
-    </button>
-    <button class="cnt c-pend${activeStatus==='pendente'?  ' cnt-active':''}" onclick="setCounterFilter('pendente')">
-      <div class="num">${pend}</div><div class="lbl">Pendentes</div>
-    </button>
-    <button class="cnt c-and${activeStatus==='andamento'? ' cnt-active':''}" onclick="setCounterFilter('andamento')">
-      <div class="num">${and}</div><div class="lbl">Andamento</div>
-    </button>
-    <button class="cnt c-conc${activeStatus==='concluida'?' cnt-active':''}" onclick="setCounterFilter('concluida')">
-      <div class="num">${conc}</div><div class="lbl">Concluídas</div>
-    </button>
+    <div class="cnt c-total"><div class="num">${tasks.length}</div><div class="lbl">Total</div></div>
+    <div class="cnt c-pend"><div class="num">${pend}</div><div class="lbl">Pendentes</div></div>
+    <div class="cnt c-and"><div class="num">${and}</div><div class="lbl">Andamento</div></div>
+    <div class="cnt c-conc"><div class="num">${conc}</div><div class="lbl">Concluídas</div></div>
   `;
 
   let list = tasks.filter(t =>
@@ -875,30 +792,36 @@ function taskCardHTML(t, isArq) {
 
   const sTagCls = { pendente:'tag-pend', andamento:'tag-and', concluida:'tag-conc' }[t.status] || '';
   const sLabel  = { pendente:'⏳ Pendente', andamento:'🔄 Andamento', concluida:'✅ Concluída' }[t.status] || '';
+  const pTagCls = { alta:'tag-alta', media:'tag-media', baixa:'tag-baixa' }[t.prio] || '';
+  const pLabel  = { alta:'🔴 Alta', media:'🟡 Média', baixa:'🟢 Baixa' }[t.prio] || '';
 
-  const fotoCnt = (t.fotos && t.fotos.length) || 0;
+  const fotosHtml = (t.fotos && t.fotos.length)
+    ? `<div class="card-fotos">${t.fotos.map((f,i)=>
+        `<img class="foto-thumb" src="${f}" onclick="openLightbox('${t.id}',${i},'${isArq?'arq':'task'}')">`
+      ).join('')}</div>` : '';
+
   const obsHtml  = t.obs     ? `<div class="card-obs"><strong>📝</strong> ${esc(t.obs)}</div>` : '';
   const execHtml = t.dataExec? `<div class="card-exec">✅ Executado: ${fmtDate(t.dataExec)}</div>` : '';
 
-  // Card body is tappable (opens drawer) for non-archive cards
-  const bodyClick = isArq ? '' : `onclick="openDrawer('${t.id}')" style="cursor:pointer"`;
-
   const actions = isArq ? '' : `
     <div class="card-actions">
-      <button class="card-act-btn${fotoCnt ? '' : ' dimmed'}"
-        onclick="event.stopPropagation();openFotos('${t.id}')"
-        ${fotoCnt ? '' : 'disabled'}>
-        <span class="act-icon">📷</span>Ver fotos (${fotoCnt})
+      <button class="card-act-btn" onclick="quickStatus('${t.id}','pendente')">
+        <span class="act-icon">⏳</span>Pendente
       </button>
-      <button class="card-act-btn del"
-        onclick="event.stopPropagation();deleteTask('${t.id}')">
+      <button class="card-act-btn" onclick="quickStatus('${t.id}','andamento')">
+        <span class="act-icon">🔄</span>Andamento
+      </button>
+      <button class="card-act-btn" onclick="quickStatus('${t.id}','concluida')">
+        <span class="act-icon">✅</span>Concluída
+      </button>
+      <button class="card-act-btn del" onclick="deleteTask('${t.id}')">
         <span class="act-icon">🗑️</span>Excluir
       </button>
     </div>`;
 
   return `
     <div class="task-card${isArq?' archived':''}" data-prio="${t.prio}" id="card-${t.id}">
-      <div class="card-body" ${bodyClick}>
+      <div class="card-body">
         <div class="card-row1">
           <div class="card-tipo">${esc(t.tipo)}</div>
           ${!isArq ? `<div class="card-date ${dateCls}">${dateLabel}</div>` : ''}
@@ -909,10 +832,12 @@ function taskCardHTML(t, isArq) {
           ${isArq
             ? `<span class="tag tag-arq">📁 ${fmtDate(t.data)}</span>`
             : `<span class="tag ${sTagCls}">${sLabel}</span>`}
+          <span class="tag ${pTagCls}">${pLabel}</span>
         </div>
         ${t.desc ? `<div class="card-desc">${esc(t.desc)}</div>` : ''}
         ${obsHtml}${execHtml}
       </div>
+      ${fotosHtml}
       ${actions}
     </div>`;
 }
@@ -1102,85 +1027,6 @@ function renderFuncs() {
 }
 
 // ════════════════════════
-// DRAWER TAREFA
-// ════════════════════════
-function openDrawer(id) {
-  const t = tasks.find(x => x.id === id);
-  if (!t) return;
-
-  document.getElementById('dr-id').value   = t.id;
-  document.getElementById('dr-title').textContent = `${t.tipo} — Apto ${t.apto}`;
-  document.getElementById('dr-sub').textContent   =
-    `${fmtDate(t.data)}  ·  ${t.resp || 'Sem responsável'}`;
-
-  document.getElementById('dr-apto').value   = t.apto;
-  document.getElementById('dr-tipo').value   = t.tipo;
-  document.getElementById('dr-data').value   = t.data;
-  document.getElementById('dr-status').value = t.status;
-  document.getElementById('dr-prio').value   = t.prio;
-  document.getElementById('dr-desc').value   = t.desc || '';
-
-  // Responsável select
-  const opts = funcs.map(f => `<option value="${esc(f.nome)}">${esc(f.nome)}</option>`).join('');
-  const drResp = document.getElementById('dr-resp');
-  drResp.innerHTML = '<option value="">Sem responsável</option>' + opts;
-  drResp.value = t.resp || '';
-
-  // Obs da equipe
-  const obsWrap = document.getElementById('dr-obs-wrap');
-  if (t.obs) {
-    obsWrap.style.display = '';
-    document.getElementById('dr-obs').textContent = t.obs;
-  } else {
-    obsWrap.style.display = 'none';
-  }
-
-  // Fotos da equipe
-  const fotosWrap = document.getElementById('dr-fotos-wrap');
-  const fotosEl   = document.getElementById('dr-fotos');
-  if (t.fotos && t.fotos.length) {
-    fotosWrap.style.display = '';
-    fotosEl.innerHTML = t.fotos.map((f, i) =>
-      `<img class="foto-thumb" src="${f}" onclick="openLightbox('${t.id}',${i},'task')">`
-    ).join('');
-  } else {
-    fotosWrap.style.display = 'none';
-    fotosEl.innerHTML = '';
-  }
-
-  document.getElementById('task-drawer').classList.add('open');
-  document.body.style.overflow = 'hidden';
-}
-
-function closeDrawer() {
-  document.getElementById('task-drawer').classList.remove('open');
-  document.body.style.overflow = '';
-}
-
-async function saveDrawer() {
-  const id = document.getElementById('dr-id').value;
-  const updates = {
-    apto:   document.getElementById('dr-apto').value.trim(),
-    tipo:   document.getElementById('dr-tipo').value,
-    data:   document.getElementById('dr-data').value,
-    resp:   document.getElementById('dr-resp').value,
-    status: document.getElementById('dr-status').value,
-    prio:   document.getElementById('dr-prio').value,
-    desc:   document.getElementById('dr-desc').value.trim(),
-  };
-  if (!updates.apto) { toast('⚠️ Informe o apartamento!'); return; }
-  await dbUpdate('tarefas', id, updates);
-  toast('✅ Tarefa atualizada!');
-  closeDrawer();
-}
-
-function openFotos(id) {
-  const t = tasks.find(x => x.id === id);
-  if (!t || !t.fotos || !t.fotos.length) return;
-  openLightbox(id, 0, 'task');
-}
-
-// ════════════════════════
 // LIGHTBOX
 // ════════════════════════
 function openLightbox(taskId, idx, src) {
@@ -1193,6 +1039,312 @@ function openLightbox(taskId, idx, src) {
 function closeLightbox() {
   document.getElementById('lightbox').classList.remove('open');
   document.getElementById('lb-img').src = '';
+}
+
+// ════════════════════════
+// LIMPEZA SEMANAL
+// ════════════════════════
+const LIMP_API   = 'https://limpeza.angelicastudios.com.br';
+const LIMP_DELAY = 30000;
+let limpData    = [];
+let limpFilter  = 'todos';
+let limpSending = false;
+
+function limpNormalize(r) {
+  const status = (r.status || r.resposta || 'aguardando').toLowerCase();
+  const dia    = (r.dia_semana || r.dia || '').toLowerCase();
+  return {
+    apto:      String(r.apto || r.apartamento || '').trim(),
+    nome:      String(r.nome || r.inquilino || '').trim(),
+    numero:    String(r.numero || r.celular || '').trim(),
+    status, dia,
+    executor:  String(r.executor || '').trim(),
+    observacao: String(r.observacao || '').trim()
+  };
+}
+
+function limpNormalizeXlsx(r) {
+  const ddd = String(r['DDD'] || '').replace(/\D/g, '');
+  const cel = String(r['Celular WhatsApp'] || '').replace(/\D/g, '');
+  const numero = ddd && cel ? '55' + ddd + cel + '@c.us' : '';
+  return {
+    apto:      String(r['Apto'] || r['Apartamento'] || '').trim(),
+    nome:      String(r['Nome do Inquilino'] || r['Nome'] || '').trim(),
+    numero, status: 'aguardando', dia: '', executor: '', observacao: ''
+  };
+}
+
+async function initLimpeza() {
+  const prog = document.getElementById('limp-progress');
+  if (prog) prog.textContent = '⏳ Carregando…';
+  try {
+    const res  = await fetch(LIMP_API + '/api/agenda');
+    const data = await res.json();
+    const raw  = Array.isArray(data) ? data : (data.agenda || data.apartamentos || []);
+    const seen = new Set();
+    limpData = [];
+    raw.forEach(r => {
+      const n = limpNormalize(r);
+      if (!n.apto) return;
+      const key = n.apto.toLowerCase().replace(/\s+/g, '');
+      if (seen.has(key)) return;
+      seen.add(key);
+      limpData.push(n);
+    });
+    if (prog) prog.textContent = '';
+    limpRender();
+  } catch(e) {
+    if (prog) prog.textContent = '⚠️ Erro ao carregar. Verifique a conexão.';
+  }
+}
+
+function limpSetFilter(btn) {
+  document.querySelectorAll('.limp-chip-f').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  limpFilter = btn.dataset.lf;
+  limpRender();
+}
+
+function limpStatusInfo(status, dia) {
+  const s = (status || '').toLowerCase();
+  const d = (dia || '').toLowerCase();
+  const isTer = d.includes('ter') || d.includes('tue') || d === '2';
+  const isSex = d.includes('sex') || d.includes('fri') || d === '5';
+  if (s === 'sim' || s === 'confirmado' || s === 'terca' || s === 'terça') {
+    if (isSex) return { label:'✅ Sexta', cls:'lb-sex', cardCls:'lc-sex', filterKey:'sexta' };
+    return { label:'✅ Terça', cls:'lb-ter', cardCls:'lc-ter', filterKey:'terca' };
+  }
+  if (s === 'nao' || s === 'não' || s === 'recusou') return { label:'❌ Não', cls:'lb-nao', cardCls:'lc-nao', filterKey:'nao' };
+  if (s === 'nao_respondeu' || s === 'sem_resposta') return { label:'🔇 Sem resp.', cls:'lb-nr', cardCls:'lc-nr', filterKey:'nao_respondeu' };
+  if (s === 'sexta') return { label:'✅ Sexta', cls:'lb-sex', cardCls:'lc-sex', filterKey:'sexta' };
+  return { label:'⏳ Aguardando', cls:'lb-agu', cardCls:'lc-agu', filterKey:'aguardando' };
+}
+
+function limpRender() {
+  const el = document.getElementById('limp-list');
+  if (!el) return;
+
+  let filtered = limpData;
+  if (limpFilter !== 'todos') {
+    filtered = limpData.filter(r => {
+      const info = limpStatusInfo(r.status, r.dia);
+      return info.filterKey === limpFilter;
+    });
+  }
+
+  // Stats
+  const ter = limpData.filter(r => limpStatusInfo(r.status, r.dia).filterKey === 'terca').length;
+  const sex = limpData.filter(r => limpStatusInfo(r.status, r.dia).filterKey === 'sexta').length;
+  const agu = limpData.filter(r => limpStatusInfo(r.status, r.dia).filterKey === 'aguardando').length;
+  const nao = limpData.filter(r => limpStatusInfo(r.status, r.dia).filterKey === 'nao').length;
+  const lsTer = document.getElementById('ls-ter'); if (lsTer) lsTer.textContent = ter;
+  const lsSex = document.getElementById('ls-sex'); if (lsSex) lsSex.textContent = sex;
+  const lsAgu = document.getElementById('ls-agu'); if (lsAgu) lsAgu.textContent = agu;
+  const lsNao = document.getElementById('ls-nao'); if (lsNao) lsNao.textContent = nao;
+
+  // Botão disparar
+  const btnDisp = document.getElementById('limp-btn-disp');
+  if (btnDisp) btnDisp.style.display = agu > 0 ? '' : 'none';
+
+  if (!filtered.length) {
+    el.innerHTML = '<div class="empty"><div class="icon">🧹</div><p>Nenhum apartamento neste filtro.</p></div>';
+    return;
+  }
+
+  const execOpts = ['', ...funcs.map(f => f.nome)];
+
+  el.innerHTML = filtered.map(r => {
+    const aptoKey = r.apto;
+    const info    = limpStatusInfo(r.status, r.dia);
+    const optsHtml = execOpts.map(f =>
+      '<option value="' + esc(f) + '"' + (r.executor === f ? ' selected' : '') + '>' + (f || '👤 Executor…') + '</option>'
+    ).join('');
+    const waBtnHtml = r.numero
+      ? '<button class="limp-wa-btn" onclick="limpDispararUm(\'' + esc(r.numero) + '\',\'' + esc(aptoKey) + '\')">📲</button>'
+      : '';
+    return '<div class="limp-card ' + info.cardCls + '">' +
+      '<div class="limp-card-top">' +
+        '<div class="limp-card-info">' +
+          '<div class="limp-card-apto">🏠 ' + esc(aptoKey) + '</div>' +
+          '<div class="limp-card-nome">' + esc(r.nome) + '</div>' +
+        '</div>' +
+        '<span class="limp-badge ' + info.cls + '">' + info.label + '</span>' +
+        waBtnHtml +
+      '</div>' +
+      '<div class="limp-card-edit">' +
+        '<select class="limp-exec-sel" onchange="limpSaveExec(\'' + esc(aptoKey) + '\',this.value)">' + optsHtml + '</select>' +
+        '<input class="limp-obs-input" type="text" value="' + esc(r.observacao) + '" placeholder="📝 Observação…"' +
+          ' onblur="limpSaveObs(\'' + esc(aptoKey) + '\',this.value)"' +
+          ' onkeydown="if(event.key===\'Enter\')this.blur()" />' +
+      '</div>' +
+    '</div>';
+  }).join('');
+}
+
+async function limpSaveExec(apto, executor) {
+  const row = limpData.find(r => r.apto === apto);
+  if (row) row.executor = executor;
+  try {
+    await fetch(LIMP_API + '/api/agenda/' + encodeURIComponent(apto) + '/executor', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ executor })
+    });
+    toast('👤 Executor salvo: ' + (executor || '—'));
+  } catch(e) { toast('⚠️ Erro ao salvar executor (offline?)'); }
+}
+
+async function limpSaveObs(apto, observacao) {
+  const row = limpData.find(r => r.apto === apto);
+  if (row) row.observacao = observacao;
+  try {
+    await fetch(LIMP_API + '/api/agenda/' + encodeURIComponent(apto) + '/observacao', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ observacao })
+    });
+    toast('📝 Observação salva!');
+  } catch(e) { toast('⚠️ Erro ao salvar observação (offline?)'); }
+}
+
+async function limpDispararUm(numero, apto) {
+  try {
+    await fetch(LIMP_API + '/api/disparar', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ numero })
+    });
+    toast('📲 Mensagem enviada para ' + apto + '!');
+  } catch(e) { toast('⚠️ Erro ao enviar para ' + apto); }
+}
+
+async function limpDisparar() {
+  if (limpSending) { toast('⏳ Envio em andamento…'); return; }
+  const aguardando = limpData.filter(r => limpStatusInfo(r.status, r.dia).filterKey === 'aguardando' && r.numero);
+  if (!aguardando.length) { toast('⚠️ Nenhum aguardando com número.'); return; }
+  if (!confirm('Disparar WhatsApp para ' + aguardando.length + ' apartamento(s)?\n\nIntervalo: 30s entre envios.')) return;
+  limpSending = true;
+  const btnDisp = document.getElementById('limp-btn-disp');
+  if (btnDisp) btnDisp.disabled = true;
+  let ok = 0;
+  for (let i = 0; i < aguardando.length; i++) {
+    const r = aguardando[i];
+    toast('📲 Enviando ' + (i+1) + '/' + aguardando.length + ' → ' + r.apto + '…');
+    try {
+      await fetch(LIMP_API + '/api/disparar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ numero: r.numero })
+      });
+      ok++;
+    } catch(e) { /* continua */ }
+    if (i < aguardando.length - 1) await new Promise(res => setTimeout(res, LIMP_DELAY));
+  }
+  limpSending = false;
+  if (btnDisp) btnDisp.disabled = false;
+  toast('✅ ' + ok + '/' + aguardando.length + ' mensagens enviadas!');
+  await initLimpeza();
+}
+
+function limpLoadXlsxMobile() {
+  const input = document.getElementById('limp-xlsx-input');
+  if (input) input.click();
+}
+
+function limpHandleXlsx(input) {
+  const file = input.files[0];
+  if (!file) return;
+  if (!window.XLSX) {
+    const script = document.createElement('script');
+    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+    script.onload = () => _limpParseXlsx(file);
+    document.head.appendChild(script);
+  } else {
+    _limpParseXlsx(file);
+  }
+}
+
+function _limpParseXlsx(file) {
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const wb = XLSX.read(e.target.result, { type: 'array' });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(ws);
+      if (!rows.length) { toast('⚠️ Planilha vazia!'); return; }
+      const seen = new Set();
+      const newData = [];
+      rows.forEach(r => {
+        const n = limpNormalizeXlsx(r);
+        if (!n.apto) return;
+        const key = n.apto.toLowerCase().replace(/\s+/g, '');
+        if (seen.has(key)) return;
+        seen.add(key);
+        newData.push(n);
+      });
+      // Mesclar: manter dados existentes (executor, obs, status) se apto já existir
+      const existMap = {};
+      limpData.forEach(r => { existMap[r.apto.toLowerCase().replace(/\s+/g, '')] = r; });
+      limpData = newData.map(n => {
+        const key = n.apto.toLowerCase().replace(/\s+/g, '');
+        const ex  = existMap[key];
+        return ex ? { ...n, executor: ex.executor, observacao: ex.observacao, status: ex.status, dia: ex.dia || n.dia } : n;
+      });
+      limpRender();
+      toast('📂 ' + limpData.length + ' aptos carregados do XLSX!');
+    } catch(err) {
+      toast('⚠️ Erro ao ler XLSX.');
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function limpProxData(dia) {
+  const hoje = new Date();
+  const dow  = hoje.getDay(); // 0=dom, 2=ter, 5=sex
+  const alvo = (dia === 'sexta') ? 5 : 2;
+  let diff = alvo - dow;
+  if (diff <= 0) diff += 7;
+  const d = new Date(hoje);
+  d.setDate(hoje.getDate() + diff);
+  return d.toISOString().split('T')[0];
+}
+
+async function limpCriarTarefas() {
+  const comExec = limpData.filter(r => r.executor && r.executor.trim());
+  if (!comExec.length) { toast('⚠️ Nenhum executor atribuído!'); return; }
+
+  const grupos = {};
+  comExec.forEach(r => {
+    const exec   = r.executor.trim();
+    const diaRaw = (r.dia || '').toLowerCase();
+    const diaKey = (diaRaw.includes('sex') || diaRaw.includes('fri') || diaRaw === '5') ? 'sexta' : 'terca';
+    const key    = exec + '|' + diaKey;
+    if (!grupos[key]) grupos[key] = { exec, diaKey, aptos: [] };
+    grupos[key].aptos.push(r.apto);
+  });
+
+  const lista = Object.values(grupos);
+  const preview = lista.map(g =>
+    '• ' + g.exec + ' — ' + g.aptos.length + ' apto(s) — ' + (g.diaKey === 'sexta' ? 'Sexta' : 'Terça')
+  ).join('\n');
+
+  if (!confirm('Criar ' + lista.length + ' tarefa(s) no painel?\n\n' + preview)) return;
+
+  let ok = 0;
+  for (const g of lista) {
+    const data     = limpProxData(g.diaKey);
+    const diaLabel = g.diaKey === 'sexta' ? 'Sexta-feira' : 'Terça-feira';
+    const tarefa   = {
+      id: uid(), apto: 'Limpeza', tipo: 'Limpeza Semanal',
+      prio: 'media', resp: g.exec, data,
+      desc: diaLabel + ' — Aptos: ' + g.aptos.join(', '),
+      status: 'pendente', obs: '', dataExec: '', fotos: [], criadoEm: Date.now()
+    };
+    await dbSet('tarefas', tarefa.id, tarefa);
+    ok++;
+  }
+  toast('✅ ' + ok + ' tarefa(s) criada(s) no painel!');
 }
 
 // ════════════════════════
