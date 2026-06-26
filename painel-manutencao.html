@@ -560,7 +560,13 @@
    LIMPEZA SEMANAL
 ══════════════════════════════════════════ */
 .limp-stats { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:18px; }
-.limp-stat  { background:var(--card); border-radius:var(--radius); padding:14px 16px; box-shadow:var(--shadow); border:1px solid var(--border); border-left:4px solid; }
+.limp-stat  { background:var(--card); border-radius:var(--radius); padding:14px 16px; box-shadow:var(--shadow); border:1px solid var(--border); border-left:4px solid; cursor:pointer; transition:transform .12s, box-shadow .12s; }
+.limp-stat:hover { transform:translateY(-2px); box-shadow:0 4px 14px rgba(0,0,0,.1); }
+.limp-stat.lf-active { outline:2px solid; outline-offset:2px; }
+.limp-stat.s-terca.lf-active { outline-color:#2563eb; }
+.limp-stat.s-sexta.lf-active { outline-color:#16a34a; }
+.limp-stat.s-agu.lf-active   { outline-color:#d97706; }
+.limp-stat.s-nao.lf-active   { outline-color:#dc2626; }
 .limp-stat.s-terca  { border-left-color:var(--primary); }
 .limp-stat.s-sexta  { border-left-color:var(--success); }
 .limp-stat.s-agu    { border-left-color:var(--warning); }
@@ -578,9 +584,9 @@
 .ftag button { background:none; border:none; cursor:pointer; font-size:.75rem; color:inherit; padding:0; line-height:1; }
 .fclear { background:none; border:none; font-size:.72rem; color:var(--danger); cursor:pointer; text-decoration:underline; }
 
-.ltable-wrap { background:var(--card); border-radius:var(--radius); box-shadow:var(--shadow); border:1px solid var(--border); overflow:auto; }
+.ltable-wrap { background:var(--card); border-radius:var(--radius); box-shadow:var(--shadow); border:1px solid var(--border); overflow:auto; max-height:calc(100vh - 300px); }
 .limp-table { width:100%; border-collapse:collapse; font-size:.84rem; }
-.limp-table th { text-align:left; background:#f8fafc; color:var(--muted); font-weight:600; border-bottom:2px solid var(--border); white-space:nowrap; position:relative; }
+.limp-table th { text-align:left; background:#f8fafc; color:var(--muted); font-weight:600; border-bottom:2px solid var(--border); white-space:nowrap; position:sticky; top:0; z-index:5; }
 .limp-table .thi { padding:10px 12px; display:flex; align-items:center; gap:5px; }
 .limp-table th.col-filt { cursor:pointer; user-select:none; }
 .limp-table th.col-filt:hover .thi { background:#eff6ff; color:var(--primary); }
@@ -894,19 +900,19 @@
     <div id="view-limpeza" class="view">
       <!-- stats -->
       <div class="limp-stats">
-        <div class="limp-stat s-terca">
+        <div class="limp-stat s-terca" id="lstat-TERCA" onclick="limpStatFilter('TERCA')" title="Filtrar por Terça-feira">
           <div class="sn" id="ls-terca">—</div>
           <div class="sl">📅 Terça-feira</div>
         </div>
-        <div class="limp-stat s-sexta">
+        <div class="limp-stat s-sexta" id="lstat-SEXTA" onclick="limpStatFilter('SEXTA')" title="Filtrar por Sexta-feira">
           <div class="sn" id="ls-sexta">—</div>
           <div class="sl">📅 Sexta-feira</div>
         </div>
-        <div class="limp-stat s-agu">
+        <div class="limp-stat s-agu" id="lstat-AGUARDANDO" onclick="limpStatFilter('AGUARDANDO')" title="Filtrar por Aguardando">
           <div class="sn" id="ls-agu">—</div>
           <div class="sl">⏳ Aguardando</div>
         </div>
-        <div class="limp-stat s-nao">
+        <div class="limp-stat s-nao" id="lstat-NAO" onclick="limpStatFilter('NAO')" title="Filtrar por Não quer">
           <div class="sn" id="ls-nao">—</div>
           <div class="sl">❌ Não quer</div>
         </div>
@@ -1819,6 +1825,15 @@ let limpFuncs    = [];   // equipe cadastrada (reutiliza funcsNomes do painel)
 let limpModalStep = 1;
 
 /* ── helpers ── */
+function limpProximaData(dia) {
+  const target = dia === 'TERCA' ? 2 : 5;
+  const hoje = new Date();
+  const diff = (target - hoje.getDay() + 7) % 7;
+  const d = new Date(hoje);
+  d.setDate(hoje.getDate() + (diff === 0 ? 7 : diff));
+  return d.toLocaleDateString('pt-BR', {day:'2-digit', month:'2-digit', year:'2-digit'});
+}
+
 function limpStatusLabel(s) {
   const m = {
     'AGUARDANDO': { cls:'lb-agu',  txt:'⏳ Aguardando' },
@@ -1826,8 +1841,8 @@ function limpStatusLabel(s) {
     'aguardando_dia': { cls:'lb-agu', txt:'⏳ Escolhendo dia' },
     'CONFIRMADO': { cls:'lb-agu',  txt:'✅ Confirmado'  },
     'confirmado': { cls:'lb-agu',  txt:'✅ Confirmado'  },
-    'TERCA':      { cls:'lb-terca',txt:'📅 Terça-feira' },
-    'SEXTA':      { cls:'lb-sexta',txt:'📅 Sexta-feira' },
+    'TERCA':      { cls:'lb-terca',txt:'Terça' },
+    'SEXTA':      { cls:'lb-sexta',txt:'Sexta' },
     'NAO':        { cls:'lb-nao',  txt:'❌ Não quer'    },
     'nao':        { cls:'lb-nao',  txt:'❌ Não quer'    },
     'PENDENTE':   { cls:'lb-pendente',txt:'🕐 Pendente' },
@@ -1908,6 +1923,11 @@ function limpRender() {
     const el = document.getElementById(id);
     if (el) el.textContent = [ct,cf,ca,cn][i];
   });
+  // marca card ativo
+  ['TERCA','SEXTA','AGUARDANDO','NAO'].forEach(s => {
+    const el = document.getElementById('lstat-' + s);
+    if (el) el.classList.toggle('lf-active', limpFiltStat === s);
+  });
 
   // filtros
   let visible = limpData.filter(r => {
@@ -1948,7 +1968,7 @@ function limpRender() {
       <td><strong>${apto}</strong></td>
       <td>${nome}</td>
       <td>${limpStatusLabel(s)}</td>
-      <td>${dia && (dia==='TERCA'||dia==='SEXTA') ? `<span class="lb ${dia==='TERCA'?'lb-terca':'lb-sexta'}">${dia==='TERCA'?'Terça-feira':'Sexta-feira'}</span>` : '—'}</td>
+      <td>${dia && (dia==='TERCA'||dia==='SEXTA') ? `<span class="lb ${dia==='TERCA'?'lb-terca':'lb-sexta'}">${limpProximaData(dia)}</span>` : '—'}</td>
       <td>
         <select class="lsel-mini" onchange="limpSaveExec('${apto}',this.value)">${opts}</select>
       </td>
@@ -2017,6 +2037,12 @@ function limpBuildDropdowns() {
 function limpSetFilter(col, val) {
   if (col === 'status') limpFiltStat = val;
   else                  limpFiltExec = val;
+  document.querySelectorAll('.limp-table th.col-filt').forEach(t => t.classList.remove('lopen'));
+  limpRender();
+}
+
+function limpStatFilter(status) {
+  limpFiltStat = (limpFiltStat === status) ? '' : status;
   document.querySelectorAll('.limp-table th.col-filt').forEach(t => t.classList.remove('lopen'));
   limpRender();
 }
