@@ -1855,13 +1855,15 @@ function limpStatusLabel(s) {
 // Normaliza status do banco (lowercase) para formato da UI
 function limpNormalize(row) {
   const s = (row.status || '').toLowerCase();
-  const d = row.dia || '';
+  const d = (row.dia || '').toLowerCase();
   let status, dia;
-  if (s === 'nao')                              { status='NAO';       dia=''; }
-  else if (s === 'confirmado' && d.match(/er/)) { status='TERCA';     dia='TERCA'; }
-  else if (s === 'confirmado' && d.match(/ex/)) { status='SEXTA';     dia='SEXTA'; }
-  else if (s === 'aguardando' || s === 'aguardando_dia') { status='AGUARDANDO'; dia=''; }
-  else                                           { status='PENDENTE';  dia=''; }
+  if      (s === 'nao')                                    { status='NAO';        dia=''; }
+  else if (s === 'terca' || d === 'terca')                 { status='TERCA';      dia='TERCA'; }
+  else if (s === 'sexta' || d === 'sexta')                 { status='SEXTA';      dia='SEXTA'; }
+  else if (s === 'confirmado' && d.match(/ter|er[ç]/))     { status='TERCA';      dia='TERCA'; }
+  else if (s === 'confirmado' && d.match(/sex|ex/))        { status='SEXTA';      dia='SEXTA'; }
+  else if (s === 'aguardando' || s === 'aguardando_dia')   { status='AGUARDANDO'; dia=''; }
+  else                                                      { status='AGUARDANDO'; dia=''; }
   return { ...row, status, dia, executor: row.executor||'', observacao: row.observacao||'' };
 }
 
