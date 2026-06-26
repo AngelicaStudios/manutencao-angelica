@@ -1967,8 +1967,15 @@ function limpRender() {
     rows += `<tr>
       <td><strong>${apto}</strong></td>
       <td>${nome}</td>
-      <td>${limpStatusLabel(s)}</td>
-      <td>${dia && (dia==='TERCA'||dia==='SEXTA') ? `<span class="lb ${dia==='TERCA'?'lb-terca':'lb-sexta'}">${limpProximaData(dia)}</span>` : '—'}</td>
+      <td>
+        <select class="lsel-mini lsel-status" onchange="limpSaveStatus('${apto}',this.value)">
+          <option value="AGUARDANDO" ${(s.toUpperCase()==='AGUARDANDO')?'selected':''}>⏳ Aguardando</option>
+          <option value="TERCA"      ${s==='TERCA'?'selected':''}>Terça-feira</option>
+          <option value="SEXTA"      ${s==='SEXTA'?'selected':''}>Sexta-feira</option>
+          <option value="NAO"        ${(s==='NAO'||s==='nao')?'selected':''}>❌ Não quer</option>
+        </select>
+      </td>
+      <td>${(s==='TERCA'||s==='SEXTA') ? `<span class="lb ${s==='TERCA'?'lb-terca':'lb-sexta'}">${limpProximaData(s)}</span>` : '—'}</td>
       <td>
         <select class="lsel-mini" onchange="limpSaveExec('${apto}',this.value)">${opts}</select>
       </td>
@@ -2050,6 +2057,22 @@ function limpStatFilter(status) {
 function limpClearFilters() {
   limpFiltStat = '';
   limpFiltExec = '';
+  limpRender();
+}
+
+/* ── salvar status na API ── */
+async function limpSaveStatus(apto, status) {
+  const row = limpData.find(r => r.apto === apto);
+  if (row) {
+    row.status = status;
+    row.dia = (status === 'TERCA' || status === 'SEXTA') ? status : null;
+  }
+  try {
+    await fetch(`${LIMPEZA_API}/api/agenda/${encodeURIComponent(apto)}/status`, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ status })
+    });
+  } catch(e) { toast('Erro ao salvar status (offline?)', 'error'); }
   limpRender();
 }
 
