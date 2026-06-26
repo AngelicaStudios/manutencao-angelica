@@ -1952,7 +1952,8 @@ function limpRender() {
   let rows = '';
   visible.forEach(row => {
     const apto  = escHtml(row.apto  || '');
-    const nome  = escHtml(row.nome  || '');
+    const vago  = (row.numero || '').startsWith('vago_');
+    const nome  = vago ? '— Vago —' : escHtml(row.nome  || '');
     const fone  = row.numero || '';
     const s     = row.status || '';
     const dia   = row.dia    || '';
@@ -1966,7 +1967,7 @@ function limpRender() {
 
     rows += `<tr>
       <td><strong>${apto}</strong></td>
-      <td>${nome}</td>
+      <td>${nome}${vago ? ' <span class="lb lb-vago" style="font-size:.7rem;padding:1px 6px">Vago</span>' : ''}</td>
       <td>
         <select class="lsel-mini lsel-status" onchange="limpSaveStatus('${apto}',this.value)">
           <option value="AGUARDANDO" ${(s.toUpperCase()==='AGUARDANDO')?'selected':''}>⏳ Aguardando</option>
@@ -2227,7 +2228,8 @@ function limpOpenModal() {
   // destinatários = somente PENDENTE / AGUARDANDO (não enviados ainda)
   limpSendList = limpData.filter(r => {
     const s = r.status || 'PENDENTE';
-    return s === 'PENDENTE' || s === 'AGUARDANDO';
+    const vago = (r.numero || '').startsWith('vago_');
+    return !vago && (s === 'PENDENTE' || s === 'AGUARDANDO');
   });
 
   if (!limpSendList.length) {
