@@ -2113,7 +2113,11 @@ function limpProxData(dia) {
   if (diff <= 0) diff += 7;
   const d = new Date(hoje);
   d.setDate(hoje.getDate() + diff);
-  return d.toISOString().split('T')[0];
+  // Usar componentes locais — toISOString() usa UTC e causa +1 dia após as 21h no Brasil
+  const ano = d.getFullYear();
+  const mes = String(d.getMonth() + 1).padStart(2, '0');
+  const dia2 = String(d.getDate()).padStart(2, '0');
+  return `${ano}-${mes}-${dia2}`;
 }
 
 /* ── criar tarefas no painel a partir dos executores da limpeza ── */
