@@ -620,6 +620,11 @@
 .lsel-mini:focus { outline:none; border-color:var(--primary); }
 .lobs { border:1px solid var(--border); border-radius:6px; padding:4px 8px; font-size:.78rem; width:140px; color:var(--text); background:#fff; }
 .lobs:focus { outline:none; border-color:var(--primary); }
+.ldia-input { border:1px solid var(--border); border-radius:6px; padding:3px 6px; font-size:.78rem; color:var(--text); background:#fff; cursor:pointer; }
+.ldia-input:focus { outline:none; border-color:var(--primary); }
+.btn-wpp-row { background:#25d366; color:#fff; border:none; border-radius:6px; padding:4px 10px; font-size:.82rem; cursor:pointer; line-height:1; }
+.btn-wpp-row:hover { background:#1da851; }
+.btn-wpp-row:disabled { background:#ccc; cursor:default; opacity:.5; }
 .lsave-btn { background:none; border:1px solid var(--border); border-radius:6px; padding:4px 8px; cursor:pointer; font-size:.78rem; color:var(--muted); }
 .lsave-btn:hover { border-color:var(--success); color:var(--success); background:#f0fdf4; }
 
@@ -950,6 +955,7 @@
                 <div class="col-dd" id="dd-exec" onclick="event.stopPropagation()"></div>
               </th>
               <th><div class="thi">Observação</div></th>
+              <th><div class="thi">WhatsApp</div></th>
             </tr>
           </thead>
           <tbody id="limp-tbody"></tbody>
@@ -1825,13 +1831,19 @@ let limpFuncs    = [];   // equipe cadastrada (reutiliza funcsNomes do painel)
 let limpModalStep = 1;
 
 /* ── helpers ── */
-function limpProximaData(dia) {
-  const target = dia === 'TERCA' ? 2 : 5;
+const LIMP_DAY_MAP = {SEGUNDA:1,TERCA:2,QUARTA:3,QUINTA:4,SEXTA:5,SABADO:6,DOMINGO:0};
+function limpProximaData(status) {
+  const target = LIMP_DAY_MAP[status];
+  if (target === undefined) return null;
   const hoje = new Date();
   const diff = (target - hoje.getDay() + 7) % 7;
   const d = new Date(hoje);
   d.setDate(hoje.getDate() + (diff === 0 ? 7 : diff));
-  return d.toLocaleDateString('pt-BR', {day:'2-digit', month:'2-digit', year:'2-digit'});
+  return d.toISOString().split('T')[0]; // YYYY-MM-DD para input[type=date]
+}
+function limpFmtDate(iso) {
+  if (!iso || !iso.match(/^\d{4}-\d{2}-\d{2}$/)) return iso || '—';
+  return `${iso.slice(8,10)}/${iso.slice(5,7)}/${iso.slice(2,4)}`;
 }
 
 function limpStatusLabel(s) {
@@ -1854,16 +1866,23 @@ function limpStatusLabel(s) {
 /* ── carrega da API e renderiza ── */
 // Normaliza status do banco (lowercase) para formato da UI
 function limpNormalize(row) {
-  const s = (row.status || '').toLowerCase();
-  const d = (row.dia || '').toLowerCase();
+  const s = (row.status || '').toUpperCase();
+  const d = row.dia || '';
+  const VALID = ['AGUARDANDO','SEGUNDA','TERCA','QUARTA','QUINTA','SEXTA','SABADO','DOMINGO','NAO'];
   let status, dia;
-  if      (s === 'nao')                                    { status='NAO';        dia=''; }
-  else if (s === 'terca' || d === 'terca')                 { status='TERCA';      dia='TERCA'; }
-  else if (s === 'sexta' || d === 'sexta')                 { status='SEXTA';      dia='SEXTA'; }
-  else if (s === 'confirmado' && d.match(/ter|er[ç]/))     { status='TERCA';      dia='TERCA'; }
-  else if (s === 'confirmado' && d.match(/sex|ex/))        { status='SEXTA';      dia='SEXTA'; }
-  else if (s === 'aguardando' || s === 'aguardando_dia')   { status='AGUARDANDO'; dia=''; }
-  else                                                      { status='AGUARDANDO'; dia=''; }
+  if (VALID.includes(s)) {
+    status = s;
+  } else if (s === 'CONFIRMADO' || s === 'NAO' || s.startsWith('NAO')) {
+    const dl = d.toLowerCase();
+    if (s === 'CONFIRMADO' && dl.match(/ter|terca/)) status = 'TERCA';
+    else if (s === 'CONFIRMADO' && dl.match(/sex|sexta/)) status = 'SEXTA';
+    else if (s.startsWith('NAO') || s === 'NAO') status = 'NAO';
+    else status = 'AGUARDANDO';
+  } else {
+    status = 'AGUARDANDO';
+  }
+  // dia: mantém se for data real (YYYY-MM-DD), senão limpa (era nome do dia)
+  dia = (d && d.match(/^\d{4}-\d{2}-\d{2}$/)) ? d : '';
   return { ...row, status, dia, executor: row.executor||'', observacao: row.observacao||'' };
 }
 
@@ -1972,13 +1991,18 @@ function limpRender() {
       <td>${nome}${vago ? ' <span class="lb lb-vago" style="font-size:.7rem;padding:1px 6px">Vago</span>' : ''}</td>
       <td>
         <select class="lsel-mini lsel-status" onchange="limpSaveStatus('${apto}',this.value)">
-          <option value="AGUARDANDO" ${(s.toUpperCase()==='AGUARDANDO')?'selected':''}>⏳ Aguardando</option>
+          <option value="AGUARDANDO" ${s==='AGUARDANDO'?'selected':''}>⏳ Aguardando</option>
+          <option value="SEGUNDA"    ${s==='SEGUNDA'?'selected':''}>Segunda-feira</option>
           <option value="TERCA"      ${s==='TERCA'?'selected':''}>Terça-feira</option>
+          <option value="QUARTA"     ${s==='QUARTA'?'selected':''}>Quarta-feira</option>
+          <option value="QUINTA"     ${s==='QUINTA'?'selected':''}>Quinta-feira</option>
           <option value="SEXTA"      ${s==='SEXTA'?'selected':''}>Sexta-feira</option>
-          <option value="NAO"        ${(s==='NAO'||s==='nao')?'selected':''}>❌ Não quer</option>
+          <option value="SABADO"     ${s==='SABADO'?'selected':''}>Sábado</option>
+          <option value="DOMINGO"    ${s==='DOMINGO'?'selected':''}>Domingo</option>
+          <option value="NAO"        ${s==='NAO'?'selected':''}>❌ Não quer</option>
         </select>
       </td>
-      <td>${(s==='TERCA'||s==='SEXTA') ? `<span class="lb ${s==='TERCA'?'lb-terca':'lb-sexta'}">${limpProximaData(s)}</span>` : '—'}</td>
+      <td>${(s in LIMP_DAY_MAP) ? `<input class="ldia-input" type="date" value="${dia||limpProximaData(s)||''}" onchange="limpSaveDia('${apto}',this.value)">` : '<span style="color:var(--muted)">—</span>'}</td>
       <td>
         <select class="lsel-mini" onchange="limpSaveExec('${apto}',this.value)">${opts}</select>
       </td>
@@ -1986,6 +2010,11 @@ function limpRender() {
         <input class="lobs" type="text" value="${escHtml(obs)}" placeholder="Observação…"
                onblur="limpSaveObs('${apto}',this.value)"
                onkeydown="if(event.key==='Enter')limpSaveObs('${apto}',this.value)">
+      </td>
+      <td>
+        <button class="btn-wpp-row" ${vago?'disabled title="Apto vago — sem WhatsApp"':''} onclick="limpSendOneConfirm('${apto}')">
+          📲
+        </button>
       </td>
     </tr>`;
   });
@@ -2066,17 +2095,51 @@ function limpClearFilters() {
 /* ── salvar status na API ── */
 async function limpSaveStatus(apto, status) {
   const row = limpData.find(r => r.apto === apto);
-  if (row) {
-    row.status = status;
-    row.dia = (status === 'TERCA' || status === 'SEXTA') ? status : null;
-  }
-  try {
-    await fetch(`${LIMPEZA_API}/api/agenda/${encodeURIComponent(apto)}/status`, {
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ status })
-    });
-  } catch(e) { toast('Erro ao salvar status (offline?)', 'error'); }
+  // calcula próxima data do dia selecionado
+  const diaDate = (status in LIMP_DAY_MAP) ? limpProximaData(status) : null;
+  if (row) { row.status = status; row.dia = diaDate || ''; }
   limpRender();
+  try {
+    const resp = await fetch(`${LIMPEZA_API}/api/agenda/${encodeURIComponent(apto)}/status`, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ status, dia: diaDate })
+    });
+    if (!resp.ok) { const t = await resp.text(); toast(`Erro ao salvar status: ${t.slice(0,60)}`, 'error'); }
+  } catch(e) { toast('Erro ao salvar status (offline?)', 'error'); }
+}
+
+/* ── salvar data manual na API ── */
+async function limpSaveDia(apto, dia) {
+  const row = limpData.find(r => r.apto === apto);
+  if (row) row.dia = dia;
+  try {
+    await fetch(`${LIMPEZA_API}/api/agenda/${encodeURIComponent(apto)}/dia`, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ dia })
+    });
+  } catch(e) { /* offline — só local */ }
+}
+
+/* ── enviar WhatsApp individual ── */
+async function limpSendOneConfirm(apto) {
+  const row = limpData.find(r => r.apto === apto);
+  if (!row) return;
+  const nome = (row.nome || '').split(' ')[0] || 'Inquilino';
+  if (!confirm(`Enviar mensagem WhatsApp para o apto ${apto} (${nome})?`)) return;
+  try {
+    const resp = await fetch(`${LIMPEZA_API}/api/disparar`, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ apto, nome: row.nome || '', numero: row.numero || '' })
+    });
+    if (resp.ok) {
+      toast(`✅ Mensagem enviada para o apto ${apto}`, 'success');
+    } else {
+      const t = await resp.text();
+      toast(`Erro ao enviar para apto ${apto}: ${t.slice(0,60)}`, 'error');
+    }
+  } catch(e) {
+    toast(`Erro ao enviar para apto ${apto}: ${e.message}`, 'error');
+  }
 }
 
 /* ── salvar executor / observação na API ── */
