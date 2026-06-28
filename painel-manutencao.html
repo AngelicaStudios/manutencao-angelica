@@ -927,7 +927,6 @@
       <div class="limp-toolbar">
         <span class="limp-toolbar-title">🧹 Limpeza Semanal</span>
         <button class="btn btn-ghost btn-sm" onclick="limpSync()">🔁 Sincronizar Inquilinos</button>
-        <button class="btn btn-ghost btn-sm" onclick="initLimpeza()">🔄 Atualizar</button>
         <button class="btn btn-wpp btn-sm" id="btn-disparar" onclick="limpOpenModal()" disabled>
           📲 Disparar WhatsApp
         </button>
@@ -2337,7 +2336,7 @@ function limpRenderModalStep(step) {
   const btnN = document.getElementById('btn-m-next');
 
   if (step === 1) {
-    const msg = `Olá! 😊\n\nPassando para confirmar a *limpeza semanal* do seu apartamento.\n\nVocê gostaria de agendar a limpeza *nessa semana*?\n\n➡️ Responda:\n*SIM* – quero agendar\n*NÃO* – não preciso essa semana`;
+    const msg = `Olá! 😊\n\nPassando para confirmar a limpeza semanal do seu apartamento.\n\nVocê gostaria de agendar a limpeza esta semana?\n\n*1* - Sim\n*2* - Não`;
     body.innerHTML = `
       <div style="margin-bottom:12px;font-size:.84rem;color:var(--muted)">
         Mensagem que será enviada a <strong>${limpSendList.length} inquilino(s)</strong>:
