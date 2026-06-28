@@ -355,8 +355,13 @@
   #sec-limpeza { padding: 0; }
   .limp-actions { padding: 10px 12px; background: #fff; border-bottom: 1.5px solid var(--border); display: flex; gap: 8px; flex-wrap: wrap; }
   .limp-stats-bar { display: grid; grid-template-columns: repeat(4, 1fr); background: #fff; border-bottom: 1.5px solid var(--border); }
-  .limp-stat-m { text-align: center; padding: 10px 4px; border-right: 1px solid var(--border); }
+  .limp-header { position: sticky; top: 0; z-index: 90; background: #fff; }
+  .limp-stat-m { text-align: center; padding: 10px 4px; border-right: 1px solid var(--border); cursor: pointer; transition: background .15s, transform .1s; user-select: none; }
   .limp-stat-m:last-child { border-right: none; }
+  .limp-stat-m:active { transform: scale(.95); }
+  .limp-stat-m.active { background: var(--blue); }
+  .limp-stat-m.active .sn { color: #fff !important; }
+  .limp-stat-m.active .sl { color: rgba(255,255,255,.8); }
   .limp-stat-m .sn { font-size: 1.35rem; font-weight: 800; line-height: 1; }
   .limp-stat-m .sl { font-size: .6rem; color: var(--muted); text-transform: uppercase; letter-spacing: .3px; margin-top: 2px; }
   .s-ter .sn { color: var(--blue); }
@@ -536,6 +541,7 @@
 
     <!-- ══ LIMPEZA SEMANAL ══ -->
     <div id="sec-limpeza" class="section">
+      <div class="limp-header">
       <div class="limp-actions">
         <button class="btn-sm btn-ghost" onclick="limpSync()">🔁 Sincronizar</button>
         
@@ -543,10 +549,11 @@
         
       </div>
       <div class="limp-stats-bar" id="limp-stats-bar">
-        <div class="limp-stat-m s-ter"><div class="sn" id="ls-ter">0</div><div class="sl">Terça</div></div>
-        <div class="limp-stat-m s-sex"><div class="sn" id="ls-sex">0</div><div class="sl">Sexta</div></div>
-        <div class="limp-stat-m s-agu"><div class="sn" id="ls-agu">0</div><div class="sl">Aguard.</div></div>
-        <div class="limp-stat-m s-nao"><div class="sn" id="ls-nao">0</div><div class="sl">Não</div></div>
+        <div class="limp-stat-m s-ter" data-lf="terca" onclick="limpStatFilter(this)" title="Filtrar Terça"><div class="sn" id="ls-ter">0</div><div class="sl">Terça</div></div>
+        <div class="limp-stat-m s-sex" data-lf="sexta" onclick="limpStatFilter(this)" title="Filtrar Sexta"><div class="sn" id="ls-sex">0</div><div class="sl">Sexta</div></div>
+        <div class="limp-stat-m s-agu" data-lf="aguardando" onclick="limpStatFilter(this)" title="Filtrar Aguardando"><div class="sn" id="ls-agu">0</div><div class="sl">Aguard.</div></div>
+        <div class="limp-stat-m s-nao" data-lf="nao" onclick="limpStatFilter(this)" title="Filtrar Não"><div class="sn" id="ls-nao">0</div><div class="sl">Não</div></div>
+      </div>
       </div>
       
       <div class="limp-progress" id="limp-progress">Toque em Atualizar para carregar.</div>
@@ -1095,6 +1102,20 @@ function limpSetFilter(btn) {
   document.querySelectorAll('.limp-chip-f').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
   limpFilter = btn.dataset.lf;
+  limpRender();
+}
+
+function limpStatFilter(el) {
+  const key = el.dataset.lf;
+  if (limpFilter === key) {
+    // Toggle: clicou no mesmo -> mostrar todos
+    limpFilter = 'todos';
+    document.querySelectorAll('.limp-stat-m').forEach(b => b.classList.remove('active'));
+  } else {
+    limpFilter = key;
+    document.querySelectorAll('.limp-stat-m').forEach(b => b.classList.remove('active'));
+    el.classList.add('active');
+  }
   limpRender();
 }
 
