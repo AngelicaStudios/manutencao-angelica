@@ -537,10 +537,10 @@
     <!-- ══ LIMPEZA SEMANAL ══ -->
     <div id="sec-limpeza" class="section">
       <div class="limp-actions">
-        <button class="btn-sm btn-ghost" onclick="limpLoadXlsxMobile()">📂 XLSX</button>
-        <button class="btn-sm btn-blue" onclick="initLimpeza()">🔄 Atualizar</button>
+        <button class="btn-sm btn-ghost" onclick="limpSync()">🔁 Sincronizar</button>
+        
         <button class="btn-sm" style="background:#e0f2fe;color:#075985;border:1.5px solid #bae6fd;border-radius:10px;font-weight:700;padding:10px 14px;cursor:pointer;" onclick="limpCriarTarefas()">📋 Criar Tarefas</button>
-        <input type="file" id="limp-xlsx-input" accept=".xlsx,.xls" style="display:none" onchange="limpHandleXlsx(this)" />
+        
       </div>
       <div class="limp-stats-bar" id="limp-stats-bar">
         <div class="limp-stat-m s-ter"><div class="sn" id="ls-ter">0</div><div class="sl">Terça</div></div>
@@ -548,14 +548,7 @@
         <div class="limp-stat-m s-agu"><div class="sn" id="ls-agu">0</div><div class="sl">Aguard.</div></div>
         <div class="limp-stat-m s-nao"><div class="sn" id="ls-nao">0</div><div class="sl">Não</div></div>
       </div>
-      <div class="limp-filter-bar">
-        <button class="limp-chip-f active" data-lf="todos" onclick="limpSetFilter(this)">Todos</button>
-        <button class="limp-chip-f" data-lf="terca" onclick="limpSetFilter(this)">📅 Terça</button>
-        <button class="limp-chip-f" data-lf="sexta" onclick="limpSetFilter(this)">📅 Sexta</button>
-        <button class="limp-chip-f" data-lf="aguardando" onclick="limpSetFilter(this)">⏳ Aguardando</button>
-        <button class="limp-chip-f" data-lf="nao" onclick="limpSetFilter(this)">❌ Não</button>
-        <button class="limp-chip-f" data-lf="nao_respondeu" onclick="limpSetFilter(this)">🔇 Sem resp.</button>
-      </div>
+      
       <div class="limp-progress" id="limp-progress">Toque em Atualizar para carregar.</div>
       <div id="limp-list" class="limp-list"></div>
       <div class="limp-footer">
