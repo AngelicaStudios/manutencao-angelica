@@ -269,9 +269,7 @@
     margin-bottom: 12px;
   }
   .task-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,.12); }
-  .task-card[data-priority="alta"]  { border-left-color: var(--danger); }
-  .task-card[data-priority="media"] { border-left-color: var(--warning); }
-  .task-card[data-priority="baixa"] { border-left-color: var(--success); }
+
   .task-card.archived { opacity: .65; background: #f8fafc; }
 
   .task-header {
@@ -394,6 +392,13 @@
     cursor: pointer; transition: background .15s;
   }
   .btn-edit:hover { background: #dbeafe; }
+  .btn-edit-card {
+    background: #e0f2fe; color: #075985;
+    border: 1.5px solid #bae6fd; border-radius: 7px;
+    padding: 5px 12px; font-size: .78rem; font-weight: 600;
+    cursor: pointer; transition: background .15s;
+  }
+  .btn-edit-card:hover { background: #bae6fd; }
   .btn-del-card {
     display: flex; align-items: center; gap: 5px;
     background: #fef2f2; color: var(--danger);
@@ -730,9 +735,9 @@
         <p id="print-date"></p>
       </div>
 
-      <div class="form-card">
-        <h2>➕ Nova Tarefa</h2>
-        <div class="form-grid">
+      <details class="form-card" id="nova-tarefa-card">
+        <summary style="cursor:pointer;list-style:none;display:flex;align-items:center;gap:8px;padding:2px 0"><span style="font-size:1rem;font-weight:700;color:var(--primary)">➕ Nova Tarefa</span><span style="font-size:.74rem;font-weight:400;color:var(--muted);margin-left:4px">(clique para expandir)</span></summary>
+        <div style="margin-top:16px"><div class="form-grid">
           <div class="form-group">
             <label>Apartamento / Unidade</label>
             <input type="text" id="f-apto" placeholder="Ex: 101, Bloco B-204" />
@@ -757,14 +762,6 @@
             <select id="f-resp"><option value="">Selecione…</option></select>
           </div>
           <div class="form-group">
-            <label>Prioridade</label>
-            <select id="f-prioridade">
-              <option value="baixa">🟢 Baixa</option>
-              <option value="media" selected>🟡 Média</option>
-              <option value="alta">🔴 Alta</option>
-            </select>
-          </div>
-          <div class="form-group">
             <label>Data Prevista</label>
             <input type="date" id="f-data" />
           </div>
@@ -784,7 +781,7 @@
           <button class="btn btn-primary" onclick="addTask()">✅ Adicionar Tarefa</button>
           <button class="btn btn-ghost" onclick="clearForm()">Limpar</button>
         </div>
-      </div>
+        </div></details>
 
       <!-- Funcionários -->
       <details class="form-card" style="margin-bottom:20px">
@@ -821,15 +818,6 @@
             <option value="pendente">Pendente</option>
             <option value="andamento">Em andamento</option>
             <option value="concluida">Concluída</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label>Prioridade</label>
-          <select id="g-filter-prio" onchange="renderGestor()">
-            <option value="">Todas</option>
-            <option value="alta">Alta</option>
-            <option value="media">Média</option>
-            <option value="baixa">Baixa</option>
           </select>
         </div>
         <div class="form-group">
@@ -1038,14 +1026,6 @@
       <div class="form-group">
         <label>Responsável</label>
         <select id="edit-resp"><option value="">Selecione…</option></select>
-      </div>
-      <div class="form-group">
-        <label>Prioridade</label>
-        <select id="edit-prio">
-          <option value="alta">🔴 Alta</option>
-          <option value="media">🟡 Média</option>
-          <option value="baixa">🟢 Baixa</option>
-        </select>
       </div>
       <div class="form-group">
         <label>Data Prevista</label>
@@ -1298,7 +1278,6 @@ function previewFotosGestor() {
 async function addTask() {
   const apto = document.getElementById('f-apto').value.trim();
   const tipo = document.getElementById('f-tipo').value;
-  const prio = document.getElementById('f-prioridade').value;
   const data = document.getElementById('f-data').value;
   const desc = document.getElementById('f-desc').value.trim();
   const resp = document.getElementById('f-resp').value;
@@ -1310,7 +1289,7 @@ async function addTask() {
   const files = Array.from((document.getElementById('f-fotos') || {}).files || []);
 
   function salvarTarefa(fotos) {
-    const tarefa = { id: uid(), apto, tipo, prio, resp, data, desc,
+    const tarefa = { id: uid(), apto, tipo, resp, data, desc,
                      status: 'pendente', obs: '', dataExec: '', fotos, criadoEm: Date.now() };
     dbSet('tarefas', tarefa.id, tarefa).then(() => {
       clearForm();
@@ -1349,7 +1328,7 @@ function setEquipeFilter(status) {
   renderEquipe();
 }
 function clearFilters(p) {
-  ['date','status','prio','resp'].forEach(f => {
+  ['date','status','resp'].forEach(f => {
     const el = document.getElementById(p + '-filter-' + f);
     if (el) el.value = '';
   });
@@ -1362,12 +1341,10 @@ function applyFilters(list, p) {
   const g = id => { const el = document.getElementById(id); return el ? el.value : ''; };
   const date   = g(p + '-filter-date');
   const status = g(p + '-filter-status');
-  const prio   = g(p + '-filter-prio');
   const resp   = g(p + '-filter-resp');
   return list.filter(t =>
     (!date   || t.data === date) &&
     (!status || t.status === status) &&
-    (!prio   || t.prio === prio) &&
     (!resp   || t.resp === resp)
   );
 }
@@ -1399,7 +1376,7 @@ function renderGestor() {
   `;
 
   let list = applyFilters(tasks, 'g');
-  list.sort((a,b) => a.data.localeCompare(b.data) || prioOrder(a.prio) - prioOrder(b.prio));
+  list.sort((a,b) => a.data.localeCompare(b.data));
 
   const el = document.getElementById('gestor-list');
   if (!list.length) { el.innerHTML = emptyHTML('Nenhuma tarefa encontrada.'); return; }
@@ -1407,11 +1384,9 @@ function renderGestor() {
   const byDate = {};
   list.forEach(t => { (byDate[t.data] = byDate[t.data] || []).push(t); });
 
-  el.innerHTML = Object.keys(byDate).sort().map(d => {
-    const info = dateLabel(d);
-    return `<div class="section-title ${info.cls}">${info.label}</div>` +
-      byDate[d].map(t => taskCardHTML(t, 'gestor')).join('');
-  }).join('');
+  el.innerHTML = Object.keys(byDate).sort().map(d =>
+    byDate[d].map(t => taskCardHTML(t, 'gestor')).join('')
+  ).join('');
 }
 
 function renderEquipe() {
@@ -1449,8 +1424,7 @@ function renderEquipe() {
     const bAtras = (b.data < hoje && b.status !== 'concluida') ? -1 : 0;
     if (aAtras !== bAtras) return aAtras - bAtras;
     return statusOrder(a.status) - statusOrder(b.status)
-        || a.data.localeCompare(b.data)
-        || prioOrder(a.prio) - prioOrder(b.prio);
+        || a.data.localeCompare(b.data);
   });
 
   const el = document.getElementById('equipe-list');
@@ -1498,6 +1472,7 @@ function taskCardHTML(t, view) {
         📷 Ver fotos (${fotoCnt})
       </button>
       <button class="btn-del-card" onclick="event.stopPropagation();deleteTask('${t.id}')">🗑️ Excluir</button>
+      <button class="btn-edit-card" onclick="event.stopPropagation();editTask('${t.id}')">✏️ Modificar</button>
     </div>` : '';
 
   let panel = '';
@@ -1536,17 +1511,17 @@ function taskCardHTML(t, view) {
     `;
   }
 
-  const cardClick = (view === 'gestor') ? `onclick="editTask('${t.id}')"` : '';
+  const cardClick = '';
 
   return `
-    <div class="task-card${isArq ? ' archived' : ''}${view === 'gestor' ? ' clickable' : ''}"
-      data-priority="${t.prio}" id="card-${t.id}" ${cardClick}>
+    <div class="task-card${isArq ? ' archived' : ''}"
+      id="card-${t.id}" ${cardClick}>
       <div class="task-header">
         <div class="task-title">${escHtml(t.tipo)}</div>
         ${!isArq ? `<div class="task-date ${info.cls}">${info.label}</div>` : ''}
       </div>
       <div class="task-meta">
-        <span class="apto-tag">🏠 ${escHtml(t.apto)}</span>
+        ${t.apto && t.apto !== 'Limpeza' ? `<span class="apto-tag">\u{1F3E0} ${escHtml(t.apto)}</span>` : ''}
         ${t.resp ? `<span class="badge" style="background:#e0f2fe;color:#075985">👷 ${escHtml(t.resp)}</span>` : ''}
         ${isArq
           ? `<span class="badge badge-arquivada">📁 Arquivada · ${fmtDate(t.data)}</span>`
@@ -1592,7 +1567,6 @@ function editTask(id) {
   document.getElementById('edit-id').value    = id;
   document.getElementById('edit-apto').value  = t.apto   || '';
   document.getElementById('edit-tipo').value  = t.tipo   || '';
-  document.getElementById('edit-prio').value  = t.prio   || 'media';
   document.getElementById('edit-data').value  = t.data   || '';
   document.getElementById('edit-status').value= t.status || 'pendente';
   document.getElementById('edit-desc').value  = t.desc   || '';
@@ -1613,7 +1587,6 @@ async function saveEditTask() {
   const id     = document.getElementById('edit-id').value;
   const apto   = document.getElementById('edit-apto').value.trim();
   const tipo   = document.getElementById('edit-tipo').value;
-  const prio   = document.getElementById('edit-prio').value;
   const data   = document.getElementById('edit-data').value;
   const status = document.getElementById('edit-status').value;
   const desc   = document.getElementById('edit-desc').value.trim();
@@ -1623,7 +1596,7 @@ async function saveEditTask() {
   if (!tipo) { toast('⚠️ Selecione o tipo de serviço!'); return; }
   if (!data) { toast('⚠️ Informe a data!'); return; }
 
-  await dbUpdate('tarefas', id, { apto, tipo, prio, data, status, desc, resp });
+  await dbUpdate('tarefas', id, { apto, tipo, data, status, desc, resp });
   closeEditModal();
   toast('✅ Tarefa atualizada!');
 }
