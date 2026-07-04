@@ -2197,11 +2197,23 @@ async function limpCriarTarefas() {
 }
 
 async function limpNovasSemana() {
-  if (!confirm('Resetar agenda para nova semana? Todos os status voltarão para PENDENTE.')) return;
+  if (!confirm('Resetar agenda para nova semana?\nStatus, executor e observação serão limpos para todos os aptos.')) return;
   try {
+    // 1. Reset de status no backend
     await fetch(`${LIMPEZA_API}/api/reset`, { method:'POST' });
+
+    // 2. Limpar executor e observação de cada apto em paralelo
+    const opts = { method:'POST', headers:{'Content-Type':'application/json'} };
+    await Promise.all(limpData.flatMap(r => [
+      fetch(`${LIMPEZA_API}/api/agenda/${encodeURIComponent(r.apto)}/executor`,
+        { ...opts, body: JSON.stringify({ executor: '' }) }).catch(()=>{}),
+      fetch(`${LIMPEZA_API}/api/agenda/${encodeURIComponent(r.apto)}/observacao`,
+        { ...opts, body: JSON.stringify({ observacao: '' }) }).catch(()=>{})
+    ]));
+
+    // 3. Recarregar dados frescos
     await initLimpeza();
-    toast('Nova semana iniciada!', 'success');
+    toast('Nova semana iniciada! Todos os campos foram limpos.', 'success');
   } catch(e) {
     toast('Erro ao resetar semana', 'error');
   }
