@@ -848,28 +848,13 @@
     <div id="view-equipe" class="view">
       <div class="counters" id="counters"></div>
 
-      <div class="filters">
-        <div class="form-group">
-          <label>Data</label>
-          <input type="date" id="e-filter-date" oninput="renderEquipe()" />
-        </div>
-        <div class="form-group">
-          <label>Status</label>
-          <select id="e-filter-status" onchange="renderEquipe()">
-            <option value="">Todos</option>
-            <option value="pendente">Pendente</option>
-            <option value="andamento">Em andamento</option>
-            <option value="concluida">Concluída</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label>Responsável</label>
-          <select id="e-filter-resp" onchange="renderEquipe()">
-            <option value="">Todos</option>
-          </select>
-        </div>
-        <button class="btn btn-sm btn-ghost" onclick="clearFilters('e')">Limpar filtros</button>
-      </div>
+      <!-- filtro de status mantido oculto para os botões de contador funcionarem -->
+      <select id="e-filter-status" hidden>
+        <option value="">Todos</option>
+        <option value="pendente">Pendente</option>
+        <option value="andamento">Em andamento</option>
+        <option value="concluida">Concluída</option>
+      </select>
 
       <div id="equipe-list"></div>
     </div>
@@ -1135,10 +1120,12 @@ function carregarNomesEquipe() {
     }
     const el = document.getElementById('equipe-nomes');
     if (!el) return;
+    const admBtn = `<button class="btn btn-primary" onclick="loginEquipe('Angelica-ADM')"
+      style="background:#7c3aed;border-color:#7c3aed;color:#fff">🔑 Angelica-ADM</button>`;
     if (!lista.length) {
-      el.innerHTML = `<span style="font-size:.8rem;color:var(--muted);text-align:center">Nenhum funcionário cadastrado.</span>`;
+      el.innerHTML = admBtn;
     } else {
-      el.innerHTML = lista.map(f =>
+      el.innerHTML = admBtn + lista.map(f =>
         `<button class="btn btn-success" onclick="pedirPinEquipe('${f.nome.replace(/'/g,"\\'")}')">${f.nome}</button>`
       ).join('');
     }
@@ -1463,15 +1450,7 @@ function renderEquipe() {
 
   let list = applyFilters(minhas, 'e');
 
-  // Tarefas atrasadas primeiro, depois por status/data/prioridade
-  const hoje = today();
-  list.sort((a,b) => {
-    const aAtras = (a.data < hoje && a.status !== 'concluida') ? -1 : 0;
-    const bAtras = (b.data < hoje && b.status !== 'concluida') ? -1 : 0;
-    if (aAtras !== bAtras) return aAtras - bAtras;
-    return statusOrder(a.status) - statusOrder(b.status)
-        || a.data.localeCompare(b.data);
-  });
+  list.sort((a, b) => a.data.localeCompare(b.data));
 
   const el = document.getElementById('equipe-list');
   if (!list.length) { el.innerHTML = emptyHTML('Nenhuma tarefa encontrada.'); return; }
@@ -1570,7 +1549,7 @@ function taskCardHTML(t, view) {
     <div class="task-card${isArq ? ' archived' : ''}"
       id="card-${t.id}" ${cardClick}>
       <div class="task-header">
-        <div class="task-title">${escHtml(t.tipo)}</div>
+        <div class="task-title">${view === 'equipe' ? 'Tarefa - ' : ''}${escHtml(t.tipo)}</div>
         ${!isArq ? `<div class="task-date ${info.cls}">${info.label}</div>` : ''}
       </div>
       <div class="task-meta">
@@ -1578,7 +1557,7 @@ function taskCardHTML(t, view) {
         ${t.resp ? `<span class="badge" style="background:#e0f2fe;color:#075985">👷 ${escHtml(t.resp)}</span>` : ''}
         ${isArq
           ? `<span class="badge badge-arquivada">📁 Arquivada · ${fmtDate(t.data)}</span>`
-          : `<span class="badge badge-${t.status}">${labelStatus(t.status)}</span>`}
+          : view !== 'equipe' ? `<span class="badge badge-${t.status}">${labelStatus(t.status)}</span>` : ''}
       </div>
       ${t.desc ? `<div class="task-desc">${escHtml(t.desc)}</div>` : ''}
       ${obsHtml}
