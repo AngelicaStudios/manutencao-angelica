@@ -770,11 +770,18 @@
             <textarea id="f-desc" placeholder="Descreva o problema ou o serviço a realizar…"></textarea>
           </div>
           <div class="form-group full">
-            <label>📷 Fotos / Arquivos (opcional)</label>
-            <input type="file" id="f-fotos" accept="image/*" multiple
-              style="border:1.5px dashed var(--border);border-radius:7px;padding:8px;cursor:pointer;font-size:.83rem;background:#fafafa;"
-              onchange="previewFotosGestor()" />
-            <div id="f-fotos-preview" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px"></div>
+            <label>📷 Fotos (opcional)</label>
+            <div style="display:flex;gap:8px;margin:6px 0">
+              <button type="button" class="btn btn-sm btn-ghost" style="flex:1"
+                onclick="document.getElementById('f-fotos-cam').click()">📷 Câmera</button>
+              <button type="button" class="btn btn-sm btn-ghost" style="flex:1"
+                onclick="document.getElementById('f-fotos-gal').click()">🖼️ Arquivo / Galeria</button>
+            </div>
+            <input type="file" id="f-fotos-cam" accept="image/*" capture="environment" hidden
+              onchange="prevFotos(this,'f-fotos-preview')" />
+            <input type="file" id="f-fotos-gal" accept="image/*" multiple hidden
+              onchange="prevFotos(this,'f-fotos-preview')" />
+            <div id="f-fotos-preview" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:4px"></div>
           </div>
         </div>
         <div class="form-actions">
@@ -1053,8 +1060,15 @@
 
 <!-- Lightbox -->
 <div id="lightbox" onclick="closeLightbox()">
+  <button id="lb-prev" onclick="event.stopPropagation();lightboxNav(-1)"
+    style="position:absolute;left:14px;top:50%;transform:translateY(-50%);background:rgba(0,0,0,.5);border:none;color:#fff;font-size:2rem;border-radius:50%;width:52px;height:52px;cursor:pointer;line-height:1">‹</button>
   <img id="lightbox-img" src="" alt="foto" onclick="event.stopPropagation()" />
-  <button onclick="closeLightbox()">✕ Fechar</button>
+  <button id="lb-next" onclick="event.stopPropagation();lightboxNav(1)"
+    style="position:absolute;right:14px;top:50%;transform:translateY(-50%);background:rgba(0,0,0,.5);border:none;color:#fff;font-size:2rem;border-radius:50%;width:52px;height:52px;cursor:pointer;line-height:1">›</button>
+  <div style="display:flex;align-items:center;gap:12px;margin-top:4px" onclick="event.stopPropagation()">
+    <span id="lb-counter" style="color:rgba(255,255,255,.75);font-size:.85rem"></span>
+    <button onclick="closeLightbox()">✕ Fechar</button>
+  </div>
 </div>
 
 <div id="toast"></div>
@@ -1247,23 +1261,58 @@ function setMode(m) {
 // ══════════════════════════════════════════════
 // FORM GESTOR
 // ══════════════════════════════════════════════
-function clearForm() {
-  ['f-apto','f-desc'].forEach(id => document.getElementById(id).value = '');
-  document.getElementById('f-tipo').value = '';
-  document.getElementById('f-resp').selectedIndex = 0;
-  document.getElementById('f-prioridade').value = 'media';
-  document.getElementById('f-data').value = today();
-  const fInput = document.getElementById('f-fotos');
-  if (fInput) fInput.value = '';
-  const prev = document.getElementById('f-fotos-preview');
-  if (prev) prev.innerHTML = '';
+// ══════════════════════════════════════════════
+// FOTOS — COMPRESSÃO + FIREBASE STORAGE
+// ══════════════════════════════════════════════
+function comprimirImagem(file, maxPx = 1200, quality = 0.78) {
+  return new Promise(resolve => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      let { width: w, height: h } = img;
+      if (w > maxPx || h > maxPx) {
+        const r = Math.min(maxPx / w, maxPx / h);
+        w = Math.round(w * r); h = Math.round(h * r);
+      }
+      const c = document.createElement('canvas');
+      c.width = w; c.height = h;
+      c.getContext('2d').drawImage(img, 0, 0, w, h);
+      c.toBlob(blob => { URL.revokeObjectURL(url); resolve(blob || file); }, 'image/jpeg', quality);
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); resolve(file); };
+    img.src = url;
+  });
 }
 
-function previewFotosGestor() {
-  const files = Array.from(document.getElementById('f-fotos').files);
-  const prev  = document.getElementById('f-fotos-preview');
-  prev.innerHTML = '';
-  files.forEach(file => {
+async function uploadFotos(_taskId, files) {
+  if (!files.length) return [];
+  toast('⏳ Comprimindo fotos…');
+  const base64s = [];
+  let totalKB = 0;
+  for (const file of files) {
+    try {
+      const blob = await comprimirImagem(file, 800, 0.58);
+      const b64  = await new Promise(res => {
+        const r = new FileReader();
+        r.onload = e => res(e.target.result);
+        r.readAsDataURL(blob);
+      });
+      totalKB += Math.round(b64.length * 0.75 / 1024);
+      if (totalKB > 900) {
+        toast('⚠️ Limite de fotos atingido — use menos fotos por tarefa.'); break;
+      }
+      base64s.push(b64);
+    } catch(e) {
+      console.error('Erro ao processar foto:', e);
+    }
+  }
+  return base64s;
+}
+
+function prevFotos(input, prevId) {
+  const prev = document.getElementById(prevId);
+  if (!prev) return;
+  Array.from(input.files).forEach(file => {
     const reader = new FileReader();
     reader.onload = e => {
       const img = document.createElement('img');
@@ -1274,6 +1323,18 @@ function previewFotosGestor() {
     reader.readAsDataURL(file);
   });
 }
+
+function clearForm() {
+  ['f-apto','f-desc'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('f-tipo').value = '';
+  document.getElementById('f-resp').selectedIndex = 0;
+  document.getElementById('f-data').value = today();
+  ['f-fotos-cam','f-fotos-gal'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+  const prev = document.getElementById('f-fotos-preview');
+  if (prev) prev.innerHTML = '';
+}
+
+/* previewFotosGestor substituída pela função genérica prevFotos() */
 
 async function addTask() {
   const apto = document.getElementById('f-apto').value.trim();
@@ -1286,32 +1347,17 @@ async function addTask() {
   if (!tipo) { toast('⚠️ Selecione o tipo de serviço!'); return; }
   if (!data) { toast('⚠️ Informe a data!'); return; }
 
-  const files = Array.from((document.getElementById('f-fotos') || {}).files || []);
+  const fCam  = document.getElementById('f-fotos-cam');
+  const fGal  = document.getElementById('f-fotos-gal');
+  const files = [...Array.from((fCam||{}).files||[]), ...Array.from((fGal||{}).files||[])];
 
-  function salvarTarefa(fotos) {
-    const tarefa = { id: uid(), apto, tipo, resp, data, desc,
-                     status: 'pendente', obs: '', dataExec: '', fotos, criadoEm: Date.now() };
-    dbSet('tarefas', tarefa.id, tarefa).then(() => {
-      clearForm();
-      toast('✅ Tarefa adicionada!');
-    });
-  }
-
-  if (files.length) {
-    toast('⏳ Carregando fotos…');
-    let loaded = 0;
-    const base64s = [];
-    files.forEach((file, i) => {
-      const reader = new FileReader();
-      reader.onload = e => {
-        base64s[i] = e.target.result;
-        if (++loaded === files.length) salvarTarefa(base64s);
-      };
-      reader.readAsDataURL(file);
-    });
-  } else {
-    salvarTarefa([]);
-  }
+  const taskId = uid();
+  const fotos  = await uploadFotos(null, files);
+  const tarefa = { id: taskId, apto, tipo, resp, data, desc,
+                   status: 'pendente', obs: '', dataExec: '', fotos, criadoEm: Date.now() };
+  await dbSet('tarefas', tarefa.id, tarefa);
+  clearForm();
+  toast('✅ Tarefa adicionada!');
 }
 
 // ══════════════════════════════════════════════
@@ -1501,7 +1547,14 @@ function taskCardHTML(t, view) {
         </div>
         <div class="foto-input-wrap">
           <label>📷 Adicionar foto(s)</label>
-          <input type="file" accept="image/*" multiple id="foto-input-${t.id}" />
+          <div style="display:flex;gap:6px;margin:4px 0">
+            <button type="button" class="btn btn-sm btn-ghost" style="flex:1"
+              onclick="document.getElementById('foto-cam-${t.id}').click()">📷 Câmera</button>
+            <button type="button" class="btn btn-sm btn-ghost" style="flex:1"
+              onclick="document.getElementById('foto-gal-${t.id}').click()">🖼️ Galeria</button>
+          </div>
+          <input type="file" accept="image/*" capture="environment" id="foto-cam-${t.id}" hidden />
+          <input type="file" accept="image/*" multiple id="foto-gal-${t.id}" hidden />
         </div>
         ${fotosHtml}
         <div>
@@ -1651,25 +1704,13 @@ async function updateDataExec(id, data) {
   toast('Data de execução salva!');
 }
 
-function saveEquipe(id) {
-  const obs       = document.getElementById('obs-text-' + id).value.trim();
-  const fileInput = document.getElementById('foto-input-' + id);
-  const files     = fileInput ? Array.from(fileInput.files) : [];
-
-  if (files.length) {
-    let loaded = 0;
-    const base64s = [];
-    files.forEach((file, i) => {
-      const reader = new FileReader();
-      reader.onload = e => {
-        base64s[i] = e.target.result;
-        if (++loaded === files.length) persistEquipe(id, obs, base64s);
-      };
-      reader.readAsDataURL(file);
-    });
-  } else {
-    persistEquipe(id, obs, []);
-  }
+async function saveEquipe(id) {
+  const obs   = document.getElementById('obs-text-' + id).value.trim();
+  const fCam  = document.getElementById('foto-cam-' + id);
+  const fGal  = document.getElementById('foto-gal-' + id);
+  const files = [...Array.from((fCam||{}).files||[]), ...Array.from((fGal||{}).files||[])];
+  const novasFotos = await uploadFotos(id, files);
+  await persistEquipe(id, obs, novasFotos);
 }
 
 async function persistEquipe(id, obs, novasFotos) {
@@ -1683,17 +1724,60 @@ async function persistEquipe(id, obs, novasFotos) {
 // ══════════════════════════════════════════════
 // LIGHTBOX
 // ══════════════════════════════════════════════
+let lbFotos = [], lbIdx = 0;
+
 function openLightbox(taskId, idx, src) {
   const all = src === 'arq' ? arqTasks : tasks;
   const t   = all.find(t => t.id === taskId);
-  if (!t || !t.fotos || !t.fotos[idx]) return;
-  document.getElementById('lightbox-img').src = t.fotos[idx];
+  if (!t || !t.fotos || !t.fotos.length) return;
+  lbFotos = t.fotos;
+  lbIdx   = idx;
+  _lbShow();
+}
+
+function _lbShow() {
+  const img  = document.getElementById('lightbox-img');
+  const cnt  = document.getElementById('lb-counter');
+  const prev = document.getElementById('lb-prev');
+  const next = document.getElementById('lb-next');
+  img.src = lbFotos[lbIdx];
+  if (cnt) cnt.textContent = lbFotos.length > 1 ? `${lbIdx + 1} / ${lbFotos.length}` : '';
+  if (prev) prev.style.display = lbFotos.length > 1 ? '' : 'none';
+  if (next) next.style.display = lbFotos.length > 1 ? '' : 'none';
   document.getElementById('lightbox').classList.add('open');
 }
+
+function lightboxNav(dir) {
+  lbIdx = (lbIdx + dir + lbFotos.length) % lbFotos.length;
+  _lbShow();
+}
+
 function closeLightbox() {
   document.getElementById('lightbox').classList.remove('open');
   document.getElementById('lightbox-img').src = '';
+  lbFotos = []; lbIdx = 0;
 }
+
+// Teclado: ← → para navegar, Esc para fechar
+document.addEventListener('keydown', e => {
+  const lb = document.getElementById('lightbox');
+  if (!lb || !lb.classList.contains('open')) return;
+  if (e.key === 'ArrowLeft')  lightboxNav(-1);
+  if (e.key === 'ArrowRight') lightboxNav(1);
+  if (e.key === 'Escape')     closeLightbox();
+});
+
+// Touch: swipe para navegar
+(function() {
+  let tx = 0;
+  const lb = () => document.getElementById('lightbox');
+  document.addEventListener('touchstart', e => { if (lb()?.classList.contains('open')) tx = e.touches[0].clientX; }, { passive: true });
+  document.addEventListener('touchend',   e => {
+    if (!lb()?.classList.contains('open') || !lbFotos.length) return;
+    const dx = e.changedTouches[0].clientX - tx;
+    if (Math.abs(dx) > 50) lightboxNav(dx < 0 ? 1 : -1);
+  });
+})();
 
 // ══════════════════════════════════════════════
 // FUNCIONÁRIOS
