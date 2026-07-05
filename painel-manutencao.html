@@ -355,7 +355,16 @@
     background: #fff;
     cursor: pointer;
   }
-  .foto-preview-wrap { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
+  .foto-preview-wrap { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 6px; }
+  .foto-wrap { position: relative; display: inline-block; }
+  .btn-del-foto {
+    position: absolute; top: -7px; right: -7px;
+    width: 20px; height: 20px; border-radius: 50%;
+    background: #dc2626; color: #fff; border: 2px solid #fff;
+    cursor: pointer; font-size: 12px; font-weight: 700;
+    line-height: 1; padding: 0; display: flex; align-items: center; justify-content: center;
+  }
+  .btn-del-foto:hover { background: #b91c1c; }
   .foto-thumb {
     width: 72px;
     height: 72px;
@@ -1495,7 +1504,10 @@ function taskCardHTML(t, view) {
 
   const fotosHtml = (t.fotos && t.fotos.length)
     ? `<div class="foto-preview-wrap">${t.fotos.map((f,i) =>
-        `<img class="foto-thumb" src="${f}" alt="foto ${i+1}" onclick="openLightbox('${t.id}',${i},'${isArq?'arq':'task'}')" />`
+        `<div class="foto-wrap">
+          <img class="foto-thumb" src="${f}" alt="foto ${i+1}" onclick="openLightbox('${t.id}',${i},'${isArq?'arq':'task'}')" />
+          ${!isArq ? `<button class="btn-del-foto" onclick="event.stopPropagation();deleteFoto('${t.id}',${i})">×</button>` : ''}
+        </div>`
       ).join('')}</div>`
     : '';
 
@@ -1552,7 +1564,6 @@ function taskCardHTML(t, view) {
           <input type="file" accept="image/*,application/pdf,.pdf,.doc,.docx" multiple id="foto-gal-${t.id}"
             style="position:absolute;opacity:0;width:0;height:0;pointer-events:none" />
         </div>
-        ${fotosHtml}
         <div>
           <button class="btn btn-primary btn-sm" onclick="saveEquipe('${t.id}')">💾 Salvar</button>
         </div>
@@ -1579,7 +1590,7 @@ function taskCardHTML(t, view) {
       ${t.desc ? `<div class="task-desc">${escHtml(t.desc)}</div>` : ''}
       ${view !== 'equipe' ? obsHtml : ''}
       ${dataExecHtml}
-      ${isArq ? fotosHtml : ''}
+      ${fotosHtml}
       ${panel}
       ${gestorActions}
     </div>
@@ -1715,6 +1726,15 @@ async function persistEquipe(id, obs, novasFotos) {
   const fotos = [...(t.fotos || []), ...novasFotos];
   await dbUpdate('tarefas', id, { obs, fotos });
   toast('💾 Salvo com sucesso!');
+}
+
+async function deleteFoto(taskId, idx) {
+  if (!confirm('Excluir este arquivo?')) return;
+  const t = tasks.find(t => t.id === taskId) || arqTasks.find(t => t.id === taskId);
+  if (!t) return;
+  const novasFotos = t.fotos.filter((_, i) => i !== idx);
+  await dbUpdate('tarefas', taskId, { fotos: novasFotos });
+  toast('Arquivo removido.');
 }
 
 // ══════════════════════════════════════════════
