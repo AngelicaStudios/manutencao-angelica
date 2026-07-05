@@ -780,16 +780,16 @@
             <textarea id="f-desc" placeholder="Descreva o problema ou o serviço a realizar…"></textarea>
           </div>
           <div class="form-group full">
-            <label>📷 Fotos (opcional)</label>
+            <label>📷 Fotos / Documentos (opcional)</label>
             <div style="display:flex;gap:8px;margin:6px 0">
-              <button type="button" class="btn btn-sm btn-ghost" style="flex:1"
-                onclick="document.getElementById('f-fotos-cam').click()">📷 Câmera</button>
-              <button type="button" class="btn btn-sm btn-ghost" style="flex:1"
-                onclick="document.getElementById('f-fotos-gal').click()">🖼️ Arquivo / Galeria</button>
+              <label for="f-fotos-cam" class="btn btn-sm btn-ghost" style="flex:1;cursor:pointer;text-align:center">📷 Câmera</label>
+              <label for="f-fotos-gal" class="btn btn-sm btn-ghost" style="flex:1;cursor:pointer;text-align:center">🖼️ Galeria / Arquivo</label>
             </div>
-            <input type="file" id="f-fotos-cam" accept="image/*" capture="environment" hidden
+            <input type="file" id="f-fotos-cam" accept="image/*" capture="environment"
+              style="position:absolute;opacity:0;width:0;height:0;pointer-events:none"
               onchange="prevFotos(this,'f-fotos-preview')" />
-            <input type="file" id="f-fotos-gal" accept="image/*" multiple hidden
+            <input type="file" id="f-fotos-gal" accept="image/*,application/pdf,.pdf,.doc,.docx" multiple
+              style="position:absolute;opacity:0;width:0;height:0;pointer-events:none"
               onchange="prevFotos(this,'f-fotos-preview')" />
             <div id="f-fotos-preview" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:4px"></div>
           </div>
@@ -1130,12 +1130,10 @@ function carregarNomesEquipe() {
     }
     const el = document.getElementById('equipe-nomes');
     if (!el) return;
-    const admBtn = `<button class="btn btn-primary" onclick="loginEquipe('Angelica-ADM')"
-      style="background:#7c3aed;border-color:#7c3aed;color:#fff">🔑 Angelica-ADM</button>`;
     if (!lista.length) {
-      el.innerHTML = admBtn;
+      el.innerHTML = `<span style="font-size:.8rem;color:var(--muted);text-align:center">Nenhum funcionário cadastrado.</span>`;
     } else {
-      el.innerHTML = admBtn + lista.map(f =>
+      el.innerHTML = lista.map(f =>
         `<button class="btn btn-success" onclick="pedirPinEquipe('${f.nome.replace(/'/g,"\\'")}')">${f.nome}</button>`
       ).join('');
     }
@@ -1283,24 +1281,33 @@ function comprimirImagem(file, maxPx = 1200, quality = 0.78) {
 
 async function uploadFotos(_taskId, files) {
   if (!files.length) return [];
-  toast('⏳ Comprimindo fotos…');
+  toast('⏳ Processando arquivos…');
   const base64s = [];
   let totalKB = 0;
   for (const file of files) {
     try {
-      const blob = await comprimirImagem(file, 800, 0.58);
-      const b64  = await new Promise(res => {
+      let blob;
+      if (file.type.startsWith('image/')) {
+        blob = await comprimirImagem(file, 800, 0.58);
+      } else {
+        // PDF ou documento: aceitar até 400 KB
+        if (file.size > 400 * 1024) {
+          toast(`⚠️ "${file.name}" muito grande — máx. 400 KB para documentos.`); continue;
+        }
+        blob = file;
+      }
+      const b64 = await new Promise(res => {
         const r = new FileReader();
         r.onload = e => res(e.target.result);
         r.readAsDataURL(blob);
       });
       totalKB += Math.round(b64.length * 0.75 / 1024);
       if (totalKB > 900) {
-        toast('⚠️ Limite de fotos atingido — use menos fotos por tarefa.'); break;
+        toast('⚠️ Limite atingido — reduza o número de arquivos.'); break;
       }
       base64s.push(b64);
     } catch(e) {
-      console.error('Erro ao processar foto:', e);
+      console.error('Erro ao processar arquivo:', e);
     }
   }
   return base64s;
@@ -1535,15 +1542,15 @@ function taskCardHTML(t, view) {
             rows="2">${escHtml(t.obs)}</textarea>
         </div>
         <div class="foto-input-wrap">
-          <label>📷 Adicionar foto(s)</label>
+          <label>📷 Adicionar foto(s) / documentos</label>
           <div style="display:flex;gap:6px;margin:4px 0">
-            <button type="button" class="btn btn-sm btn-ghost" style="flex:1"
-              onclick="document.getElementById('foto-cam-${t.id}').click()">📷 Câmera</button>
-            <button type="button" class="btn btn-sm btn-ghost" style="flex:1"
-              onclick="document.getElementById('foto-gal-${t.id}').click()">🖼️ Galeria</button>
+            <label for="foto-cam-${t.id}" class="btn btn-sm btn-ghost" style="flex:1;cursor:pointer;text-align:center">📷 Câmera</label>
+            <label for="foto-gal-${t.id}" class="btn btn-sm btn-ghost" style="flex:1;cursor:pointer;text-align:center">🖼️ Galeria / Arquivo</label>
           </div>
-          <input type="file" accept="image/*" capture="environment" id="foto-cam-${t.id}" hidden />
-          <input type="file" accept="image/*" multiple id="foto-gal-${t.id}" hidden />
+          <input type="file" accept="image/*" capture="environment" id="foto-cam-${t.id}"
+            style="position:absolute;opacity:0;width:0;height:0;pointer-events:none" />
+          <input type="file" accept="image/*,application/pdf,.pdf,.doc,.docx" multiple id="foto-gal-${t.id}"
+            style="position:absolute;opacity:0;width:0;height:0;pointer-events:none" />
         </div>
         ${fotosHtml}
         <div>
