@@ -816,14 +816,25 @@
           <span style="font-size:.74rem;font-weight:400;color:var(--muted)">(clique para expandir)</span>
         </summary>
         <div style="margin-top:14px">
-          <div style="display:flex;gap:8px;margin-bottom:6px;flex-wrap:wrap">
-            <input type="text" id="new-func" placeholder="Nome do funcionário" style="flex:1;min-width:160px" />
-            <input type="text" id="new-pin" placeholder="PIN (ex: 1234)" maxlength="8"
-              style="width:150px;letter-spacing:2px;font-family:monospace"
-              onkeydown="if(event.key==='Enter')addFunc()" />
+          <div style="display:flex;gap:8px;margin-bottom:6px;flex-wrap:wrap;align-items:flex-end">
+            <div style="flex:1;min-width:150px">
+              <label style="font-size:.72rem;color:var(--muted);display:block;margin-bottom:3px">Nome</label>
+              <input type="text" id="new-func" placeholder="Nome do funcionário" style="width:100%" />
+            </div>
+            <div style="width:130px">
+              <label style="font-size:.72rem;color:var(--muted);display:block;margin-bottom:3px">PIN (login)</label>
+              <input type="text" id="new-pin" placeholder="ex: 1234" maxlength="8"
+                style="width:100%;letter-spacing:2px;font-family:monospace"
+                onkeydown="if(event.key==='Enter')addFunc()" />
+            </div>
+            <div style="width:160px">
+              <label style="font-size:.72rem;color:var(--muted);display:block;margin-bottom:3px">📱 Telefone (DDD+número)</label>
+              <input type="tel" id="new-tel" placeholder="ex: 11987654321"
+                style="width:100%" onkeydown="if(event.key==='Enter')addFunc()" />
+            </div>
             <button class="btn btn-primary" onclick="addFunc()">+ Adicionar</button>
           </div>
-          <p style="font-size:.76rem;color:var(--muted);margin-bottom:10px">O PIN é pedido ao funcionário no momento do login.</p>
+          <p style="font-size:.76rem;color:var(--muted);margin-bottom:10px">PIN é solicitado no login · Telefone é usado para notificações WhatsApp automáticas.</p>
           <div id="func-list" style="display:flex;flex-wrap:wrap;gap:8px"></div>
         </div>
       </details>
@@ -1001,6 +1012,12 @@
       <input type="text" id="edit-func-pin" placeholder="PIN (mín. 4 dígitos)" maxlength="8"
         style="letter-spacing:3px;font-family:monospace"
         onkeydown="if(event.key==='Enter')salvarEditFunc()" />
+    </div>
+    <div class="form-group">
+      <label>📱 Telefone (DDD+número)</label>
+      <input type="tel" id="edit-func-tel" placeholder="ex: 11987654321"
+        onkeydown="if(event.key==='Enter')salvarEditFunc()" />
+      <small style="color:var(--muted);font-size:.72rem">Usado para notificações WhatsApp automáticas</small>
     </div>
     <div class="modal-actions">
       <button class="btn btn-primary" onclick="salvarEditFunc()">💾 Salvar</button>
@@ -1801,13 +1818,15 @@ document.addEventListener('keydown', e => {
 async function addFunc() {
   const nome = document.getElementById('new-func').value.trim();
   const pin  = document.getElementById('new-pin').value.trim();
+  const tel  = (document.getElementById('new-tel').value || '').replace(/\D/g,'').trim();
   if (!nome) { toast('⚠️ Digite o nome!'); return; }
   if (!pin || pin.length < 4) { toast('⚠️ PIN precisa ter ao menos 4 dígitos!'); return; }
   if (funcs.find(f => f.nome === nome)) { toast('⚠️ Funcionário já existe!'); return; }
-  const list = [...funcs, {nome, pin}].sort((a,b) => a.nome.localeCompare(b.nome));
+  const list = [...funcs, {nome, pin, tel}].sort((a,b) => a.nome.localeCompare(b.nome));
   await dbSaveFuncs(list);
   document.getElementById('new-func').value = '';
   document.getElementById('new-pin').value  = '';
+  document.getElementById('new-tel').value  = '';
   toast('👷 Funcionário adicionado!');
 }
 
@@ -1823,6 +1842,7 @@ function abrirEditFunc(nome) {
   document.getElementById('edit-func-original').value = nome;
   document.getElementById('edit-func-nome').value     = f.nome;
   document.getElementById('edit-func-pin').value      = f.pin || '';
+  document.getElementById('edit-func-tel').value      = f.tel || '';
   const modal = document.getElementById('modal-func');
   modal.style.display = 'flex';
   setTimeout(() => document.getElementById('edit-func-nome').focus(), 80);
@@ -1842,7 +1862,8 @@ async function salvarEditFunc() {
   if (novoNome !== original && funcs.find(f => f.nome === novoNome)) {
     toast('⚠️ Já existe um funcionário com esse nome!'); return;
   }
-  const list = funcs.map(f => f.nome === original ? {nome: novoNome, pin: novoPin} : f)
+  const novoTel = (document.getElementById('edit-func-tel').value || '').replace(/\D/g,'').trim();
+  const list = funcs.map(f => f.nome === original ? {nome: novoNome, pin: novoPin, tel: novoTel} : f)
                     .sort((a,b) => a.nome.localeCompare(b.nome));
   await dbSaveFuncs(list);
   fecharEditFunc();
@@ -1853,13 +1874,20 @@ function renderFuncs() {
   const el = document.getElementById('func-list');
   if (el) {
     el.innerHTML = funcs.length
-      ? funcs.map(f => `
+      ? funcs.map(f => {
+          const telFmt = f.tel ? f.tel.replace(/^(\d{2})(\d{5})(\d{4})$/,'($1) $2-$3').replace(/^(\d{2})(\d{4})(\d{4})$/,'($1) $2-$3') : '';
+          const wppBadge = f.tel
+            ? `<span style="font-size:.65rem;background:#dcfce7;color:#15803d;border-radius:99px;padding:1px 6px;margin-left:4px">📲 ${telFmt||f.tel}</span>`
+            : `<span style="font-size:.65rem;background:#fee2e2;color:#dc2626;border-radius:99px;padding:1px 6px;margin-left:4px">sem tel</span>`;
+          return `
           <span class="func-chip">
             👷 ${escHtml(f.nome)}
             <span style="font-size:.68rem;color:var(--muted);margin-left:4px;font-family:monospace">PIN:${escHtml(f.pin||'—')}</span>
+            ${wppBadge}
             <button class="btn-edit-func" onclick="abrirEditFunc('${escHtml(f.nome)}')" title="Editar">✏️</button>
             <button onclick="removeFunc('${escHtml(f.nome)}')" title="Remover">✕</button>
-          </span>`).join('')
+          </span>`;
+        }).join('')
       : `<span style="font-size:.82rem;color:var(--muted)">Nenhum funcionário cadastrado.</span>`;
   }
   const opts = funcs.map(f => `<option value="${escHtml(f.nome)}">${escHtml(f.nome)}</option>`).join('');
