@@ -1577,7 +1577,7 @@ function taskCardHTML(t, view) {
           : view !== 'equipe' ? `<span class="badge badge-${t.status}">${labelStatus(t.status)}</span>` : ''}
       </div>
       ${t.desc ? `<div class="task-desc">${escHtml(t.desc)}</div>` : ''}
-      ${obsHtml}
+      ${view !== 'equipe' ? obsHtml : ''}
       ${dataExecHtml}
       ${isArq ? fotosHtml : ''}
       ${panel}
