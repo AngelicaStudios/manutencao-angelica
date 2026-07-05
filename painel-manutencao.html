@@ -1811,7 +1811,10 @@ function limpProximaData(status) {
   const diff = (target - hoje.getDay() + 7) % 7;
   const d = new Date(hoje);
   d.setDate(hoje.getDate() + (diff === 0 ? 7 : diff));
-  return d.toISOString().split('T')[0]; // YYYY-MM-DD para input[type=date]
+  // Usar componentes locais — toISOString() usa UTC e causa shift +1 dia no BR
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd2 = String(d.getDate()).padStart(2, '0');
+  return d.getFullYear() + '-' + mm + '-' + dd2;
 }
 function limpFmtDate(iso) {
   if (!iso || !iso.match(/^\d{4}-\d{2}-\d{2}$/)) return iso || '—';

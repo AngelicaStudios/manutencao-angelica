@@ -1321,7 +1321,10 @@ function limpProxData(dia) {
   if (diff <= 0) diff += 7;
   const d = new Date(hoje);
   d.setDate(hoje.getDate() + diff);
-  return d.toISOString().split('T')[0];
+  // Usar componentes locais — toISOString() usa UTC e causa shift +1 dia no BR
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd2 = String(d.getDate()).padStart(2, '0');
+  return d.getFullYear() + '-' + mm + '-' + dd2;
 }
 
 async function limpCriarTarefas() {
