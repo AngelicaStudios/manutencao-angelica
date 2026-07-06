@@ -183,7 +183,13 @@
     display: flex; gap: 0;
     background: #fff; border-bottom: 1.5px solid var(--border);
   }
-  .cnt { flex: 1; text-align: center; padding: 10px 4px; border-right: 1px solid var(--border); }
+  .cnt {
+    flex: 1; text-align: center; padding: 10px 4px;
+    border-right: 1px solid var(--border);
+    border: none; background: none; cursor: pointer;
+    border-right: 1px solid var(--border);
+    transition: background .15s;
+  }
   .cnt:last-child { border-right: none; }
   .cnt .num { font-size: 1.4rem; font-weight: 800; line-height: 1; }
   .cnt .lbl { font-size: .6rem; color: var(--muted); text-transform: uppercase; letter-spacing: .3px; margin-top: 2px; }
@@ -191,6 +197,9 @@
   .cnt.c-pend  .num { color: var(--yellow); }
   .cnt.c-and   .num { color: var(--blue); }
   .cnt.c-conc  .num { color: var(--green); }
+  .cnt.cnt-active { background: var(--blue); }
+  .cnt.cnt-active .num,
+  .cnt.cnt-active .lbl { color: #fff !important; }
 
   /* ══════════════════════
      FILTROS
@@ -226,9 +235,8 @@
     box-shadow: 0 2px 8px rgba(0,0,0,.08);
     border-left: 5px solid var(--border); overflow: hidden;
   }
-  .task-card[data-prio="alta"]  { border-left-color: var(--red); }
-  .task-card[data-prio="media"] { border-left-color: var(--yellow); }
-  .task-card[data-prio="baixa"] { border-left-color: var(--green); }
+  .task-card.periodo-manha { background: #c7dff7; border-left-color: #2563eb; }
+  .task-card.periodo-tarde  { background: #f3e8ff; border-left-color: #a855f7; }
   .task-card.archived { opacity: .6; background: #f8fafc; }
 
   .card-body { padding: 13px 13px 10px; }
@@ -498,21 +506,6 @@
         </div>
 
         <div class="field-group">
-          <div class="field-label">Prioridade</div>
-          <div class="prio-btns">
-            <button class="prio-btn" data-prio="baixa" onclick="setPrio(this)">
-              <span class="p-icon">🟢</span>Baixa
-            </button>
-            <button class="prio-btn active-media" data-prio="media" onclick="setPrio(this)">
-              <span class="p-icon">🟡</span>Média
-            </button>
-            <button class="prio-btn" data-prio="alta" onclick="setPrio(this)">
-              <span class="p-icon">🔴</span>Alta
-            </button>
-          </div>
-        </div>
-
-        <div class="field-group">
           <div class="field-label">Data Prevista</div>
           <input type="date" class="field-input" id="f-data" />
         </div>
@@ -727,22 +720,19 @@ function goSec(sec) {
 // ════════════════════════
 let activeStatus = '';
 
+function setCntFilter(status) {
+  activeStatus = status;
+  document.querySelectorAll('.filter-chip').forEach(b => {
+    b.classList.toggle('active', b.dataset.s === status);
+  });
+  renderTarefas();
+}
+
 function setFilter(btn) {
   document.querySelectorAll('.filter-chip').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
   activeStatus = btn.dataset.s;
   renderTarefas();
-}
-
-// ════════════════════════
-// PRIORIDADE
-// ════════════════════════
-let selectedPrio = 'media';
-
-function setPrio(btn) {
-  document.querySelectorAll('.prio-btn').forEach(b => { b.className = 'prio-btn'; });
-  selectedPrio = btn.dataset.prio;
-  btn.classList.add('active-' + selectedPrio);
 }
 
 // ════════════════════════
@@ -756,10 +746,18 @@ function renderTarefas() {
   const conc = tasks.filter(t => t.status === 'concluida').length;
   const cEl  = document.getElementById('counters');
   if (cEl) cEl.innerHTML = `
-    <div class="cnt c-total"><div class="num">${tasks.length}</div><div class="lbl">Total</div></div>
-    <div class="cnt c-pend"><div class="num">${pend}</div><div class="lbl">Pendentes</div></div>
-    <div class="cnt c-and"><div class="num">${and}</div><div class="lbl">Andamento</div></div>
-    <div class="cnt c-conc"><div class="num">${conc}</div><div class="lbl">Concluídas</div></div>
+    <button class="cnt c-total ${activeStatus===''?'cnt-active':''}" onclick="setCntFilter('')">
+      <div class="num">${tasks.length}</div><div class="lbl">Total</div>
+    </button>
+    <button class="cnt c-pend ${activeStatus==='pendente'?'cnt-active':''}" onclick="setCntFilter('pendente')">
+      <div class="num">${pend}</div><div class="lbl">Pendentes</div>
+    </button>
+    <button class="cnt c-and ${activeStatus==='andamento'?'cnt-active':''}" onclick="setCntFilter('andamento')">
+      <div class="num">${and}</div><div class="lbl">Andamento</div>
+    </button>
+    <button class="cnt c-conc ${activeStatus==='concluida'?'cnt-active':''}" onclick="setCntFilter('concluida')">
+      <div class="num">${conc}</div><div class="lbl">Concluídas</div>
+    </button>
   `;
 
   let list = tasks.filter(t =>
@@ -824,8 +822,13 @@ function taskCardHTML(t, isArq) {
 
   const sTagCls = { pendente:'tag-pend', andamento:'tag-and', concluida:'tag-conc' }[t.status] || '';
   const sLabel  = { pendente:'⏳ Pendente', andamento:'🔄 Andamento', concluida:'✅ Concluída' }[t.status] || '';
-  const pTagCls = { alta:'tag-alta', media:'tag-media', baixa:'tag-baixa' }[t.prio] || '';
-  const pLabel  = { alta:'🔴 Alta', media:'🟡 Média', baixa:'🟢 Baixa' }[t.prio] || '';
+
+  const periodoCls  = t.periodo === 'manha' ? 'periodo-manha' : t.periodo === 'tarde' ? 'periodo-tarde' : '';
+  const periodoBadge = t.periodo === 'manha'
+    ? `<span style="background:#93c5fd;color:#1e3a8a;border:1px solid #60a5fa;border-radius:99px;padding:1px 6px;font-size:.58rem;font-weight:700;margin-left:4px">☀️ Manhã</span>`
+    : t.periodo === 'tarde'
+    ? `<span style="background:#e9d5ff;color:#6b21a8;border:1px solid #d8b4fe;border-radius:99px;padding:1px 6px;font-size:.58rem;font-weight:700;margin-left:4px">🌆 Tarde</span>`
+    : '';
 
   const fotosHtml = (t.fotos && t.fotos.length)
     ? `<div class="card-fotos">${t.fotos.map((f,i)=>
@@ -852,11 +855,11 @@ function taskCardHTML(t, isArq) {
     </div>`;
 
   return `
-    <div class="task-card${isArq?' archived':''}" data-prio="${t.prio}" id="card-${t.id}">
+    <div class="task-card${isArq?' archived':''} ${periodoCls}" id="card-${t.id}">
       <div class="card-body">
         <div class="card-row1">
           <div class="card-tipo">${esc(t.tipo)}</div>
-          ${!isArq ? `<div class="card-date ${dateCls}">${dateLabel}</div>` : ''}
+          ${!isArq ? `<div class="card-date ${dateCls}" style="display:flex;align-items:center">${dateLabel}${periodoBadge}</div>` : ''}
         </div>
         <div class="card-tags">
           <span class="tag tag-apto">🏠 ${esc(t.apto)}</span>
@@ -864,8 +867,6 @@ function taskCardHTML(t, isArq) {
           ${isArq
             ? `<span class="tag tag-arq">📁 ${fmtDate(t.data)}</span>`
             : `<span class="tag ${sTagCls}">${sLabel}</span>`}
-          <span class="tag ${pTagCls}">${pLabel}</span>
-          ${t.periodo === 'manha' ? `<span class="badge-periodo-manha">☀️ Manhã</span>` : t.periodo === 'tarde' ? `<span class="badge-periodo-tarde">🌆 Tarde</span>` : ''}
         </div>
         ${t.desc ? `<div class="card-desc">${esc(t.desc)}</div>` : ''}
         ${obsHtml}${execHtml}
@@ -885,10 +886,6 @@ function clearForm() {
   document.getElementById('f-desc').value = '';
   document.getElementById('f-data').value = today();
   document.getElementById('f-periodo').value = '';
-  selectedPrio = 'media';
-  document.querySelectorAll('.prio-btn').forEach(b => {
-    b.className = 'prio-btn' + (b.dataset.prio === 'media' ? ' active-media' : '');
-  });
   const fi = document.getElementById('f-fotos');
   if (fi) fi.value = '';
   const fp = document.getElementById('f-fotos-preview');
@@ -927,7 +924,7 @@ async function addTask() {
 
   function salvarTarefa(fotos) {
     const tarefa = {
-      id: uid(), apto, tipo, prio: selectedPrio, resp, data, desc, periodo,
+      id: uid(), apto, tipo, resp, data, desc, periodo,
       status: 'pendente', obs: '', dataExec: '', fotos, criadoEm: Date.now()
     };
     dbSet('tarefas', tarefa.id, tarefa).then(() => {
