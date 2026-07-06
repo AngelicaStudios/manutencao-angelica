@@ -206,22 +206,14 @@
   ══════════════════════ */
   .filter-bar {
     background: #fff; border-bottom: 1.5px solid var(--border);
-    padding: 10px 12px; display: flex; gap: 8px; align-items: center;
-    overflow-x: auto; -webkit-overflow-scrolling: touch;
+    padding: 8px 12px; display: flex; gap: 8px; align-items: center;
   }
-  .filter-bar::-webkit-scrollbar { display: none; }
-  .filter-chip {
-    flex-shrink: 0; padding: 6px 14px;
-    border: 1.5px solid var(--border); border-radius: 20px;
-    font-size: .75rem; font-weight: 600;
-    cursor: pointer; background: #fff; color: var(--muted);
-    transition: all .15s; white-space: nowrap;
-  }
-  .filter-chip.active { background: var(--blue); color: #fff; border-color: var(--blue); }
   .date-filter {
-    flex-shrink: 0; padding: 6px 10px;
-    border: 1.5px solid var(--border); border-radius: 10px;
-    font-size: .75rem; font-family: inherit; color: var(--text); background: #fff;
+    flex: 1; padding: 8px 12px;
+    border: 1.5px solid var(--border); border-radius: 20px;
+    font-size: .78rem; font-weight: 600; font-family: inherit;
+    color: var(--text); background: #fff; cursor: pointer;
+    text-align: center;
   }
   .date-filter:focus { outline: none; border-color: var(--blue); }
 
@@ -456,11 +448,7 @@
       <div class="counters-bar" id="counters"></div>
       <div class="filter-bar">
         <input type="date" class="date-filter" id="filter-date" onchange="renderTarefas()" />
-        <button class="filter-chip active" data-s="" onclick="setFilter(this)">Todas</button>
-        <button class="filter-chip" data-s="pendente"  onclick="setFilter(this)">⏳ Pendentes</button>
-        <button class="filter-chip" data-s="andamento" onclick="setFilter(this)">🔄 Andamento</button>
-        <button class="filter-chip" data-s="concluida" onclick="setFilter(this)">✅ Concluídas</button>
-        <button class="btn-sm btn-green" style="flex-shrink:0" onclick="archiveCompleted()">📁 Arquivar</button>
+        <button class="btn-sm btn-green" style="flex-shrink:0;white-space:nowrap" onclick="archiveCompleted()">📁 Arquivar</button>
       </div>
 
       <div id="task-list" class="tasks-wrap"></div>
@@ -722,16 +710,6 @@ let activeStatus = '';
 
 function setCntFilter(status) {
   activeStatus = status;
-  document.querySelectorAll('.filter-chip').forEach(b => {
-    b.classList.toggle('active', b.dataset.s === status);
-  });
-  renderTarefas();
-}
-
-function setFilter(btn) {
-  document.querySelectorAll('.filter-chip').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
-  activeStatus = btn.dataset.s;
   renderTarefas();
 }
 
@@ -824,11 +802,6 @@ function taskCardHTML(t, isArq) {
   const sLabel  = { pendente:'⏳ Pendente', andamento:'🔄 Andamento', concluida:'✅ Concluída' }[t.status] || '';
 
   const periodoCls  = t.periodo === 'manha' ? 'periodo-manha' : t.periodo === 'tarde' ? 'periodo-tarde' : '';
-  const periodoBadge = t.periodo === 'manha'
-    ? `<span style="background:#93c5fd;color:#1e3a8a;border:1px solid #60a5fa;border-radius:99px;padding:1px 6px;font-size:.58rem;font-weight:700;margin-left:4px">☀️ Manhã</span>`
-    : t.periodo === 'tarde'
-    ? `<span style="background:#e9d5ff;color:#6b21a8;border:1px solid #d8b4fe;border-radius:99px;padding:1px 6px;font-size:.58rem;font-weight:700;margin-left:4px">🌆 Tarde</span>`
-    : '';
 
   const fotosHtml = (t.fotos && t.fotos.length)
     ? `<div class="card-fotos">${t.fotos.map((f,i)=>
@@ -859,7 +832,7 @@ function taskCardHTML(t, isArq) {
       <div class="card-body">
         <div class="card-row1">
           <div class="card-tipo">${esc(t.tipo)}</div>
-          ${!isArq ? `<div class="card-date ${dateCls}" style="display:flex;align-items:center">${dateLabel}${periodoBadge}</div>` : ''}
+          ${!isArq ? `<div class="card-date ${dateCls}">${dateLabel}</div>` : ''}
         </div>
         <div class="card-tags">
           <span class="tag tag-apto">🏠 ${esc(t.apto)}</span>
