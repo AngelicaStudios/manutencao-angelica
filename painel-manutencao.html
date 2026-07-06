@@ -356,6 +356,14 @@
     cursor: pointer;
   }
   .foto-preview-wrap { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 6px; }
+
+  /* Período */
+  .period-divider { font-size:.75rem; font-weight:700; text-transform:uppercase; letter-spacing:.05em; padding:6px 2px; margin:14px 0 6px; border-bottom:2px solid; display:flex; align-items:center; gap:6px; }
+  .period-divider.manha { color:#1d4ed8; border-color:#bfdbfe; }
+  .period-divider.tarde  { color:#7e22ce; border-color:#e9d5ff; }
+  .period-divider.sem    { color:#64748b; border-color:#e2e8f0; }
+  .badge-periodo-manha { background:#eff6ff; color:#1d4ed8; border:1px solid #bfdbfe; border-radius:99px; padding:1px 8px; font-size:.68rem; font-weight:600; }
+  .badge-periodo-tarde  { background:#fdf4ff; color:#7e22ce; border:1px solid #e9d5ff; border-radius:99px; padding:1px 8px; font-size:.68rem; font-weight:600; }
   .foto-wrap { position: relative; display: inline-block; }
   .btn-del-foto {
     position: absolute; top: -7px; right: -7px;
@@ -784,6 +792,14 @@
             <label>Data Prevista</label>
             <input type="date" id="f-data" />
           </div>
+          <div class="form-group">
+            <label>⏰ Período</label>
+            <select id="f-periodo">
+              <option value="">Sem período</option>
+              <option value="manha">☀️ Manhã</option>
+              <option value="tarde">🌆 Tarde</option>
+            </select>
+          </div>
           <div class="form-group full">
             <label>Descrição da Tarefa</label>
             <textarea id="f-desc" placeholder="Descreva o problema ou o serviço a realizar…"></textarea>
@@ -864,11 +880,7 @@
           </select>
         </div>
         <button class="btn btn-sm btn-ghost" onclick="clearFilters('g')">Limpar filtros</button>
-      </div>
-
-      <div class="action-bar">
-        <button class="btn btn-warning" onclick="exportPDF()">🖨️ PDF do dia</button>
-        <button class="btn btn-success" onclick="archiveCompleted()">📁 Arquivar concluídas</button>
+        <button class="btn btn-success btn-sm" onclick="archiveCompleted()">📁 Arquivar concluídas</button>
       </div>
 
       <div id="gestor-list"></div>
@@ -1065,6 +1077,14 @@
           <option value="pendente">⏳ Pendente</option>
           <option value="andamento">🔄 Em andamento</option>
           <option value="concluida">✅ Concluída</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>⏰ Período</label>
+        <select id="edit-periodo">
+          <option value="">Sem período</option>
+          <option value="manha">☀️ Manhã</option>
+          <option value="tarde">🌆 Tarde</option>
         </select>
       </div>
       <div class="form-group full">
@@ -1359,6 +1379,7 @@ function clearForm() {
   document.getElementById('f-tipo').value = '';
   document.getElementById('f-resp').selectedIndex = 0;
   document.getElementById('f-data').value = today();
+  document.getElementById('f-periodo').value = '';
   ['f-fotos-cam','f-fotos-gal'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
   const prev = document.getElementById('f-fotos-preview');
   if (prev) prev.innerHTML = '';
@@ -1367,11 +1388,12 @@ function clearForm() {
 /* previewFotosGestor substituída pela função genérica prevFotos() */
 
 async function addTask() {
-  const apto = document.getElementById('f-apto').value.trim();
-  const tipo = document.getElementById('f-tipo').value;
-  const data = document.getElementById('f-data').value;
-  const desc = document.getElementById('f-desc').value.trim();
-  const resp = document.getElementById('f-resp').value;
+  const apto    = document.getElementById('f-apto').value.trim();
+  const tipo    = document.getElementById('f-tipo').value;
+  const data    = document.getElementById('f-data').value;
+  const desc    = document.getElementById('f-desc').value.trim();
+  const resp    = document.getElementById('f-resp').value;
+  const periodo = document.getElementById('f-periodo').value;
 
   if (!apto) { toast('⚠️ Informe o apartamento!'); return; }
   if (!tipo) { toast('⚠️ Selecione o tipo de serviço!'); return; }
@@ -1383,7 +1405,7 @@ async function addTask() {
 
   const taskId = uid();
   const fotos  = await uploadFotos(null, files);
-  const tarefa = { id: taskId, apto, tipo, resp, data, desc,
+  const tarefa = { id: taskId, apto, tipo, resp, data, desc, periodo,
                    status: 'pendente', obs: '', dataExec: '', fotos, criadoEm: Date.now() };
   await dbSet('tarefas', tarefa.id, tarefa);
   clearForm();
@@ -1452,17 +1474,33 @@ function renderGestor() {
   `;
 
   let list = applyFilters(tasks, 'g');
-  list.sort((a,b) => a.data.localeCompare(b.data));
+  list.sort((a,b) => a.data.localeCompare(b.data) || (a.periodo||'zzz').localeCompare(b.periodo||'zzz'));
 
   const el = document.getElementById('gestor-list');
   if (!list.length) { el.innerHTML = emptyHTML('Nenhuma tarefa encontrada.'); return; }
 
+  // Agrupa por data, depois por período
   const byDate = {};
   list.forEach(t => { (byDate[t.data] = byDate[t.data] || []).push(t); });
 
-  el.innerHTML = Object.keys(byDate).sort().map(d =>
-    byDate[d].map(t => taskCardHTML(t, 'gestor')).join('')
-  ).join('');
+  const periodoLabel = { manha:'☀️ Manhã', tarde:'🌆 Tarde', '':'Sem período' };
+  const periodoCls   = { manha:'manha', tarde:'tarde', '':'sem' };
+  const ordemPeriodo = ['manha','tarde',''];
+
+  el.innerHTML = Object.keys(byDate).sort().map(d => {
+    const tarefasDia = byDate[d];
+    const temPeriodo = tarefasDia.some(t => t.periodo);
+    if (!temPeriodo) {
+      return tarefasDia.map(t => taskCardHTML(t, 'gestor')).join('');
+    }
+    // Agrupa por período dentro do dia
+    const byPeriodo = {};
+    tarefasDia.forEach(t => { const p = t.periodo || ''; (byPeriodo[p] = byPeriodo[p] || []).push(t); });
+    return ordemPeriodo.filter(p => byPeriodo[p]).map(p =>
+      `<div class="period-divider ${periodoCls[p]}">${periodoLabel[p]}</div>` +
+      byPeriodo[p].map(t => taskCardHTML(t, 'gestor')).join('')
+    ).join('');
+  }).join('');
 }
 
 function renderEquipe() {
@@ -1600,6 +1638,7 @@ function taskCardHTML(t, view) {
       <div class="task-meta">
         ${t.apto && t.apto !== 'Limpeza' ? `<span class="apto-tag">\u{1F3E0} ${escHtml(t.apto)}</span>` : ''}
         ${t.resp ? `<span class="badge" style="background:#e0f2fe;color:#075985">👷 ${escHtml(t.resp)}</span>` : ''}
+        ${t.periodo === 'manha' ? `<span class="badge-periodo-manha">☀️ Manhã</span>` : t.periodo === 'tarde' ? `<span class="badge-periodo-tarde">🌆 Tarde</span>` : ''}
         ${isArq
           ? `<span class="badge badge-arquivada">📁 Arquivada · ${fmtDate(t.data)}</span>`
           : view !== 'equipe' ? `<span class="badge badge-${t.status}">${labelStatus(t.status)}</span>` : ''}
@@ -1645,8 +1684,9 @@ function editTask(id) {
   document.getElementById('edit-apto').value  = t.apto   || '';
   document.getElementById('edit-tipo').value  = t.tipo   || '';
   document.getElementById('edit-data').value  = t.data   || '';
-  document.getElementById('edit-status').value= t.status || 'pendente';
-  document.getElementById('edit-desc').value  = t.desc   || '';
+  document.getElementById('edit-status').value  = t.status  || 'pendente';
+  document.getElementById('edit-desc').value    = t.desc    || '';
+  document.getElementById('edit-periodo').value = t.periodo || '';
 
   // Popula responsáveis
   const sel = document.getElementById('edit-resp');
@@ -1665,15 +1705,16 @@ async function saveEditTask() {
   const apto   = document.getElementById('edit-apto').value.trim();
   const tipo   = document.getElementById('edit-tipo').value;
   const data   = document.getElementById('edit-data').value;
-  const status = document.getElementById('edit-status').value;
-  const desc   = document.getElementById('edit-desc').value.trim();
-  const resp   = document.getElementById('edit-resp').value;
+  const status  = document.getElementById('edit-status').value;
+  const desc    = document.getElementById('edit-desc').value.trim();
+  const resp    = document.getElementById('edit-resp').value;
+  const periodo = document.getElementById('edit-periodo').value;
 
   if (!apto) { toast('⚠️ Informe o apartamento!'); return; }
   if (!tipo) { toast('⚠️ Selecione o tipo de serviço!'); return; }
   if (!data) { toast('⚠️ Informe a data!'); return; }
 
-  await dbUpdate('tarefas', id, { apto, tipo, data, status, desc, resp });
+  await dbUpdate('tarefas', id, { apto, tipo, data, status, desc, resp, periodo });
   closeEditModal();
   toast('✅ Tarefa atualizada!');
 }
