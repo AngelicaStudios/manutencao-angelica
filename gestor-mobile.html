@@ -323,6 +323,16 @@
   .empty p { font-size: .88rem; }
 
   /* ══════════════════════
+     PERÍODO
+  ══════════════════════ */
+  .period-divider { font-size:.72rem; font-weight:700; text-transform:uppercase; letter-spacing:.05em; padding:5px 2px; margin:10px 0 4px; border-bottom:2px solid; display:flex; align-items:center; gap:5px; }
+  .period-divider.manha { color:#1d4ed8; border-color:#bfdbfe; }
+  .period-divider.tarde  { color:#7e22ce; border-color:#e9d5ff; }
+  .period-divider.sem    { color:#64748b; border-color:#e2e8f0; }
+  .badge-periodo-manha { background:#eff6ff; color:#1d4ed8; border:1px solid #bfdbfe; border-radius:99px; padding:1px 7px; font-size:.65rem; font-weight:600; display:inline-block; }
+  .badge-periodo-tarde  { background:#fdf4ff; color:#7e22ce; border:1px solid #e9d5ff; border-radius:99px; padding:1px 7px; font-size:.65rem; font-weight:600; display:inline-block; }
+
+  /* ══════════════════════
      LIGHTBOX
   ══════════════════════ */
   #lightbox {
@@ -442,12 +452,7 @@
         <button class="filter-chip" data-s="pendente"  onclick="setFilter(this)">⏳ Pendentes</button>
         <button class="filter-chip" data-s="andamento" onclick="setFilter(this)">🔄 Andamento</button>
         <button class="filter-chip" data-s="concluida" onclick="setFilter(this)">✅ Concluídas</button>
-      </div>
-
-      <!-- Ações rápidas -->
-      <div style="padding:10px 12px;display:flex;gap:8px">
-        <button class="btn-sm btn-yellow" onclick="exportPDF()">🖨️ PDF do dia</button>
-        <button class="btn-sm btn-green"  onclick="archiveCompleted()">📁 Arquivar concluídas</button>
+        <button class="btn-sm btn-green" style="flex-shrink:0" onclick="archiveCompleted()">📁 Arquivar</button>
       </div>
 
       <div id="task-list" class="tasks-wrap"></div>
@@ -510,6 +515,15 @@
         <div class="field-group">
           <div class="field-label">Data Prevista</div>
           <input type="date" class="field-input" id="f-data" />
+        </div>
+
+        <div class="field-group">
+          <div class="field-label">⏰ Período</div>
+          <select class="field-input" id="f-periodo">
+            <option value="">Sem período</option>
+            <option value="manha">☀️ Manhã</option>
+            <option value="tarde">🌆 Tarde</option>
+          </select>
         </div>
 
         <div class="field-group">
@@ -752,7 +766,7 @@ function renderTarefas() {
     (!date || t.data === date) &&
     (!activeStatus || t.status === activeStatus)
   );
-  list.sort((a,b) => a.data.localeCompare(b.data) || prioOrder(a.prio) - prioOrder(b.prio));
+  list.sort((a,b) => a.data.localeCompare(b.data) || (a.periodo||'zzz').localeCompare(b.periodo||'zzz') || prioOrder(a.prio) - prioOrder(b.prio));
 
   const el = document.getElementById('task-list');
   if (!el) return;
@@ -760,7 +774,25 @@ function renderTarefas() {
     el.innerHTML = `<div class="empty"><div class="icon">📋</div><p>Nenhuma tarefa encontrada.</p></div>`;
     return;
   }
-  el.innerHTML = list.map(t => taskCardHTML(t, false)).join('');
+
+  // Agrupar por data e depois por período
+  const byDate = {};
+  list.forEach(t => { (byDate[t.data] = byDate[t.data] || []).push(t); });
+  const periodoLabel = { manha:'☀️ Manhã', tarde:'🌆 Tarde', '':'Sem período' };
+  const periodoCls   = { manha:'manha', tarde:'tarde', '':'sem' };
+  const ordemPeriodo = ['manha','tarde',''];
+
+  el.innerHTML = Object.keys(byDate).sort().map(d => {
+    const tarefasDia = byDate[d];
+    const temPeriodo = tarefasDia.some(t => t.periodo);
+    if (!temPeriodo) return tarefasDia.map(t => taskCardHTML(t, false)).join('');
+    const byPeriodo = {};
+    tarefasDia.forEach(t => { const p = t.periodo || ''; (byPeriodo[p] = byPeriodo[p] || []).push(t); });
+    return ordemPeriodo.filter(p => byPeriodo[p]).map(p =>
+      `<div class="period-divider ${periodoCls[p]}">${periodoLabel[p]}</div>` +
+      byPeriodo[p].map(t => taskCardHTML(t, false)).join('')
+    ).join('');
+  }).join('');
 }
 
 // ════════════════════════
@@ -833,6 +865,7 @@ function taskCardHTML(t, isArq) {
             ? `<span class="tag tag-arq">📁 ${fmtDate(t.data)}</span>`
             : `<span class="tag ${sTagCls}">${sLabel}</span>`}
           <span class="tag ${pTagCls}">${pLabel}</span>
+          ${t.periodo === 'manha' ? `<span class="badge-periodo-manha">☀️ Manhã</span>` : t.periodo === 'tarde' ? `<span class="badge-periodo-tarde">🌆 Tarde</span>` : ''}
         </div>
         ${t.desc ? `<div class="card-desc">${esc(t.desc)}</div>` : ''}
         ${obsHtml}${execHtml}
@@ -851,6 +884,7 @@ function clearForm() {
   document.getElementById('f-resp').selectedIndex = 0;
   document.getElementById('f-desc').value = '';
   document.getElementById('f-data').value = today();
+  document.getElementById('f-periodo').value = '';
   selectedPrio = 'media';
   document.querySelectorAll('.prio-btn').forEach(b => {
     b.className = 'prio-btn' + (b.dataset.prio === 'media' ? ' active-media' : '');
@@ -882,7 +916,8 @@ async function addTask() {
   const tipo = document.getElementById('f-tipo').value;
   const resp = document.getElementById('f-resp').value;
   const data = document.getElementById('f-data').value;
-  const desc = document.getElementById('f-desc').value.trim();
+  const desc   = document.getElementById('f-desc').value.trim();
+  const periodo = document.getElementById('f-periodo').value;
 
   if (!apto) { toast('⚠️ Informe o apartamento!'); return; }
   if (!tipo) { toast('⚠️ Selecione o tipo de serviço!'); return; }
@@ -892,7 +927,7 @@ async function addTask() {
 
   function salvarTarefa(fotos) {
     const tarefa = {
-      id: uid(), apto, tipo, prio: selectedPrio, resp, data, desc,
+      id: uid(), apto, tipo, prio: selectedPrio, resp, data, desc, periodo,
       status: 'pendente', obs: '', dataExec: '', fotos, criadoEm: Date.now()
     };
     dbSet('tarefas', tarefa.id, tarefa).then(() => {
