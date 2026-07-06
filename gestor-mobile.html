@@ -802,6 +802,11 @@ function taskCardHTML(t, isArq) {
   const sLabel  = { pendente:'⏳ Pendente', andamento:'🔄 Andamento', concluida:'✅ Concluída' }[t.status] || '';
 
   const periodoCls  = t.periodo === 'manha' ? 'periodo-manha' : t.periodo === 'tarde' ? 'periodo-tarde' : '';
+  const periodoBadge = t.periodo === 'manha'
+    ? `<span style="background:#93c5fd;color:#1e3a8a;border:1px solid #60a5fa;border-radius:99px;padding:1px 6px;font-size:.58rem;font-weight:700;margin-left:4px;vertical-align:middle">☀️ Manhã</span>`
+    : t.periodo === 'tarde'
+    ? `<span style="background:#e9d5ff;color:#6b21a8;border:1px solid #d8b4fe;border-radius:99px;padding:1px 6px;font-size:.58rem;font-weight:700;margin-left:4px;vertical-align:middle">🌆 Tarde</span>`
+    : '';
 
   const fotosHtml = (t.fotos && t.fotos.length)
     ? `<div class="card-fotos">${t.fotos.map((f,i)=>
@@ -832,7 +837,7 @@ function taskCardHTML(t, isArq) {
       <div class="card-body">
         <div class="card-row1">
           <div class="card-tipo">${esc(t.tipo)}</div>
-          ${!isArq ? `<div class="card-date ${dateCls}">${dateLabel}</div>` : ''}
+          ${!isArq ? `<div class="card-date ${dateCls}" style="display:flex;align-items:center;flex-wrap:wrap;gap:2px">${dateLabel}${periodoBadge}</div>` : ''}
         </div>
         <div class="card-tags">
           <span class="tag tag-apto">🏠 ${esc(t.apto)}</span>
