@@ -402,9 +402,28 @@
   .limp-wa-btn { flex-shrink: 0; padding: 6px 10px; background: #dcfce7; border: 1.5px solid #86efac; border-radius: 8px; font-size: .85rem; cursor: pointer; }
   .limp-card-edit { border-top: 1px solid var(--border); padding: 8px 13px; display: flex; gap: 8px; align-items: center; background: #fafbfc; }
   .limp-exec-sel { flex: 0 0 auto; padding: 6px 8px; border: 1.5px solid var(--border); border-radius: 8px; font-size: .75rem; min-width: 100px; max-width: 140px; appearance: none; background: #fff; font-family: inherit; }
+  .limp-date-input { flex: 0 0 auto; padding: 6px 8px; border: 1.5px solid var(--border); border-radius: 8px; font-size: .75rem; font-family: inherit; background: #fff; color: var(--text); }
   .limp-obs-input { flex: 1; padding: 6px 8px; border: 1.5px solid var(--border); border-radius: 8px; font-size: .75rem; font-family: inherit; }
   .limp-progress { padding: 10px 12px; font-size: .8rem; color: var(--muted); text-align: center; }
   .limp-footer { padding: 10px 12px 6px; }
+
+  /* ══════════════════════
+     DESKTOP (telas largas)
+  ══════════════════════ */
+  @media (min-width: 640px) {
+    body { background: #dbe2ea; }
+    #app.visible {
+      max-width: 480px;
+      margin: 0 auto;
+      min-height: 100vh;
+      box-shadow: 0 0 50px rgba(0,0,0,.18);
+    }
+    nav {
+      max-width: 480px;
+      left: 50%;
+      transform: translateX(-50%);
+    }
+  }
 </style>
 <!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
@@ -1059,14 +1078,28 @@ let limpData    = [];
 let limpFilter  = 'todos';
 let limpSending = false;
 
+const LIMP_DAY_MAP = {SEGUNDA:1,TERCA:2,QUARTA:3,QUINTA:4,SEXTA:5,SABADO:6,DOMINGO:0};
+function limpProximaData(dayKey) {
+  const target = LIMP_DAY_MAP[dayKey];
+  if (target === undefined) return null;
+  const hoje = new Date();
+  const diff = (target - hoje.getDay() + 7) % 7;
+  const d = new Date(hoje);
+  d.setDate(hoje.getDate() + (diff === 0 ? 7 : diff));
+  const mm  = String(d.getMonth() + 1).padStart(2, '0');
+  const dd2 = String(d.getDate()).padStart(2, '0');
+  return d.getFullYear() + '-' + mm + '-' + dd2;
+}
+
 function limpNormalize(r) {
   const status = (r.status || r.resposta || 'aguardando').toLowerCase();
-  const dia    = (r.dia_semana || r.dia || '').toLowerCase();
+  const diaRaw = String(r.dia_semana || r.dia || '').trim();
+  const diaISO = diaRaw.match(/^\d{4}-\d{2}-\d{2}$/) ? diaRaw : '';
   return {
     apto:      String(r.apto || r.apartamento || '').trim(),
     nome:      String(r.nome || r.inquilino || '').trim(),
     numero:    String(r.numero || r.celular || '').trim(),
-    status, dia,
+    status, dia: diaRaw.toLowerCase(), diaISO,
     executor:  String(r.executor || '').trim(),
     observacao: String(r.observacao || '').trim()
   };
@@ -1185,6 +1218,11 @@ function limpRender() {
     const waBtnHtml = r.numero
       ? '<button class="limp-wa-btn" onclick="limpDispararUm(\'' + esc(r.numero) + '\',\'' + esc(aptoKey) + '\')">📲</button>'
       : '';
+    const dayKey = info.filterKey === 'terca' ? 'TERCA' : (info.filterKey === 'sexta' ? 'SEXTA' : null);
+    const dateHtml = dayKey
+      ? '<input class="limp-date-input" type="date" value="' + esc(r.diaISO || limpProximaData(dayKey) || '') + '"' +
+        ' onchange="limpSaveDia(\'' + esc(aptoKey) + '\',this.value)" />'
+      : '';
     return '<div class="limp-card ' + info.cardCls + '">' +
       '<div class="limp-card-top">' +
         '<div class="limp-card-info">' +
@@ -1196,12 +1234,26 @@ function limpRender() {
       '</div>' +
       '<div class="limp-card-edit">' +
         '<select class="limp-exec-sel" onchange="limpSaveExec(\'' + esc(aptoKey) + '\',this.value)">' + optsHtml + '</select>' +
+        dateHtml +
         '<input class="limp-obs-input" type="text" value="' + esc(r.observacao) + '" placeholder="📝 Observação…"' +
           ' onblur="limpSaveObs(\'' + esc(aptoKey) + '\',this.value)"' +
           ' onkeydown="if(event.key===\'Enter\')this.blur()" />' +
       '</div>' +
     '</div>';
   }).join('');
+}
+
+async function limpSaveDia(apto, dia) {
+  const row = limpData.find(r => r.apto === apto);
+  if (row) row.diaISO = dia;
+  try {
+    await fetch(LIMP_API + '/api/agenda/' + encodeURIComponent(apto) + '/dia', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ dia })
+    });
+    toast('📅 Data salva!');
+  } catch(e) { toast('⚠️ Erro ao salvar data (offline?)'); }
 }
 
 async function limpSaveExec(apto, executor) {
