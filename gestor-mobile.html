@@ -77,7 +77,7 @@
   /* ══════════════════════
      APP SHELL
   ══════════════════════ */
-  #app { display: none; flex-direction: column; min-height: 100vh; }
+  #app { display: none; flex-direction: column; height: 100vh; overflow: hidden; }
   #app.visible { display: flex; }
 
   /* ── HEADER ── */
@@ -400,7 +400,8 @@
   .lb-nao { background: #fee2e2; color: #991b1b; }
   .lb-nr  { background: #f1f5f9; color: #475569; }
   .limp-wa-btn { flex-shrink: 0; padding: 6px 10px; background: #dcfce7; border: 1.5px solid #86efac; border-radius: 8px; font-size: .85rem; cursor: pointer; }
-  .limp-card-edit { border-top: 1px solid var(--border); padding: 8px 13px; display: flex; gap: 8px; align-items: center; background: #fafbfc; }
+  .limp-card-edit { border-top: 1px solid var(--border); padding: 8px 13px; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; background: #fafbfc; }
+  .limp-status-sel { flex: 0 0 auto; padding: 6px 8px; border: 1.5px solid var(--border); border-radius: 8px; font-size: .75rem; min-width: 120px; appearance: none; background: #fff; font-family: inherit; font-weight: 600; }
   .limp-exec-sel { flex: 0 0 auto; padding: 6px 8px; border: 1.5px solid var(--border); border-radius: 8px; font-size: .75rem; min-width: 100px; max-width: 140px; appearance: none; background: #fff; font-family: inherit; }
   .limp-date-input { flex: 0 0 auto; padding: 6px 8px; border: 1.5px solid var(--border); border-radius: 8px; font-size: .75rem; font-family: inherit; background: #fff; color: var(--text); }
   .limp-obs-input { flex: 1; padding: 6px 8px; border: 1.5px solid var(--border); border-radius: 8px; font-size: .75rem; font-family: inherit; }
@@ -413,17 +414,21 @@
   @media (min-width: 640px) {
     body { background: #dbe2ea; }
     #app.visible {
-      max-width: 480px;
+      max-width: 900px;
       margin: 0 auto;
-      min-height: 100vh;
       box-shadow: 0 0 50px rgba(0,0,0,.18);
     }
     nav {
       width: 100%;
-      max-width: 480px;
+      max-width: 900px;
       left: 50%;
       right: auto;
       transform: translateX(-50%);
+    }
+    .limp-list {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      align-items: start;
     }
   }
 </style>
@@ -1221,6 +1226,14 @@ function limpRender() {
       ? '<button class="limp-wa-btn" onclick="limpDispararUm(\'' + esc(r.numero) + '\',\'' + esc(aptoKey) + '\')">📲</button>'
       : '';
     const dayKey = info.filterKey === 'terca' ? 'TERCA' : (info.filterKey === 'sexta' ? 'SEXTA' : null);
+    const statusVal = dayKey || (info.filterKey === 'nao' ? 'NAO' : 'AGUARDANDO');
+    const statusSelHtml =
+      '<select class="limp-status-sel" onchange="limpSaveStatus(\'' + esc(aptoKey) + '\',this.value)">' +
+        '<option value="AGUARDANDO"' + (statusVal==='AGUARDANDO'?' selected':'') + '>⏳ Aguardando</option>' +
+        '<option value="TERCA"'      + (statusVal==='TERCA'?' selected':'')      + '>Terça-feira</option>' +
+        '<option value="SEXTA"'      + (statusVal==='SEXTA'?' selected':'')      + '>Sexta-feira</option>' +
+        '<option value="NAO"'        + (statusVal==='NAO'?' selected':'')        + '>❌ Não quer</option>' +
+      '</select>';
     const dateHtml = dayKey
       ? '<input class="limp-date-input" type="date" value="' + esc(r.diaISO || limpProximaData(dayKey) || '') + '"' +
         ' onchange="limpSaveDia(\'' + esc(aptoKey) + '\',this.value)" />'
@@ -1235,14 +1248,30 @@ function limpRender() {
         waBtnHtml +
       '</div>' +
       '<div class="limp-card-edit">' +
-        '<select class="limp-exec-sel" onchange="limpSaveExec(\'' + esc(aptoKey) + '\',this.value)">' + optsHtml + '</select>' +
+        statusSelHtml +
         dateHtml +
+        '<select class="limp-exec-sel" onchange="limpSaveExec(\'' + esc(aptoKey) + '\',this.value)">' + optsHtml + '</select>' +
         '<input class="limp-obs-input" type="text" value="' + esc(r.observacao) + '" placeholder="📝 Observação…"' +
           ' onblur="limpSaveObs(\'' + esc(aptoKey) + '\',this.value)"' +
           ' onkeydown="if(event.key===\'Enter\')this.blur()" />' +
       '</div>' +
     '</div>';
   }).join('');
+}
+
+async function limpSaveStatus(apto, status) {
+  const row = limpData.find(r => r.apto === apto);
+  const diaDate = (status === 'TERCA' || status === 'SEXTA') ? limpProximaData(status) : null;
+  if (row) { row.status = status.toLowerCase(); row.diaISO = diaDate || ''; }
+  limpRender();
+  try {
+    await fetch(LIMP_API + '/api/agenda/' + encodeURIComponent(apto) + '/status', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status, dia: diaDate })
+    });
+    toast('✅ Status atualizado!');
+  } catch(e) { toast('⚠️ Erro ao salvar status (offline?)'); }
 }
 
 async function limpSaveDia(apto, dia) {
