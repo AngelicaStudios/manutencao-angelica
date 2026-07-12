@@ -676,7 +676,6 @@ function login() {
   document.getElementById('app').classList.add('visible');
   document.getElementById('hdr-date').textContent =
     new Date().toLocaleDateString('pt-BR', { weekday:'long', day:'numeric', month:'long' });
-  document.getElementById('filter-date').value = today();
   document.getElementById('f-data').value = today();
   renderFuncs();
   renderTarefas();
