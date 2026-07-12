@@ -364,9 +364,9 @@
   ══════════════════════ */
   #sec-limpeza { padding: 0; }
   .limp-actions { padding: 10px 12px; background: #fff; border-bottom: 1.5px solid var(--border); display: flex; gap: 8px; flex-wrap: wrap; }
-  .limp-stats-bar { display: grid; grid-template-columns: repeat(4, 1fr); background: #fff; border-bottom: 1.5px solid var(--border); }
+  .limp-stats-bar { display: flex; flex-wrap: wrap; background: #fff; border-bottom: 1.5px solid var(--border); }
   .limp-header { position: sticky; top: 0; z-index: 90; background: #fff; }
-  .limp-stat-m { text-align: center; padding: 10px 4px; border-right: 1px solid var(--border); cursor: pointer; transition: background .15s, transform .1s; user-select: none; }
+  .limp-stat-m { flex: 1 1 76px; text-align: center; padding: 10px 4px; border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); cursor: pointer; transition: background .15s, transform .1s; user-select: none; }
   .limp-stat-m:last-child { border-right: none; }
   .limp-stat-m:active { transform: scale(.95); }
   .limp-stat-m.active { background: var(--blue); }
@@ -374,10 +374,11 @@
   .limp-stat-m.active .sl { color: rgba(255,255,255,.8); }
   .limp-stat-m .sn { font-size: 1.35rem; font-weight: 800; line-height: 1; }
   .limp-stat-m .sl { font-size: .6rem; color: var(--muted); text-transform: uppercase; letter-spacing: .3px; margin-top: 2px; }
-  .s-ter .sn { color: var(--blue); }
-  .s-sex .sn { color: var(--green); }
-  .s-agu .sn { color: var(--yellow); }
-  .s-nao .sn { color: var(--red); }
+  .s-ter .sn   { color: var(--blue); }
+  .s-sex .sn   { color: var(--green); }
+  .s-outro .sn { color: #7c3aed; }
+  .s-agu .sn   { color: var(--yellow); }
+  .s-nao .sn   { color: var(--red); }
   .limp-filter-bar { background: #fff; border-bottom: 1.5px solid var(--border); padding: 8px 10px; display: flex; gap: 7px; overflow-x: auto; -webkit-overflow-scrolling: touch; }
   .limp-filter-bar::-webkit-scrollbar { display: none; }
   .limp-chip-f { flex-shrink: 0; padding: 5px 13px; border: 1.5px solid var(--border); border-radius: 20px; font-size: .73rem; font-weight: 600; cursor: pointer; background: #fff; color: var(--muted); white-space: nowrap; }
@@ -566,12 +567,7 @@
         <button class="btn-sm" style="background:#e0f2fe;color:#075985;border:1.5px solid #bae6fd;border-radius:10px;font-weight:700;padding:10px 14px;cursor:pointer;" onclick="limpCriarTarefas()">📋 Criar Tarefas</button>
         
       </div>
-      <div class="limp-stats-bar" id="limp-stats-bar">
-        <div class="limp-stat-m s-ter" data-lf="terca" onclick="limpStatFilter(this)" title="Filtrar Terça"><div class="sn" id="ls-ter">0</div><div class="sl">Terça</div></div>
-        <div class="limp-stat-m s-sex" data-lf="sexta" onclick="limpStatFilter(this)" title="Filtrar Sexta"><div class="sn" id="ls-sex">0</div><div class="sl">Sexta</div></div>
-        <div class="limp-stat-m s-agu" data-lf="aguardando" onclick="limpStatFilter(this)" title="Filtrar Aguardando"><div class="sn" id="ls-agu">0</div><div class="sl">Aguard.</div></div>
-        <div class="limp-stat-m s-nao" data-lf="nao" onclick="limpStatFilter(this)" title="Filtrar Não"><div class="sn" id="ls-nao">0</div><div class="sl">Não</div></div>
-      </div>
+      <div class="limp-stats-bar" id="limp-stats-bar"></div>
       </div>
       
       <div class="limp-progress" id="limp-progress">Toque em Atualizar para carregar.</div>
@@ -1153,15 +1149,7 @@ function limpSetFilter(btn) {
 
 function limpStatFilter(el) {
   const key = el.dataset.lf;
-  if (limpFilter === key) {
-    // Toggle: clicou no mesmo -> mostrar todos
-    limpFilter = 'todos';
-    document.querySelectorAll('.limp-stat-m').forEach(b => b.classList.remove('active'));
-  } else {
-    limpFilter = key;
-    document.querySelectorAll('.limp-stat-m').forEach(b => b.classList.remove('active'));
-    el.classList.add('active');
-  }
+  limpFilter = (limpFilter === key) ? 'todos' : key;
   limpRender();
 }
 
@@ -1205,15 +1193,33 @@ function limpRender() {
     });
   }
 
-  // Stats
-  const ter = limpData.filter(r => limpStatusInfo(r.status, r.dia).filterKey === 'terca').length;
-  const sex = limpData.filter(r => limpStatusInfo(r.status, r.dia).filterKey === 'sexta').length;
+  // Stats — Terça e Sexta sempre aparecem (dias padrão); os demais só aparecem
+  // no filtro quando existe pelo menos 1 apartamento programado naquele dia.
+  const DAY_ORDER = ['segunda','terca','quarta','quinta','sexta','sabado','domingo'];
+  const DAY_ABBR  = { segunda:'Segunda', terca:'Terça', quarta:'Quarta', quinta:'Quinta', sexta:'Sexta', sabado:'Sábado', domingo:'Domingo' };
+  const dayCounts = {};
+  DAY_ORDER.forEach(d => {
+    dayCounts[d] = limpData.filter(r => limpStatusInfo(r.status, r.dia).filterKey === d).length;
+  });
   const agu = limpData.filter(r => limpStatusInfo(r.status, r.dia).filterKey === 'aguardando').length;
   const nao = limpData.filter(r => limpStatusInfo(r.status, r.dia).filterKey === 'nao').length;
-  const lsTer = document.getElementById('ls-ter'); if (lsTer) lsTer.textContent = ter;
-  const lsSex = document.getElementById('ls-sex'); if (lsSex) lsSex.textContent = sex;
-  const lsAgu = document.getElementById('ls-agu'); if (lsAgu) lsAgu.textContent = agu;
-  const lsNao = document.getElementById('ls-nao'); if (lsNao) lsNao.textContent = nao;
+
+  let statsHtml = '';
+  DAY_ORDER.forEach(d => {
+    const isStandard = (d === 'terca' || d === 'sexta');
+    const count = dayCounts[d];
+    if (!isStandard && count === 0) return;
+    const cls = d === 'terca' ? 's-ter' : (d === 'sexta' ? 's-sex' : 's-outro');
+    statsHtml += '<div class="limp-stat-m ' + cls + (limpFilter===d?' active':'') + '" data-lf="' + d + '"' +
+      ' onclick="limpStatFilter(this)" title="Filtrar ' + DAY_ABBR[d] + '">' +
+      '<div class="sn">' + count + '</div><div class="sl">' + DAY_ABBR[d] + '</div></div>';
+  });
+  statsHtml += '<div class="limp-stat-m s-agu' + (limpFilter==='aguardando'?' active':'') + '" data-lf="aguardando"' +
+    ' onclick="limpStatFilter(this)" title="Filtrar Aguardando"><div class="sn">' + agu + '</div><div class="sl">Aguard.</div></div>';
+  statsHtml += '<div class="limp-stat-m s-nao' + (limpFilter==='nao'?' active':'') + '" data-lf="nao"' +
+    ' onclick="limpStatFilter(this)" title="Filtrar Não"><div class="sn">' + nao + '</div><div class="sl">Não</div></div>';
+  const statsBarEl = document.getElementById('limp-stats-bar');
+  if (statsBarEl) statsBarEl.innerHTML = statsHtml;
 
   // Botão disparar
   const btnDisp = document.getElementById('limp-btn-disp');
