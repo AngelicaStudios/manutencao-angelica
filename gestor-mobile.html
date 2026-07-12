@@ -384,21 +384,23 @@
   .limp-chip-f.active { background: var(--blue); color: #fff; border-color: var(--blue); }
   .limp-list { padding: 10px 12px; display: flex; flex-direction: column; gap: 10px; }
   .limp-card { background: #fff; border-radius: 12px; box-shadow: 0 2px 6px rgba(0,0,0,.07); border-left: 4px solid var(--border); display: flex; flex-direction: column; overflow: hidden; }
-  .limp-card.lc-ter { border-left-color: var(--blue); }
-  .limp-card.lc-sex { border-left-color: var(--green); }
-  .limp-card.lc-agu { border-left-color: var(--yellow); }
-  .limp-card.lc-nao { border-left-color: var(--red); }
-  .limp-card.lc-nr  { border-left-color: #94a3b8; }
+  .limp-card.lc-ter   { border-left-color: var(--blue); }
+  .limp-card.lc-sex   { border-left-color: var(--green); }
+  .limp-card.lc-agu   { border-left-color: var(--yellow); }
+  .limp-card.lc-nao   { border-left-color: var(--red); }
+  .limp-card.lc-nr    { border-left-color: #94a3b8; }
+  .limp-card.lc-outro { border-left-color: #7c3aed; }
   .limp-card-top { display: flex; align-items: center; gap: 10px; padding: 11px 13px; }
   .limp-card-info { flex: 1; min-width: 0; }
   .limp-card-apto { font-size: .9rem; font-weight: 800; }
   .limp-card-nome { font-size: .76rem; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .limp-badge { flex-shrink: 0; padding: 3px 9px; border-radius: 20px; font-size: .68rem; font-weight: 700; }
-  .lb-ter { background: #dbeafe; color: #1e40af; }
-  .lb-sex { background: #dcfce7; color: #166534; }
-  .lb-agu { background: #fef3c7; color: #92400e; }
-  .lb-nao { background: #fee2e2; color: #991b1b; }
-  .lb-nr  { background: #f1f5f9; color: #475569; }
+  .lb-ter   { background: #dbeafe; color: #1e40af; }
+  .lb-sex   { background: #dcfce7; color: #166534; }
+  .lb-agu   { background: #fef3c7; color: #92400e; }
+  .lb-nao   { background: #fee2e2; color: #991b1b; }
+  .lb-nr    { background: #f1f5f9; color: #475569; }
+  .lb-outro { background: #ede9fe; color: #5b21b6; }
   .limp-wa-btn { flex-shrink: 0; padding: 6px 10px; background: #dcfce7; border: 1.5px solid #86efac; border-radius: 8px; font-size: .85rem; cursor: pointer; }
   .limp-card-edit { border-top: 1px solid var(--border); padding: 8px 13px; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; background: #fafbfc; }
   .limp-status-sel { flex: 0 0 auto; padding: 6px 8px; border: 1.5px solid var(--border); border-radius: 8px; font-size: .75rem; min-width: 120px; appearance: none; background: #fff; font-family: inherit; font-weight: 600; }
@@ -424,11 +426,6 @@
       left: 50%;
       right: auto;
       transform: translateX(-50%);
-    }
-    .limp-list {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-      align-items: start;
     }
   }
 </style>
@@ -1168,18 +1165,31 @@ function limpStatFilter(el) {
   limpRender();
 }
 
+const LIMP_DAY_LABEL = {
+  segunda:'Segunda', terca:'Terça', quarta:'Quarta', quinta:'Quinta',
+  sexta:'Sexta', sabado:'Sábado', domingo:'Domingo'
+};
+const LIMP_DAY_UPPER = {
+  segunda:'SEGUNDA', terca:'TERCA', quarta:'QUARTA', quinta:'QUINTA',
+  sexta:'SEXTA', sabado:'SABADO', domingo:'DOMINGO'
+};
+
 function limpStatusInfo(status, dia) {
   const s = (status || '').toLowerCase();
   const d = (dia || '').toLowerCase();
-  const isTer = d.includes('ter') || d.includes('tue') || d === '2';
-  const isSex = d.includes('sex') || d.includes('fri') || d === '5';
-  if (s === 'sim' || s === 'confirmado' || s === 'terca' || s === 'terça') {
+  if (s === 'nao' || s === 'não' || s === 'recusou') return { label:'❌ Não', cls:'lb-nao', cardCls:'lc-nao', filterKey:'nao' };
+  if (s === 'nao_respondeu' || s === 'sem_resposta') return { label:'🔇 Sem resp.', cls:'lb-nr', cardCls:'lc-nr', filterKey:'nao_respondeu' };
+  if (LIMP_DAY_LABEL[s]) {
+    const cardCls = s === 'terca' ? 'lc-ter' : (s === 'sexta' ? 'lc-sex' : 'lc-outro');
+    const cls     = s === 'terca' ? 'lb-ter' : (s === 'sexta' ? 'lb-sex' : 'lb-outro');
+    return { label: '✅ ' + LIMP_DAY_LABEL[s], cls, cardCls, filterKey: s };
+  }
+  // compat com respostas antigas do bot de WhatsApp
+  if (s === 'sim' || s === 'confirmado') {
+    const isSex = d.includes('sex') || d.includes('fri') || d === '5';
     if (isSex) return { label:'✅ Sexta', cls:'lb-sex', cardCls:'lc-sex', filterKey:'sexta' };
     return { label:'✅ Terça', cls:'lb-ter', cardCls:'lc-ter', filterKey:'terca' };
   }
-  if (s === 'nao' || s === 'não' || s === 'recusou') return { label:'❌ Não', cls:'lb-nao', cardCls:'lc-nao', filterKey:'nao' };
-  if (s === 'nao_respondeu' || s === 'sem_resposta') return { label:'🔇 Sem resp.', cls:'lb-nr', cardCls:'lc-nr', filterKey:'nao_respondeu' };
-  if (s === 'sexta') return { label:'✅ Sexta', cls:'lb-sex', cardCls:'lc-sex', filterKey:'sexta' };
   return { label:'⏳ Aguardando', cls:'lb-agu', cardCls:'lc-agu', filterKey:'aguardando' };
 }
 
@@ -1225,15 +1235,21 @@ function limpRender() {
     const waBtnHtml = r.numero
       ? '<button class="limp-wa-btn" onclick="limpDispararUm(\'' + esc(r.numero) + '\',\'' + esc(aptoKey) + '\')">📲</button>'
       : '';
-    const dayKey = info.filterKey === 'terca' ? 'TERCA' : (info.filterKey === 'sexta' ? 'SEXTA' : null);
+    const dayKey = LIMP_DAY_UPPER[info.filterKey] || null;
     const statusVal = dayKey || (info.filterKey === 'nao' ? 'NAO' : 'AGUARDANDO');
+    const statusOptsHtml = [
+      ['AGUARDANDO', '⏳ Aguardando'],
+      ['SEGUNDA',    'Segunda-feira'],
+      ['TERCA',      'Terça-feira'],
+      ['QUARTA',     'Quarta-feira'],
+      ['QUINTA',     'Quinta-feira'],
+      ['SEXTA',      'Sexta-feira'],
+      ['SABADO',     'Sábado'],
+      ['DOMINGO',    'Domingo'],
+      ['NAO',        '❌ Não quer']
+    ].map(([val, label]) => '<option value="' + val + '"' + (statusVal===val?' selected':'') + '>' + label + '</option>').join('');
     const statusSelHtml =
-      '<select class="limp-status-sel" onchange="limpSaveStatus(\'' + esc(aptoKey) + '\',this.value)">' +
-        '<option value="AGUARDANDO"' + (statusVal==='AGUARDANDO'?' selected':'') + '>⏳ Aguardando</option>' +
-        '<option value="TERCA"'      + (statusVal==='TERCA'?' selected':'')      + '>Terça-feira</option>' +
-        '<option value="SEXTA"'      + (statusVal==='SEXTA'?' selected':'')      + '>Sexta-feira</option>' +
-        '<option value="NAO"'        + (statusVal==='NAO'?' selected':'')        + '>❌ Não quer</option>' +
-      '</select>';
+      '<select class="limp-status-sel" onchange="limpSaveStatus(\'' + esc(aptoKey) + '\',this.value)">' + statusOptsHtml + '</select>';
     const dateHtml = dayKey
       ? '<input class="limp-date-input" type="date" value="' + esc(r.diaISO || limpProximaData(dayKey) || '') + '"' +
         ' onchange="limpSaveDia(\'' + esc(aptoKey) + '\',this.value)" />'
@@ -1261,7 +1277,7 @@ function limpRender() {
 
 async function limpSaveStatus(apto, status) {
   const row = limpData.find(r => r.apto === apto);
-  const diaDate = (status === 'TERCA' || status === 'SEXTA') ? limpProximaData(status) : null;
+  const diaDate = (status in LIMP_DAY_MAP) ? limpProximaData(status) : null;
   if (row) { row.status = status.toLowerCase(); row.diaISO = diaDate || ''; }
   limpRender();
   try {
