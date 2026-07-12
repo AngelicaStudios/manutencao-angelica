@@ -565,7 +565,6 @@
         <button class="btn-sm btn-ghost" onclick="limpSync()">🔁 Sincronizar</button>
         <button class="btn-sm" style="background:#e0f2fe;color:#075985;border:1.5px solid #bae6fd;border-radius:10px;font-weight:700;padding:10px 14px;cursor:pointer;" onclick="limpCriarTarefas()">📋 Criar Tarefas</button>
         <button class="btn-sm" style="background:#ede9fe;color:#5b21b6;border:1.5px solid #ddd6fe;border-radius:10px;font-weight:700;padding:10px 14px;cursor:pointer;" onclick="limpToggleNovaSemana()">📅 Criar Semana</button>
-        <button class="btn-sm" style="background:#fee2e2;color:#991b1b;border:1.5px solid #fecaca;border-radius:10px;font-weight:700;padding:10px 14px;cursor:pointer;" onclick="limpLimparDados()">🗑️ Limpar Dados</button>
       </div>
       <div id="limp-semana-info" style="display:none;padding:8px 12px;background:#faf5ff;border-bottom:1.5px solid var(--border);font-size:.78rem;color:#6b21a8;font-weight:600"></div>
       <div id="limp-semana-form" style="display:none;padding:10px 12px;background:#faf5ff;border-bottom:1.5px solid var(--border);gap:8px;flex-wrap:wrap;align-items:center;">
@@ -1162,17 +1161,6 @@ async function limpConfirmarNovaSemana() {
     toast('✅ Semana criada!');
     await initLimpeza();
   } catch(e) { toast('⚠️ Erro ao criar semana (offline?)'); }
-}
-
-async function limpLimparDados() {
-  if (!confirm('Apagar TODOS os dados da agenda de limpeza (todos os apartamentos)?\n\nEssa ação não pode ser desfeita — use "Sincronizar" depois para recarregar do cadastro de inquilinos.')) return;
-  if (!confirm('Tem certeza mesmo? Isso apaga tudo.')) return;
-  try {
-    const res  = await fetch(LIMP_API + '/api/limpar', { method: 'POST' });
-    const data = await res.json();
-    toast('🗑️ ' + (data.removidos ?? 0) + ' registro(s) removido(s)!');
-    await initLimpeza();
-  } catch(e) { toast('⚠️ Erro ao limpar dados (offline?)'); }
 }
 
 async function limpSync() {
