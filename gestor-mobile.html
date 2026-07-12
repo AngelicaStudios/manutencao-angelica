@@ -563,13 +563,28 @@
       <div class="limp-header">
       <div class="limp-actions">
         <button class="btn-sm btn-ghost" onclick="limpSync()">🔁 Sincronizar</button>
-        
         <button class="btn-sm" style="background:#e0f2fe;color:#075985;border:1.5px solid #bae6fd;border-radius:10px;font-weight:700;padding:10px 14px;cursor:pointer;" onclick="limpCriarTarefas()">📋 Criar Tarefas</button>
-        
+        <button class="btn-sm" style="background:#ede9fe;color:#5b21b6;border:1.5px solid #ddd6fe;border-radius:10px;font-weight:700;padding:10px 14px;cursor:pointer;" onclick="limpToggleNovaSemana()">📅 Criar Semana</button>
+        <button class="btn-sm" style="background:#fee2e2;color:#991b1b;border:1.5px solid #fecaca;border-radius:10px;font-weight:700;padding:10px 14px;cursor:pointer;" onclick="limpLimparDados()">🗑️ Limpar Dados</button>
+      </div>
+      <div id="limp-semana-info" style="display:none;padding:8px 12px;background:#faf5ff;border-bottom:1.5px solid var(--border);font-size:.78rem;color:#6b21a8;font-weight:600"></div>
+      <div id="limp-semana-form" style="display:none;padding:10px 12px;background:#faf5ff;border-bottom:1.5px solid var(--border);gap:8px;flex-wrap:wrap;align-items:center;">
+        <div class="field-group" style="margin-bottom:6px">
+          <div class="field-label">Início da semana</div>
+          <input type="date" class="field-input" id="ns-inicio" />
+        </div>
+        <div class="field-group" style="margin-bottom:6px">
+          <div class="field-label">Fim da semana</div>
+          <input type="date" class="field-input" id="ns-fim" />
+        </div>
+        <div style="display:flex;gap:8px">
+          <button class="btn-sm btn-blue" style="flex:1" onclick="limpConfirmarNovaSemana()">✅ Confirmar</button>
+          <button class="btn-sm btn-ghost" style="flex:1" onclick="limpToggleNovaSemana()">Cancelar</button>
+        </div>
       </div>
       <div class="limp-stats-bar" id="limp-stats-bar"></div>
       </div>
-      
+
       <div class="limp-progress" id="limp-progress">Toque em Atualizar para carregar.</div>
       <div id="limp-list" class="limp-list"></div>
       <div class="limp-footer">
@@ -1077,9 +1092,15 @@ const LIMP_DELAY = 30000;
 let limpData    = [];
 let limpFilter  = 'todos';
 let limpSending = false;
+let limpSemana  = null; // { data_inicio, data_fim, terca, sexta } — semana configurada via "Criar Semana"
 
 const LIMP_DAY_MAP = {SEGUNDA:1,TERCA:2,QUARTA:3,QUINTA:4,SEXTA:5,SABADO:6,DOMINGO:0};
 function limpProximaData(dayKey) {
+  // Se houver uma semana configurada (Criar Semana), usa a data fixada nela.
+  if (limpSemana) {
+    if (dayKey === 'TERCA' && limpSemana.terca) return limpSemana.terca;
+    if (dayKey === 'SEXTA' && limpSemana.sexta) return limpSemana.sexta;
+  }
   const target = LIMP_DAY_MAP[dayKey];
   if (target === undefined) return null;
   const hoje = new Date();
@@ -1089,6 +1110,81 @@ function limpProximaData(dayKey) {
   const mm  = String(d.getMonth() + 1).padStart(2, '0');
   const dd2 = String(d.getDate()).padStart(2, '0');
   return d.getFullYear() + '-' + mm + '-' + dd2;
+}
+
+function limpRenderSemanaInfo() {
+  const el = document.getElementById('limp-semana-info');
+  if (!el) return;
+  if (!limpSemana) { el.style.display = 'none'; return; }
+  el.style.display = 'block';
+  el.textContent = '📅 Semana atual: ' + fmtDate(limpSemana.data_inicio) + ' a ' + fmtDate(limpSemana.data_fim) +
+    (limpSemana.terca ? '  ·  Terça ' + fmtDate(limpSemana.terca) : '') +
+    (limpSemana.sexta ? '  ·  Sexta ' + fmtDate(limpSemana.sexta) : '');
+}
+
+async function limpCarregarSemanaAtual() {
+  try {
+    const res  = await fetch(LIMP_API + '/api/semana-atual');
+    const data = await res.json();
+    limpSemana = (data && data.semana) ? data.semana : null;
+  } catch(e) { limpSemana = null; }
+  limpRenderSemanaInfo();
+}
+
+function limpToggleNovaSemana() {
+  const form = document.getElementById('limp-semana-form');
+  if (!form) return;
+  const showing = form.style.display === 'flex';
+  form.style.display = showing ? 'none' : 'flex';
+  if (!showing) {
+    document.getElementById('ns-inicio').value = limpSemana ? limpSemana.data_inicio : '';
+    document.getElementById('ns-fim').value    = limpSemana ? limpSemana.data_fim    : '';
+  }
+}
+
+async function limpConfirmarNovaSemana() {
+  const inicio = document.getElementById('ns-inicio').value;
+  const fim    = document.getElementById('ns-fim').value;
+  if (!inicio || !fim) { toast('⚠️ Informe início e fim!'); return; }
+  if (fim < inicio) { toast('⚠️ Fim não pode ser antes do início!'); return; }
+  if (!confirm('Criar semana de ' + fmtDate(inicio) + ' a ' + fmtDate(fim) + '?\n\nIsso reseta o status de TODOS os apartamentos para "Aguardando".')) return;
+  try {
+    const res  = await fetch(LIMP_API + '/api/nova-semana', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ data_inicio: inicio, data_fim: fim })
+    });
+    const data = await res.json();
+    if (data.ok === false) { toast('⚠️ ' + (data.erro || 'Erro ao criar semana')); return; }
+    limpSemana = { data_inicio: inicio, data_fim: fim, terca: data.terca, sexta: data.sexta };
+    limpRenderSemanaInfo();
+    limpToggleNovaSemana();
+    toast('✅ Semana criada!');
+    await initLimpeza();
+  } catch(e) { toast('⚠️ Erro ao criar semana (offline?)'); }
+}
+
+async function limpLimparDados() {
+  if (!confirm('Apagar TODOS os dados da agenda de limpeza (todos os apartamentos)?\n\nEssa ação não pode ser desfeita — use "Sincronizar" depois para recarregar do cadastro de inquilinos.')) return;
+  if (!confirm('Tem certeza mesmo? Isso apaga tudo.')) return;
+  try {
+    const res  = await fetch(LIMP_API + '/api/limpar', { method: 'POST' });
+    const data = await res.json();
+    toast('🗑️ ' + (data.removidos ?? 0) + ' registro(s) removido(s)!');
+    await initLimpeza();
+  } catch(e) { toast('⚠️ Erro ao limpar dados (offline?)'); }
+}
+
+async function limpSync() {
+  const prog = document.getElementById('limp-progress');
+  if (prog) prog.textContent = '⏳ Sincronizando…';
+  try {
+    const res  = await fetch(LIMP_API + '/api/sync', { method: 'POST' });
+    const data = await res.json();
+    if (data.ok === false) { toast('⚠️ Erro ao sincronizar: ' + (data.erro || '')); }
+    else toast('🔁 Sincronizado!');
+  } catch(e) { toast('⚠️ Erro ao sincronizar (offline?)'); }
+  await initLimpeza();
 }
 
 function limpNormalize(r) {
@@ -1119,6 +1215,7 @@ function limpNormalizeXlsx(r) {
 async function initLimpeza() {
   const prog = document.getElementById('limp-progress');
   if (prog) prog.textContent = '⏳ Carregando…';
+  await limpCarregarSemanaAtual();
   try {
     const res  = await fetch(LIMP_API + '/api/agenda');
     const data = await res.json();
@@ -1428,6 +1525,10 @@ function _limpParseXlsx(file) {
 }
 
 function limpProxData(dia) {
+  if (limpSemana) {
+    if (dia === 'sexta' && limpSemana.sexta) return limpSemana.sexta;
+    if (dia === 'terca' && limpSemana.terca) return limpSemana.terca;
+  }
   const hoje = new Date();
   const dow  = hoje.getDay(); // 0=dom, 2=ter, 5=sex
   const alvo = (dia === 'sexta') ? 5 : 2;
