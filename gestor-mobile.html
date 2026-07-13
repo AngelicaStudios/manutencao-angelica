@@ -412,6 +412,19 @@
   .limp-footer { padding: 10px 12px 6px; }
 
   /* ══════════════════════
+     MOBILE: botões da Limpeza numa linha só
+  ══════════════════════ */
+  @media (max-width: 639px) {
+    .limp-actions { flex-wrap: nowrap; gap: 6px; padding: 8px 10px; }
+    .limp-actions button.btn-sm {
+      flex: 1 1 0; min-width: 0;
+      padding: 8px 4px !important;
+      font-size: .68rem;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+  }
+
+  /* ══════════════════════
      DESKTOP (telas largas)
   ══════════════════════ */
   @media (min-width: 640px) {
