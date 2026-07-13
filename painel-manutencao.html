@@ -2447,7 +2447,14 @@ function limpLoadXlsx(input) {
    MODAL DISPARO WHATSAPP
 ════════════════════════════════════════════ */
 let limpSendList = [];
-const DELAY_SEG  = 30; // 30s entre envios — conta bloqueou com 3s em 22/06/2026
+// Intervalo aleatório (não fixo) entre cada envio — um intervalo constante é um
+// padrão estatístico fácil de identificar como automação (conta já bloqueou com
+// 3s fixo em 22/06/2026). Mesmo range usado em enviar_limpeza.py.
+const DELAY_MIN_SEG = 45;
+const DELAY_MAX_SEG = 75;
+function delaySegAleatorio() {
+  return Math.floor(Math.random() * (DELAY_MAX_SEG - DELAY_MIN_SEG + 1)) + DELAY_MIN_SEG;
+}
 
 function limpOpenModal() {
   // destinatários = somente PENDENTE / AGUARDANDO (não enviados ainda)
@@ -2493,7 +2500,7 @@ function limpRenderModalStep(step) {
   const btnN = document.getElementById('btn-m-next');
 
   if (step === 1) {
-    const msg = `Olá! 😊\n\nPassando para confirmar a limpeza semanal do seu apartamento.\n\nVocê gostaria de agendar a limpeza esta semana?\n\n*1* - Sim\n*2* - Não`;
+    const msg = `Bom dia! 🏠 Esta semana temos *limpeza disponível*:\n\n📅 Terça-feira\n📅 Sexta-feira\n💰 R$ 90,00\n\nVocê quer agendar? Responda *1 - Sim* ou *2 - Não*`;
     body.innerHTML = `
       <div style="margin-bottom:12px;font-size:.84rem;color:var(--muted)">
         Mensagem que será enviada a <strong>${limpSendList.length} inquilino(s)</strong>:
@@ -2580,12 +2587,13 @@ async function limpStartSend() {
     }
     log.scrollTop = log.scrollHeight;
 
-    // aguarda delay (exceto no último)
+    // aguarda delay aleatório (exceto no último)
     if (i < total - 1) {
-      pstat.textContent = `Aguardando ${DELAY_SEG}s antes do próximo…`;
-      log.innerHTML += `<div class="pwait">⏳ aguardando ${DELAY_SEG}s…</div>`;
+      const delay = delaySegAleatorio();
+      pstat.textContent = `Aguardando ${delay}s antes do próximo…`;
+      log.innerHTML += `<div class="pwait">⏳ aguardando ${delay}s…</div>`;
       log.scrollTop = log.scrollHeight;
-      await new Promise(r => setTimeout(r, DELAY_SEG * 1000));
+      await new Promise(r => setTimeout(r, delay * 1000));
     }
   }
 
