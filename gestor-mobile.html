@@ -425,14 +425,17 @@
 
     .limp-stats-bar {
       background: transparent; border-bottom: none;
-      flex-wrap: wrap; gap: 8px; padding: 10px 12px;
+      flex-wrap: nowrap; gap: 5px; padding: 8px 8px;
     }
     .limp-stat-m {
-      flex: 1 1 calc(50% - 8px);
+      flex: 1 1 0; min-width: 0;
+      padding: 6px 2px;
       border: 1.5px solid var(--border) !important;
-      border-radius: 12px;
+      border-radius: 10px;
       background: #fff;
     }
+    .limp-stat-m .sn { font-size: 1.02rem; }
+    .limp-stat-m .sl { font-size: .5rem; letter-spacing: 0; }
     .limp-stat-m.active { border-color: var(--blue) !important; }
   }
 
