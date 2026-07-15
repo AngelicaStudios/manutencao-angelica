@@ -1355,7 +1355,7 @@ function limpRender() {
       '<option value="' + esc(f) + '"' + (r.executor === f ? ' selected' : '') + '>' + (f || '👤 Executor…') + '</option>'
     ).join('');
     const waBtnHtml = r.numero
-      ? '<button class="limp-wa-btn" onclick="limpDispararUm(\'' + esc(r.numero) + '\',\'' + esc(aptoKey) + '\')">📲</button>'
+      ? '<button class="limp-wa-btn" onclick="limpDispararUm(\'' + esc(r.numero) + '\',\'' + esc(aptoKey) + '\',\'' + esc(r.nome) + '\')">📲</button>'
       : '';
     const dayKey = LIMP_DAY_UPPER[info.filterKey] || null;
     const statusVal = dayKey || (info.filterKey === 'nao' ? 'NAO' : 'AGUARDANDO');
@@ -1451,12 +1451,12 @@ async function limpSaveObs(apto, observacao) {
   } catch(e) { toast('⚠️ Erro ao salvar observação (offline?)'); }
 }
 
-async function limpDispararUm(numero, apto) {
+async function limpDispararUm(numero, apto, nome) {
   try {
     await fetch(LIMP_API + '/api/disparar', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ numero })
+      body: JSON.stringify({ apto, numero, nome: nome || '' })
     });
     toast('📲 Mensagem enviada para ' + apto + '!');
   } catch(e) { toast('⚠️ Erro ao enviar para ' + apto); }
@@ -1478,7 +1478,7 @@ async function limpDisparar() {
       await fetch(LIMP_API + '/api/disparar', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ numero: r.numero })
+        body: JSON.stringify({ apto: r.apto, numero: r.numero, nome: r.nome || '' })
       });
       ok++;
     } catch(e) { /* continua */ }
