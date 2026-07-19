@@ -32,38 +32,6 @@
   body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--text); overflow-x: hidden; }
 
   /* ══════════════════════
-     LOGIN
-  ══════════════════════ */
-  #login-screen {
-    min-height: 100vh;
-    display: flex; flex-direction: column;
-    align-items: center; justify-content: center;
-    padding: 28px 20px;
-    background: linear-gradient(160deg, #0f766e 0%, #0d9488 100%);
-  }
-  .login-logo  { font-size: 3.8rem; margin-bottom: 8px; }
-  .login-title { color: #fff; font-size: 1.4rem; font-weight: 800; text-align: center; margin-bottom: 4px; }
-  .login-sub   { color: rgba(255,255,255,.75); font-size: .88rem; text-align: center; margin-bottom: 32px; }
-
-  .login-box {
-    background: #fff; border-radius: 20px;
-    padding: 28px 22px; width: 100%; max-width: 380px;
-    box-shadow: 0 16px 48px rgba(0,0,0,.25);
-    display: flex; flex-direction: column; gap: 14px; align-items: center; text-align: center;
-  }
-  .login-box h2 { font-size: 1.1rem; font-weight: 700; }
-  .login-box p  { font-size: .83rem; color: var(--muted); line-height: 1.5; }
-
-  .btn-enter {
-    width: 100%; padding: 16px;
-    background: var(--teal); color: #fff;
-    border: none; border-radius: 12px;
-    font-size: 1rem; font-weight: 800;
-    cursor: pointer; transition: background .15s;
-  }
-  .btn-enter:active { background: var(--teal-d); transform: scale(.98); }
-
-  /* ══════════════════════
      APP SHELL
   ══════════════════════ */
   #app { display: none; flex-direction: column; height: 100vh; overflow: hidden; }
@@ -78,11 +46,6 @@
   }
   .hdr-left h1   { font-size: .98rem; font-weight: 800; }
   .hdr-left span { font-size: .7rem; opacity: .8; }
-  .logout-btn {
-    background: rgba(255,255,255,.18); border: 1.5px solid rgba(255,255,255,.45);
-    color: #fff; border-radius: 20px; padding: 6px 14px;
-    font-size: .75rem; font-weight: 700; cursor: pointer;
-  }
 
   #content { flex: 1; overflow-y: auto; padding-bottom: calc(var(--safe-b) + 12px); }
 
@@ -205,31 +168,15 @@
 <body>
 
 <!-- ═══════════════════════════
-     LOGIN
-═══════════════════════════ -->
-<div id="login-screen">
-  <div class="login-logo">🧹</div>
-  <div class="login-title">Limpeza</div>
-  <div class="login-sub">Painel do Gestor</div>
-  <div class="login-box">
-    <div style="font-size:2rem">👤</div>
-    <h2>Acesso do Gestor</h2>
-    <p>Toque abaixo para acessar a agenda semanal de limpeza.</p>
-    <button class="btn-enter" onclick="login()">🔓 Entrar</button>
-  </div>
-</div>
-
-<!-- ═══════════════════════════
      APP
 ═══════════════════════════ -->
-<div id="app">
+<div id="app" class="visible">
 
   <header>
     <div class="hdr-left">
       <h1>🧹 Gestão Limpeza</h1>
       <span id="hdr-date"></span>
     </div>
-    <button class="logout-btn" onclick="logout()">Sair</button>
   </header>
 
   <div id="content">
@@ -284,7 +231,7 @@ function initListeners() {
       const d = snap.data();
       funcs = d.funcionarios || (d.nomes ? d.nomes.map(n => ({nome:n, pin:''})) : []);
     } else { funcs = []; }
-    if (sessionStorage.getItem('limpeza_gestor_mobile')) limpRender();
+    limpRender();
   });
 }
 
@@ -310,21 +257,6 @@ function toast(msg) {
 // ════════════════════════
 // AUTH
 // ════════════════════════
-function login() {
-  sessionStorage.setItem('limpeza_gestor_mobile', '1');
-  document.getElementById('login-screen').style.display = 'none';
-  document.getElementById('app').classList.add('visible');
-  document.getElementById('hdr-date').textContent =
-    new Date().toLocaleDateString('pt-BR', { weekday:'long', day:'numeric', month:'long' });
-  initLimpeza();
-}
-
-function logout() {
-  sessionStorage.removeItem('limpeza_gestor_mobile');
-  document.getElementById('app').classList.remove('visible');
-  document.getElementById('login-screen').style.display = 'flex';
-}
-
 // ════════════════════════
 // LIMPEZA SEMANAL
 // ════════════════════════
@@ -746,7 +678,9 @@ async function limpCriarTarefas() {
 // ════════════════════════
 (function init() {
   initListeners();
-  if (sessionStorage.getItem('limpeza_gestor_mobile') === '1') login();
+  document.getElementById('hdr-date').textContent =
+    new Date().toLocaleDateString('pt-BR', { weekday:'long', day:'numeric', month:'long' });
+  initLimpeza();
 })();
 </script>
 </body>
