@@ -1,0 +1,753 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Limpeza — Gestor">
+<meta name="theme-color" content="#0d9488">
+<link rel="manifest" href="manifest-limpeza.json">
+<link rel="apple-touch-icon" href="icon-gestor-180.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-gestor-192.png">
+<title>Limpeza — Gestor</title>
+<style>
+  :root {
+    --teal:    #0d9488;
+    --teal-d:  #0f766e;
+    --green:   #16a34a;
+    --yellow:  #d97706;
+    --red:     #dc2626;
+    --bg:      #f0f2f5;
+    --card:    #ffffff;
+    --text:    #1e293b;
+    --muted:   #64748b;
+    --border:  #e2e8f0;
+    --radius:  14px;
+    --safe-b:  env(safe-area-inset-bottom, 0px);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; }
+  body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--text); overflow-x: hidden; }
+
+  /* ══════════════════════
+     LOGIN
+  ══════════════════════ */
+  #login-screen {
+    min-height: 100vh;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    padding: 28px 20px;
+    background: linear-gradient(160deg, #0f766e 0%, #0d9488 100%);
+  }
+  .login-logo  { font-size: 3.8rem; margin-bottom: 8px; }
+  .login-title { color: #fff; font-size: 1.4rem; font-weight: 800; text-align: center; margin-bottom: 4px; }
+  .login-sub   { color: rgba(255,255,255,.75); font-size: .88rem; text-align: center; margin-bottom: 32px; }
+
+  .login-box {
+    background: #fff; border-radius: 20px;
+    padding: 28px 22px; width: 100%; max-width: 380px;
+    box-shadow: 0 16px 48px rgba(0,0,0,.25);
+    display: flex; flex-direction: column; gap: 14px; align-items: center; text-align: center;
+  }
+  .login-box h2 { font-size: 1.1rem; font-weight: 700; }
+  .login-box p  { font-size: .83rem; color: var(--muted); line-height: 1.5; }
+
+  .btn-enter {
+    width: 100%; padding: 16px;
+    background: var(--teal); color: #fff;
+    border: none; border-radius: 12px;
+    font-size: 1rem; font-weight: 800;
+    cursor: pointer; transition: background .15s;
+  }
+  .btn-enter:active { background: var(--teal-d); transform: scale(.98); }
+
+  /* ══════════════════════
+     APP SHELL
+  ══════════════════════ */
+  #app { display: none; flex-direction: column; height: 100vh; overflow: hidden; }
+  #app.visible { display: flex; }
+
+  header {
+    background: var(--teal); color: #fff;
+    padding: 13px 16px 11px;
+    display: flex; align-items: center; justify-content: space-between;
+    position: sticky; top: 0; z-index: 100;
+    box-shadow: 0 2px 8px rgba(0,0,0,.2);
+  }
+  .hdr-left h1   { font-size: .98rem; font-weight: 800; }
+  .hdr-left span { font-size: .7rem; opacity: .8; }
+  .logout-btn {
+    background: rgba(255,255,255,.18); border: 1.5px solid rgba(255,255,255,.45);
+    color: #fff; border-radius: 20px; padding: 6px 14px;
+    font-size: .75rem; font-weight: 700; cursor: pointer;
+  }
+
+  #content { flex: 1; overflow-y: auto; padding-bottom: calc(var(--safe-b) + 12px); }
+
+  .field-group { display: flex; flex-direction: column; gap: 5px; margin-bottom: 12px; }
+  .field-label { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .4px; }
+  .field-input {
+    width: 100%; padding: 13px 14px;
+    border: 1.5px solid var(--border); border-radius: 11px;
+    font-size: .92rem; font-family: inherit;
+    background: #fff; color: var(--text);
+    transition: border-color .2s;
+  }
+  .field-input:focus { outline: none; border-color: var(--teal); }
+  select.field-input { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2364748b' d='M6 8L1 3h10z'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 14px center; padding-right: 36px; }
+
+  .btn-full {
+    width: 100%; padding: 16px;
+    border: none; border-radius: 12px;
+    font-size: 1rem; font-weight: 800;
+    cursor: pointer; transition: all .15s;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+  }
+  .btn-full:active { transform: scale(.98); }
+  .btn-green  { background: var(--green);  color: #fff; }
+  .btn-green:active { background: #15803d; }
+  .btn-blue   { background: var(--teal);   color: #fff; }
+  .btn-blue:active { background: var(--teal-d); }
+  .btn-ghost  { background: #f1f5f9; color: var(--muted); }
+  .btn-sm { padding: 10px 16px; font-size: .85rem; border-radius: 10px; display: inline-flex; align-items: center; gap: 6px; border: none; font-weight: 700; cursor: pointer; transition: all .15s; }
+
+  .empty { text-align: center; padding: 50px 20px; color: var(--muted); }
+  .empty .icon { font-size: 3rem; margin-bottom: 10px; }
+  .empty p { font-size: .88rem; }
+
+  #toast {
+    position: fixed; bottom: calc(var(--safe-b) + 16px); left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: #1e293b; color: #fff;
+    padding: 11px 22px; border-radius: 24px;
+    font-size: .86rem; font-weight: 700;
+    box-shadow: 0 4px 20px rgba(0,0,0,.3);
+    opacity: 0; transition: all .3s;
+    pointer-events: none; z-index: 400; white-space: nowrap;
+  }
+  #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  /* ══════════════════════
+     LIMPEZA SEMANAL
+  ══════════════════════ */
+  #sec-limpeza { padding: 0; }
+  .limp-actions { padding: 10px 12px; background: #fff; border-bottom: 1.5px solid var(--border); display: flex; gap: 8px; flex-wrap: wrap; }
+  .limp-stats-bar { display: flex; flex-wrap: wrap; background: #fff; border-bottom: 1.5px solid var(--border); }
+  .limp-header { position: sticky; top: 0; z-index: 90; background: #fff; }
+  .limp-stat-m { flex: 1 1 76px; text-align: center; padding: 10px 4px; border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); cursor: pointer; transition: background .15s, transform .1s; user-select: none; }
+  .limp-stat-m:last-child { border-right: none; }
+  .limp-stat-m:active { transform: scale(.95); }
+  .limp-stat-m.active { background: var(--teal); }
+  .limp-stat-m.active .sn { color: #fff !important; }
+  .limp-stat-m.active .sl { color: rgba(255,255,255,.8); }
+  .limp-stat-m .sn { font-size: 1.35rem; font-weight: 800; line-height: 1; }
+  .limp-stat-m .sl { font-size: .6rem; color: var(--muted); text-transform: uppercase; letter-spacing: .3px; margin-top: 2px; }
+  .s-ter .sn   { color: var(--teal); }
+  .s-sex .sn   { color: var(--green); }
+  .s-outro .sn { color: #7c3aed; }
+  .s-agu .sn   { color: var(--yellow); }
+  .s-nao .sn   { color: var(--red); }
+  .limp-list { padding: 10px 12px; display: flex; flex-direction: column; gap: 10px; }
+  .limp-card { background: #fff; border-radius: 12px; box-shadow: 0 2px 6px rgba(0,0,0,.07); border-left: 4px solid var(--border); display: flex; flex-direction: column; overflow: hidden; }
+  .limp-card.lc-ter   { border-left-color: var(--teal); }
+  .limp-card.lc-sex   { border-left-color: var(--green); }
+  .limp-card.lc-agu   { border-left-color: var(--yellow); }
+  .limp-card.lc-nao   { border-left-color: var(--red); }
+  .limp-card.lc-nr    { border-left-color: #94a3b8; }
+  .limp-card.lc-outro { border-left-color: #7c3aed; }
+  .limp-card-top { display: flex; align-items: center; gap: 10px; padding: 11px 13px; }
+  .limp-card-info { flex: 1; min-width: 0; }
+  .limp-card-apto { font-size: .9rem; font-weight: 800; }
+  .limp-card-nome { font-size: .76rem; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .limp-badge { flex-shrink: 0; padding: 3px 9px; border-radius: 20px; font-size: .68rem; font-weight: 700; }
+  .lb-ter   { background: #ccfbf1; color: #0f766e; }
+  .lb-sex   { background: #dcfce7; color: #166534; }
+  .lb-agu   { background: #fef3c7; color: #92400e; }
+  .lb-nao   { background: #fee2e2; color: #991b1b; }
+  .lb-nr    { background: #f1f5f9; color: #475569; }
+  .lb-outro { background: #ede9fe; color: #5b21b6; }
+  .limp-wa-btn { flex-shrink: 0; padding: 6px 10px; background: #dcfce7; border: 1.5px solid #86efac; border-radius: 8px; font-size: .85rem; cursor: pointer; }
+  .limp-card-edit { border-top: 1px solid var(--border); padding: 8px 13px; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; background: #fafbfc; }
+  .limp-status-sel { flex: 0 0 auto; padding: 6px 8px; border: 1.5px solid var(--border); border-radius: 8px; font-size: .75rem; min-width: 120px; appearance: none; background: #fff; font-family: inherit; font-weight: 600; }
+  .limp-exec-sel { flex: 0 0 auto; padding: 6px 8px; border: 1.5px solid var(--border); border-radius: 8px; font-size: .75rem; min-width: 100px; max-width: 140px; appearance: none; background: #fff; font-family: inherit; }
+  .limp-date-input { flex: 0 0 auto; padding: 6px 8px; border: 1.5px solid var(--border); border-radius: 8px; font-size: .75rem; font-family: inherit; background: #fff; color: var(--text); }
+  .limp-obs-input { flex: 1; padding: 6px 8px; border: 1.5px solid var(--border); border-radius: 8px; font-size: .75rem; font-family: inherit; }
+  .limp-progress { padding: 10px 12px; font-size: .8rem; color: var(--muted); text-align: center; }
+  .limp-footer { padding: 10px 12px 6px; }
+
+  @media (max-width: 639px) {
+    .limp-actions { flex-wrap: nowrap; gap: 6px; padding: 8px 10px; }
+    .limp-actions button.btn-sm {
+      flex: 1 1 0; min-width: 0;
+      padding: 8px 4px !important;
+      font-size: .68rem;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .limp-stats-bar { background: transparent; border-bottom: none; flex-wrap: nowrap; gap: 5px; padding: 8px 8px; }
+    .limp-stat-m { flex: 1 1 0; min-width: 0; padding: 6px 2px; border: 1.5px solid var(--border) !important; border-radius: 10px; background: #fff; }
+    .limp-stat-m .sn { font-size: 1.02rem; }
+    .limp-stat-m .sl { font-size: .5rem; letter-spacing: 0; }
+    .limp-stat-m.active { border-color: var(--teal) !important; }
+  }
+
+  @media (min-width: 640px) {
+    body { background: #dbe2ea; }
+    #app.visible { max-width: 900px; margin: 0 auto; box-shadow: 0 0 50px rgba(0,0,0,.18); }
+  }
+</style>
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script src="firebase-config.js"></script>
+</head>
+<body>
+
+<!-- ═══════════════════════════
+     LOGIN
+═══════════════════════════ -->
+<div id="login-screen">
+  <div class="login-logo">🧹</div>
+  <div class="login-title">Limpeza</div>
+  <div class="login-sub">Painel do Gestor</div>
+  <div class="login-box">
+    <div style="font-size:2rem">👤</div>
+    <h2>Acesso do Gestor</h2>
+    <p>Toque abaixo para acessar a agenda semanal de limpeza.</p>
+    <button class="btn-enter" onclick="login()">🔓 Entrar</button>
+  </div>
+</div>
+
+<!-- ═══════════════════════════
+     APP
+═══════════════════════════ -->
+<div id="app">
+
+  <header>
+    <div class="hdr-left">
+      <h1>🧹 Gestão Limpeza</h1>
+      <span id="hdr-date"></span>
+    </div>
+    <button class="logout-btn" onclick="logout()">Sair</button>
+  </header>
+
+  <div id="content">
+    <div id="sec-limpeza">
+      <div class="limp-header">
+      <div class="limp-actions">
+        <button class="btn-sm btn-ghost" onclick="limpSync()">🔁 Sincronizar</button>
+        <button class="btn-sm" style="background:#e0f2fe;color:#075985;border:1.5px solid #bae6fd;border-radius:10px;font-weight:700;padding:10px 14px;cursor:pointer;" onclick="limpCriarTarefas()">📋 Criar Tarefas</button>
+        <button class="btn-sm" style="background:#ede9fe;color:#5b21b6;border:1.5px solid #ddd6fe;border-radius:10px;font-weight:700;padding:10px 14px;cursor:pointer;" onclick="limpToggleNovaSemana()">📅 Criar Semana</button>
+      </div>
+      <div id="limp-semana-info" style="display:none;padding:8px 12px;background:#faf5ff;border-bottom:1.5px solid var(--border);font-size:.78rem;color:#6b21a8;font-weight:600"></div>
+      <div id="limp-semana-form" style="display:none;padding:10px 12px;background:#faf5ff;border-bottom:1.5px solid var(--border);gap:8px;flex-wrap:wrap;align-items:center;">
+        <div class="field-group" style="margin-bottom:6px">
+          <div class="field-label">Início da semana</div>
+          <input type="date" class="field-input" id="ns-inicio" />
+        </div>
+        <div class="field-group" style="margin-bottom:6px">
+          <div class="field-label">Fim da semana</div>
+          <input type="date" class="field-input" id="ns-fim" />
+        </div>
+        <div style="display:flex;gap:8px">
+          <button class="btn-sm btn-blue" style="flex:1" onclick="limpConfirmarNovaSemana()">✅ Confirmar</button>
+          <button class="btn-sm btn-ghost" style="flex:1" onclick="limpToggleNovaSemana()">Cancelar</button>
+        </div>
+      </div>
+      <div class="limp-stats-bar" id="limp-stats-bar"></div>
+      </div>
+
+      <div class="limp-progress" id="limp-progress">Toque em Atualizar para carregar.</div>
+      <div id="limp-list" class="limp-list"></div>
+      <div class="limp-footer">
+        <button class="btn-full btn-green" onclick="limpDisparar()" id="limp-btn-disp" style="display:none">
+          📲 Disparar WhatsApp para Aguardando
+        </button>
+      </div>
+    </div>
+  </div><!-- /content -->
+
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ════════════════════════
+// ESTADO GLOBAL FIREBASE
+// ════════════════════════
+let funcs = [];
+
+function initListeners() {
+  db.collection('config').doc('funcionarios').onSnapshot(snap => {
+    if (snap.exists) {
+      const d = snap.data();
+      funcs = d.funcionarios || (d.nomes ? d.nomes.map(n => ({nome:n, pin:''})) : []);
+    } else { funcs = []; }
+    if (sessionStorage.getItem('limpeza_gestor_mobile')) limpRender();
+  });
+}
+
+async function dbSet(col, id, data) { await db.collection(col).doc(id).set(data); }
+
+// ════════════════════════
+// UTILS
+// ════════════════════════
+function fmtDate(d) {
+  if (!d) return '';
+  const [y,m,dia] = d.split('-');
+  return `${dia}/${m}/${y}`;
+}
+function uid()  { return Date.now().toString(36) + Math.random().toString(36).slice(2); }
+function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 2600);
+}
+
+// ════════════════════════
+// AUTH
+// ════════════════════════
+function login() {
+  sessionStorage.setItem('limpeza_gestor_mobile', '1');
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('app').classList.add('visible');
+  document.getElementById('hdr-date').textContent =
+    new Date().toLocaleDateString('pt-BR', { weekday:'long', day:'numeric', month:'long' });
+  initLimpeza();
+}
+
+function logout() {
+  sessionStorage.removeItem('limpeza_gestor_mobile');
+  document.getElementById('app').classList.remove('visible');
+  document.getElementById('login-screen').style.display = 'flex';
+}
+
+// ════════════════════════
+// LIMPEZA SEMANAL
+// ════════════════════════
+const LIMP_API   = 'https://limpeza.angelicastudios.com.br';
+// Mesmo intervalo aleatório do disparo oficial (enviar_limpeza.py) — 45 a 75s entre envios.
+const LIMP_DELAY_MIN = 45000;
+const LIMP_DELAY_MAX = 75000;
+function limpRandomDelay() { return LIMP_DELAY_MIN + Math.random() * (LIMP_DELAY_MAX - LIMP_DELAY_MIN); }
+let limpData    = [];
+let limpFilter  = 'todos';
+let limpSending = false;
+let limpSemana  = null; // { data_inicio, data_fim, terca, sexta } — semana configurada via "Criar Semana"
+
+const LIMP_DAY_MAP = {SEGUNDA:1,TERCA:2,QUARTA:3,QUINTA:4,SEXTA:5,SABADO:6,DOMINGO:0};
+function limpProximaData(dayKey) {
+  // Se houver uma semana configurada (Criar Semana), usa a data fixada nela.
+  if (limpSemana) {
+    if (dayKey === 'TERCA' && limpSemana.terca) return limpSemana.terca;
+    if (dayKey === 'SEXTA' && limpSemana.sexta) return limpSemana.sexta;
+  }
+  const target = LIMP_DAY_MAP[dayKey];
+  if (target === undefined) return null;
+  const hoje = new Date();
+  const diff = (target - hoje.getDay() + 7) % 7;
+  const d = new Date(hoje);
+  d.setDate(hoje.getDate() + (diff === 0 ? 7 : diff));
+  const mm  = String(d.getMonth() + 1).padStart(2, '0');
+  const dd2 = String(d.getDate()).padStart(2, '0');
+  return d.getFullYear() + '-' + mm + '-' + dd2;
+}
+
+function limpRenderSemanaInfo() {
+  const el = document.getElementById('limp-semana-info');
+  if (!el) return;
+  if (!limpSemana) { el.style.display = 'none'; return; }
+  el.style.display = 'block';
+  el.textContent = '📅 Semana atual: ' + fmtDate(limpSemana.data_inicio) + ' a ' + fmtDate(limpSemana.data_fim) +
+    (limpSemana.terca ? '  ·  Terça ' + fmtDate(limpSemana.terca) : '') +
+    (limpSemana.sexta ? '  ·  Sexta ' + fmtDate(limpSemana.sexta) : '');
+}
+
+async function limpCarregarSemanaAtual() {
+  try {
+    const res  = await fetch(LIMP_API + '/api/semana-atual');
+    const data = await res.json();
+    limpSemana = (data && data.semana) ? data.semana : null;
+  } catch(e) { limpSemana = null; }
+  limpRenderSemanaInfo();
+}
+
+function limpToggleNovaSemana() {
+  const form = document.getElementById('limp-semana-form');
+  if (!form) return;
+  const showing = form.style.display === 'flex';
+  form.style.display = showing ? 'none' : 'flex';
+  if (!showing) {
+    document.getElementById('ns-inicio').value = limpSemana ? limpSemana.data_inicio : '';
+    document.getElementById('ns-fim').value    = limpSemana ? limpSemana.data_fim    : '';
+  }
+}
+
+async function limpConfirmarNovaSemana() {
+  const inicio = document.getElementById('ns-inicio').value;
+  const fim    = document.getElementById('ns-fim').value;
+  if (!inicio || !fim) { toast('⚠️ Informe início e fim!'); return; }
+  if (fim < inicio) { toast('⚠️ Fim não pode ser antes do início!'); return; }
+  if (!confirm('Criar semana de ' + fmtDate(inicio) + ' a ' + fmtDate(fim) + '?\n\nIsso reseta o status de TODOS os apartamentos para "Aguardando".')) return;
+  try {
+    const res  = await fetch(LIMP_API + '/api/nova-semana', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ data_inicio: inicio, data_fim: fim })
+    });
+    const data = await res.json();
+    if (data.ok === false) { toast('⚠️ ' + (data.erro || 'Erro ao criar semana')); return; }
+    limpSemana = { data_inicio: inicio, data_fim: fim, terca: data.terca, sexta: data.sexta };
+    limpRenderSemanaInfo();
+    limpToggleNovaSemana();
+    toast('✅ Semana criada!');
+    await initLimpeza();
+  } catch(e) { toast('⚠️ Erro ao criar semana (offline?)'); }
+}
+
+async function limpSync() {
+  const prog = document.getElementById('limp-progress');
+  if (prog) prog.textContent = '⏳ Sincronizando…';
+  try {
+    const res  = await fetch(LIMP_API + '/api/sync', { method: 'POST' });
+    const data = await res.json();
+    if (data.ok === false) { toast('⚠️ Erro ao sincronizar: ' + (data.erro || '')); }
+    else toast('🔁 Sincronizado!');
+  } catch(e) { toast('⚠️ Erro ao sincronizar (offline?)'); }
+  await initLimpeza();
+}
+
+function limpNormalize(r) {
+  const status = (r.status || r.resposta || 'aguardando').toLowerCase();
+  const diaRaw = String(r.dia_semana || r.dia || '').trim();
+  const diaISO = diaRaw.match(/^\d{4}-\d{2}-\d{2}$/) ? diaRaw : '';
+  return {
+    apto:      String(r.apto || r.apartamento || '').trim(),
+    nome:      String(r.nome || r.inquilino || '').trim(),
+    numero:    String(r.numero || r.celular || '').trim(),
+    status, dia: diaRaw.toLowerCase(), diaISO,
+    executor:  String(r.executor || '').trim(),
+    observacao: String(r.observacao || '').trim()
+  };
+}
+
+async function initLimpeza() {
+  const prog = document.getElementById('limp-progress');
+  if (prog) prog.textContent = '⏳ Carregando…';
+  await limpCarregarSemanaAtual();
+  try {
+    const res  = await fetch(LIMP_API + '/api/agenda');
+    const data = await res.json();
+    const raw  = Array.isArray(data) ? data : (data.agenda || data.apartamentos || []);
+    const seen = new Set();
+    limpData = [];
+    raw.forEach(r => {
+      const n = limpNormalize(r);
+      if (!n.apto) return;
+      const key = n.apto.toLowerCase().replace(/\s+/g, '');
+      if (seen.has(key)) return;
+      seen.add(key);
+      limpData.push(n);
+    });
+    if (prog) prog.textContent = '';
+    limpRender();
+  } catch(e) {
+    if (prog) prog.textContent = '⚠️ Erro ao carregar. Verifique a conexão.';
+  }
+}
+
+function limpStatFilter(el) {
+  const key = el.dataset.lf;
+  limpFilter = (limpFilter === key) ? 'todos' : key;
+  limpRender();
+}
+
+const LIMP_DAY_LABEL = {
+  segunda:'Segunda', terca:'Terça', quarta:'Quarta', quinta:'Quinta',
+  sexta:'Sexta', sabado:'Sábado', domingo:'Domingo'
+};
+const LIMP_DAY_UPPER = {
+  segunda:'SEGUNDA', terca:'TERCA', quarta:'QUARTA', quinta:'QUINTA',
+  sexta:'SEXTA', sabado:'SABADO', domingo:'DOMINGO'
+};
+
+function limpStatusInfo(status, dia) {
+  const s = (status || '').toLowerCase();
+  const d = (dia || '').toLowerCase();
+  if (s === 'nao' || s === 'não' || s === 'recusou') return { label:'❌ Não', cls:'lb-nao', cardCls:'lc-nao', filterKey:'nao' };
+  if (s === 'nao_respondeu' || s === 'sem_resposta') return { label:'🔇 Sem resp.', cls:'lb-nr', cardCls:'lc-nr', filterKey:'nao_respondeu' };
+  if (LIMP_DAY_LABEL[s]) {
+    const cardCls = s === 'terca' ? 'lc-ter' : (s === 'sexta' ? 'lc-sex' : 'lc-outro');
+    const cls     = s === 'terca' ? 'lb-ter' : (s === 'sexta' ? 'lb-sex' : 'lb-outro');
+    return { label: '✅ ' + LIMP_DAY_LABEL[s], cls, cardCls, filterKey: s };
+  }
+  // compat com respostas antigas do bot de WhatsApp
+  if (s === 'sim' || s === 'confirmado') {
+    const isSex = d.includes('sex') || d.includes('fri') || d === '5';
+    if (isSex) return { label:'✅ Sexta', cls:'lb-sex', cardCls:'lc-sex', filterKey:'sexta' };
+    return { label:'✅ Terça', cls:'lb-ter', cardCls:'lc-ter', filterKey:'terca' };
+  }
+  return { label:'⏳ Aguardando', cls:'lb-agu', cardCls:'lc-agu', filterKey:'aguardando' };
+}
+
+function limpRender() {
+  const el = document.getElementById('limp-list');
+  if (!el) return;
+
+  let filtered = limpData;
+  if (limpFilter !== 'todos') {
+    filtered = limpData.filter(r => {
+      const info = limpStatusInfo(r.status, r.dia);
+      return info.filterKey === limpFilter;
+    });
+  }
+
+  // Stats — Terça e Sexta sempre aparecem (dias padrão); os demais só aparecem
+  // no filtro quando existe pelo menos 1 apartamento programado naquele dia.
+  const DAY_ORDER = ['segunda','terca','quarta','quinta','sexta','sabado','domingo'];
+  const DAY_ABBR  = { segunda:'Segunda', terca:'Terça', quarta:'Quarta', quinta:'Quinta', sexta:'Sexta', sabado:'Sábado', domingo:'Domingo' };
+  const dayCounts = {};
+  DAY_ORDER.forEach(d => {
+    dayCounts[d] = limpData.filter(r => limpStatusInfo(r.status, r.dia).filterKey === d).length;
+  });
+  const agu = limpData.filter(r => limpStatusInfo(r.status, r.dia).filterKey === 'aguardando').length;
+  const nao = limpData.filter(r => limpStatusInfo(r.status, r.dia).filterKey === 'nao').length;
+
+  let statsHtml = '';
+  DAY_ORDER.forEach(d => {
+    const isStandard = (d === 'terca' || d === 'sexta');
+    const count = dayCounts[d];
+    if (!isStandard && count === 0) return;
+    const cls = d === 'terca' ? 's-ter' : (d === 'sexta' ? 's-sex' : 's-outro');
+    statsHtml += '<div class="limp-stat-m ' + cls + (limpFilter===d?' active':'') + '" data-lf="' + d + '"' +
+      ' onclick="limpStatFilter(this)" title="Filtrar ' + DAY_ABBR[d] + '">' +
+      '<div class="sn">' + count + '</div><div class="sl">' + DAY_ABBR[d] + '</div></div>';
+  });
+  statsHtml += '<div class="limp-stat-m s-agu' + (limpFilter==='aguardando'?' active':'') + '" data-lf="aguardando"' +
+    ' onclick="limpStatFilter(this)" title="Filtrar Aguardando"><div class="sn">' + agu + '</div><div class="sl">Aguard.</div></div>';
+  statsHtml += '<div class="limp-stat-m s-nao' + (limpFilter==='nao'?' active':'') + '" data-lf="nao"' +
+    ' onclick="limpStatFilter(this)" title="Filtrar Não"><div class="sn">' + nao + '</div><div class="sl">Não</div></div>';
+  const statsBarEl = document.getElementById('limp-stats-bar');
+  if (statsBarEl) statsBarEl.innerHTML = statsHtml;
+
+  // Botão disparar
+  const btnDisp = document.getElementById('limp-btn-disp');
+  if (btnDisp) btnDisp.style.display = agu > 0 ? '' : 'none';
+
+  if (!filtered.length) {
+    el.innerHTML = '<div class="empty"><div class="icon">🧹</div><p>Nenhum apartamento neste filtro.</p></div>';
+    return;
+  }
+
+  const execOpts = ['', ...funcs.map(f => f.nome)];
+
+  el.innerHTML = filtered.map(r => {
+    const aptoKey = r.apto;
+    const info    = limpStatusInfo(r.status, r.dia);
+    const optsHtml = execOpts.map(f =>
+      '<option value="' + esc(f) + '"' + (r.executor === f ? ' selected' : '') + '>' + (f || '👤 Executor…') + '</option>'
+    ).join('');
+    const waBtnHtml = r.numero
+      ? '<button class="limp-wa-btn" onclick="limpDispararUm(\'' + esc(r.numero) + '\',\'' + esc(aptoKey) + '\',\'' + esc(r.nome) + '\')">📲</button>'
+      : '';
+    const dayKey = LIMP_DAY_UPPER[info.filterKey] || null;
+    const statusVal = dayKey || (info.filterKey === 'nao' ? 'NAO' : 'AGUARDANDO');
+    const statusOptsHtml = [
+      ['AGUARDANDO', '⏳ Aguardando'],
+      ['SEGUNDA',    'Segunda-feira'],
+      ['TERCA',      'Terça-feira'],
+      ['QUARTA',     'Quarta-feira'],
+      ['QUINTA',     'Quinta-feira'],
+      ['SEXTA',      'Sexta-feira'],
+      ['SABADO',     'Sábado'],
+      ['DOMINGO',    'Domingo'],
+      ['NAO',        '❌ Não quer']
+    ].map(([val, label]) => '<option value="' + val + '"' + (statusVal===val?' selected':'') + '>' + label + '</option>').join('');
+    const statusSelHtml =
+      '<select class="limp-status-sel" onchange="limpSaveStatus(\'' + esc(aptoKey) + '\',this.value)">' + statusOptsHtml + '</select>';
+    const dateHtml = dayKey
+      ? '<input class="limp-date-input" type="date" value="' + esc(r.diaISO || limpProximaData(dayKey) || '') + '"' +
+        ' onchange="limpSaveDia(\'' + esc(aptoKey) + '\',this.value)" />'
+      : '';
+    return '<div class="limp-card ' + info.cardCls + '">' +
+      '<div class="limp-card-top">' +
+        '<div class="limp-card-info">' +
+          '<div class="limp-card-apto">🏠 ' + esc(aptoKey) + '</div>' +
+          '<div class="limp-card-nome">' + esc(r.nome) + '</div>' +
+        '</div>' +
+        '<span class="limp-badge ' + info.cls + '">' + info.label + '</span>' +
+        waBtnHtml +
+      '</div>' +
+      '<div class="limp-card-edit">' +
+        statusSelHtml +
+        dateHtml +
+        '<select class="limp-exec-sel" onchange="limpSaveExec(\'' + esc(aptoKey) + '\',this.value)">' + optsHtml + '</select>' +
+        '<input class="limp-obs-input" type="text" value="' + esc(r.observacao) + '" placeholder="📝 Observação…"' +
+          ' onblur="limpSaveObs(\'' + esc(aptoKey) + '\',this.value)"' +
+          ' onkeydown="if(event.key===\'Enter\')this.blur()" />' +
+      '</div>' +
+    '</div>';
+  }).join('');
+}
+
+async function limpSaveStatus(apto, status) {
+  const row = limpData.find(r => r.apto === apto);
+  const diaDate = (status in LIMP_DAY_MAP) ? limpProximaData(status) : null;
+  if (row) { row.status = status.toLowerCase(); row.diaISO = diaDate || ''; }
+  limpRender();
+  try {
+    await fetch(LIMP_API + '/api/agenda/' + encodeURIComponent(apto) + '/status', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status, dia: diaDate })
+    });
+    toast('✅ Status atualizado!');
+  } catch(e) { toast('⚠️ Erro ao salvar status (offline?)'); }
+}
+
+async function limpSaveDia(apto, dia) {
+  const row = limpData.find(r => r.apto === apto);
+  if (row) row.diaISO = dia;
+  try {
+    await fetch(LIMP_API + '/api/agenda/' + encodeURIComponent(apto) + '/dia', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ dia })
+    });
+    toast('📅 Data salva!');
+  } catch(e) { toast('⚠️ Erro ao salvar data (offline?)'); }
+}
+
+async function limpSaveExec(apto, executor) {
+  const row = limpData.find(r => r.apto === apto);
+  if (row) row.executor = executor;
+  try {
+    await fetch(LIMP_API + '/api/agenda/' + encodeURIComponent(apto) + '/executor', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ executor })
+    });
+    toast('👤 Executor salvo: ' + (executor || '—'));
+  } catch(e) { toast('⚠️ Erro ao salvar executor (offline?)'); }
+}
+
+async function limpSaveObs(apto, observacao) {
+  const row = limpData.find(r => r.apto === apto);
+  if (row) row.observacao = observacao;
+  try {
+    await fetch(LIMP_API + '/api/agenda/' + encodeURIComponent(apto) + '/observacao', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ observacao })
+    });
+    toast('📝 Observação salva!');
+  } catch(e) { toast('⚠️ Erro ao salvar observação (offline?)'); }
+}
+
+async function limpDispararUm(numero, apto, nome) {
+  try {
+    await fetch(LIMP_API + '/api/disparar', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ apto, numero, nome: nome || '' })
+    });
+    toast('📲 Mensagem enviada para ' + apto + '!');
+  } catch(e) { toast('⚠️ Erro ao enviar para ' + apto); }
+}
+
+async function limpDisparar() {
+  if (limpSending) { toast('⏳ Envio em andamento…'); return; }
+  const aguardando = limpData.filter(r => limpStatusInfo(r.status, r.dia).filterKey === 'aguardando' && r.numero);
+  if (!aguardando.length) { toast('⚠️ Nenhum aguardando com número.'); return; }
+  if (!confirm('Disparar WhatsApp para ' + aguardando.length + ' apartamento(s)?\n\nIntervalo: 45-75s (aleatório) entre envios.')) return;
+  limpSending = true;
+  const btnDisp = document.getElementById('limp-btn-disp');
+  if (btnDisp) btnDisp.disabled = true;
+  let ok = 0;
+  for (let i = 0; i < aguardando.length; i++) {
+    const r = aguardando[i];
+    toast('📲 Enviando ' + (i+1) + '/' + aguardando.length + ' → ' + r.apto + '…');
+    try {
+      await fetch(LIMP_API + '/api/disparar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ apto: r.apto, numero: r.numero, nome: r.nome || '' })
+      });
+      ok++;
+    } catch(e) { /* continua */ }
+    if (i < aguardando.length - 1) await new Promise(res => setTimeout(res, limpRandomDelay()));
+  }
+  limpSending = false;
+  if (btnDisp) btnDisp.disabled = false;
+  toast('✅ ' + ok + '/' + aguardando.length + ' mensagens enviadas!');
+  await initLimpeza();
+}
+
+function limpProxData(dia) {
+  if (limpSemana) {
+    if (dia === 'sexta' && limpSemana.sexta) return limpSemana.sexta;
+    if (dia === 'terca' && limpSemana.terca) return limpSemana.terca;
+  }
+  const hoje = new Date();
+  const dow  = hoje.getDay(); // 0=dom, 2=ter, 5=sex
+  const alvo = (dia === 'sexta') ? 5 : 2;
+  let diff = alvo - dow;
+  if (diff <= 0) diff += 7;
+  const d = new Date(hoje);
+  d.setDate(hoje.getDate() + diff);
+  // Usar componentes locais — toISOString() usa UTC e causa shift +1 dia no BR
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd2 = String(d.getDate()).padStart(2, '0');
+  return d.getFullYear() + '-' + mm + '-' + dd2;
+}
+
+async function limpCriarTarefas() {
+  const comExec = limpData.filter(r => r.executor && r.executor.trim());
+  if (!comExec.length) { toast('⚠️ Nenhum executor atribuído!'); return; }
+
+  const grupos = {};
+  comExec.forEach(r => {
+    const exec   = r.executor.trim();
+    const diaRaw = (r.dia || '').toLowerCase();
+    const diaKey = (diaRaw.includes('sex') || diaRaw.includes('fri') || diaRaw === '5') ? 'sexta' : 'terca';
+    const key    = exec + '|' + diaKey;
+    if (!grupos[key]) grupos[key] = { exec, diaKey, aptos: [] };
+    grupos[key].aptos.push(r.apto);
+  });
+
+  const lista = Object.values(grupos);
+  const preview = lista.map(g =>
+    '• ' + g.exec + ' — ' + g.aptos.length + ' apto(s) — ' + (g.diaKey === 'sexta' ? 'Sexta' : 'Terça')
+  ).join('\n');
+
+  if (!confirm('Criar ' + lista.length + ' tarefa(s) no painel de Manutenção?\n\n' + preview)) return;
+
+  let ok = 0;
+  for (const g of lista) {
+    const data     = limpProxData(g.diaKey);
+    const diaLabel = g.diaKey === 'sexta' ? 'Sexta-feira' : 'Terça-feira';
+    const tarefa   = {
+      id: uid(), apto: 'Limpeza', tipo: 'Limpeza Semanal',
+      prio: 'media', resp: g.exec, data,
+      desc: diaLabel + ' — Aptos: ' + g.aptos.join(', '),
+      status: 'pendente', obs: '', dataExec: '', fotos: [], criadoEm: Date.now()
+    };
+    await dbSet('tarefas', tarefa.id, tarefa);
+    ok++;
+  }
+  toast('✅ ' + ok + ' tarefa(s) criada(s) no painel de Manutenção!');
+}
+
+// ════════════════════════
+// INIT
+// ════════════════════════
+(function init() {
+  initListeners();
+  if (sessionStorage.getItem('limpeza_gestor_mobile') === '1') login();
+})();
+</script>
+</body>
+</html>
