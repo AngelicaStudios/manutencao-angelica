@@ -1,0 +1,16 @@
+{
+  "id": "/manutencao-angelica/limpeza",
+  "name": "Gestão Limpeza",
+  "short_name": "Limpeza",
+  "description": "Painel do gestor da agenda semanal de limpeza",
+  "start_url": "./limpeza-gestor.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#0d9488",
+  "theme_color": "#0d9488",
+  "orientation": "portrait",
+  "icons": [
+    { "src": "icon-gestor-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-gestor-180.png", "sizes": "180x180", "type": "image/png", "purpose": "any" }
+  ]
+}
