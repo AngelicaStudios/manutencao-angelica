@@ -162,6 +162,7 @@
 </style>
 <!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 <script src="firebase-config.js"></script>
 </head>
@@ -676,11 +677,16 @@ async function limpCriarTarefas() {
 // ════════════════════════
 // INIT
 // ════════════════════════
+const EQUIPE_EMAIL = 'equipe@angelicastudios.com.br';
+const EQUIPE_SENHA = 'Angelica@2026';
+
 (function init() {
-  initListeners();
-  document.getElementById('hdr-date').textContent =
-    new Date().toLocaleDateString('pt-BR', { weekday:'long', day:'numeric', month:'long' });
-  initLimpeza();
+  firebase.auth().signInWithEmailAndPassword(EQUIPE_EMAIL, EQUIPE_SENHA).then(() => {
+    initListeners();
+    document.getElementById('hdr-date').textContent =
+      new Date().toLocaleDateString('pt-BR', { weekday:'long', day:'numeric', month:'long' });
+    initLimpeza();
+  }).catch(e => console.error('Falha no acesso ao servidor:', e));
 })();
 </script>
 </body>
