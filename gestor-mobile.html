@@ -381,6 +381,7 @@
 </style>
 <!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 <script src="firebase-config.js"></script>
 </head>
@@ -397,6 +398,10 @@
     <div style="font-size:2rem">👤</div>
     <h2>Acesso do Gestor</h2>
     <p>Digite sua senha para acessar o painel completo de gerenciamento.</p>
+    <input type="password" id="login-pass" placeholder="Senha" autocomplete="current-password"
+      style="width:100%;box-sizing:border-box;padding:12px;margin:14px 0 8px;border-radius:10px;border:1px solid #444;background:#1a1a1a;color:#fff;font-size:1rem"
+      onkeydown="if(event.key==='Enter')login()">
+    <div id="login-err" class="login-err">Senha incorreta.</div>
     <button class="btn-enter" onclick="login()">🔓 Entrar</button>
   </div>
 </div>
@@ -562,6 +567,7 @@
 // ════════════════════════
 // ESTADO GLOBAL FIREBASE
 // ════════════════════════
+const EQUIPE_EMAIL = 'equipe@angelicastudios.com.br';
 let tasks    = [];
 let arqTasks = [];
 let funcs    = [];
@@ -569,7 +575,7 @@ let funcs    = [];
 function initListeners() {
   db.collection('tarefas').onSnapshot(snap => {
     tasks = snap.docs.map(d => d.data());
-    if (sessionStorage.getItem('manut_gestor_mobile')) renderTarefas();
+    renderTarefas();
   });
   db.collection('arquivo').onSnapshot(snap => {
     arqTasks = snap.docs.map(d => d.data());
@@ -613,8 +619,19 @@ function statusOrder(s) { return { pendente:0, andamento:1, concluida:2 }[s] ?? 
 // ════════════════════════
 // AUTH
 // ════════════════════════
-function login() {
-  sessionStorage.setItem('manut_gestor_mobile', '1');
+async function login() {
+  const senha = document.getElementById('login-pass').value;
+  const errEl = document.getElementById('login-err');
+  errEl.style.display = 'none';
+  try {
+    await firebase.auth().signInWithEmailAndPassword(EQUIPE_EMAIL, senha);
+    // onAuthStateChanged cuida de mostrar o app
+  } catch (e) {
+    errEl.style.display = 'block';
+  }
+}
+
+function showApp() {
   document.getElementById('login-screen').style.display = 'none';
   document.getElementById('app').classList.add('visible');
   document.getElementById('hdr-date').textContent =
@@ -625,9 +642,7 @@ function login() {
 }
 
 function logout() {
-  sessionStorage.removeItem('manut_gestor_mobile');
-  document.getElementById('app').classList.remove('visible');
-  document.getElementById('login-screen').style.display = 'flex';
+  firebase.auth().signOut();
 }
 
 // ════════════════════════
@@ -996,8 +1011,15 @@ function closeLightbox() {
 // INIT
 // ════════════════════════
 (function init() {
-  initListeners();
-  if (sessionStorage.getItem('manut_gestor_mobile') === '1') login();
+  firebase.auth().onAuthStateChanged(user => {
+    if (user) {
+      initListeners();
+      showApp();
+    } else {
+      document.getElementById('app').classList.remove('visible');
+      document.getElementById('login-screen').style.display = 'flex';
+    }
+  });
 })();
 </script>
 </body>
