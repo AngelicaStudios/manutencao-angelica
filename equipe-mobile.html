@@ -480,6 +480,7 @@
 </style>
 <!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 <script src="firebase-config.js"></script>
 </head>
@@ -903,13 +904,18 @@ function closeLightbox() {
 // ════════════════════════════════
 // INIT
 // ════════════════════════════════
+const EQUIPE_EMAIL = 'equipe@angelicastudios.com.br';
+const EQUIPE_SENHA = 'Angelica@2026';
+
 (function init() {
-  const savedName = sessionStorage.getItem('manut_equipe_nome');
-  if (savedName) {
-    entrar(savedName);
-  } else {
-    carregarFuncs();
-  }
+  firebase.auth().signInWithEmailAndPassword(EQUIPE_EMAIL, EQUIPE_SENHA).then(() => {
+    const savedName = sessionStorage.getItem('manut_equipe_nome');
+    if (savedName) {
+      entrar(savedName);
+    } else {
+      carregarFuncs();
+    }
+  }).catch(e => console.error('Falha no acesso ao servidor:', e));
 })();
 </script>
 </body>
