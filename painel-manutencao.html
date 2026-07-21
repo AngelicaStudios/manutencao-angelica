@@ -1964,6 +1964,8 @@ function renderFuncs() {
 // LIMPEZA SEMANAL
 // ══════════════════════════════════════════════
 const LIMPEZA_API = 'https://limpeza.angelicastudios.com.br';
+// Domínio protegido por HTTP Basic Auth no nginx do VPS (usuário "angelica").
+const LIMP_AUTH_HEADERS = { 'Authorization': 'Basic YW5nZWxpY2E6QW5nZWxpY2FAMjAyNg==' };
 
 let limpData     = [];   // dados brutos da API
 let limpFiltStat = '';   // filtro status
@@ -2032,7 +2034,7 @@ function limpNormalize(row) {
 
 async function limpSync() {
   try {
-    const r = await fetch(`${LIMPEZA_API}/api/sync`, { method: 'POST' });
+    const r = await fetch(`${LIMPEZA_API}/api/sync`, { method: 'POST', headers: LIMP_AUTH_HEADERS });
     const d = await r.json();
     if (!r.ok) throw new Error(d.erro || 'Erro ' + r.status);
     toast(`✅ Sincronizado: ${d.novos} novos, ${d.atualizados} atualizados (total: ${d.total})`, 'success');
@@ -2044,7 +2046,7 @@ async function limpSync() {
 
 async function initLimpeza() {
   try {
-    const r = await fetch(`${LIMPEZA_API}/api/agenda`);
+    const r = await fetch(`${LIMPEZA_API}/api/agenda`, { headers: LIMP_AUTH_HEADERS });
     if (!r.ok) throw new Error('API ' + r.status);
     const raw = await r.json();
     const arr = Array.isArray(raw) ? raw : (raw.agenda || []);
@@ -2245,7 +2247,7 @@ async function limpSaveStatus(apto, status) {
   limpRender();
   try {
     const resp = await fetch(`${LIMPEZA_API}/api/agenda/${encodeURIComponent(apto)}/status`, {
-      method:'POST', headers:{'Content-Type':'application/json'},
+      method:'POST', headers:{'Content-Type':'application/json', ...LIMP_AUTH_HEADERS},
       body: JSON.stringify({ status, dia: diaDate })
     });
     if (!resp.ok) { const t = await resp.text(); toast(`Erro ao salvar status: ${t.slice(0,60)}`, 'error'); }
@@ -2258,7 +2260,7 @@ async function limpSaveDia(apto, dia) {
   if (row) row.dia = dia;
   try {
     await fetch(`${LIMPEZA_API}/api/agenda/${encodeURIComponent(apto)}/dia`, {
-      method:'POST', headers:{'Content-Type':'application/json'},
+      method:'POST', headers:{'Content-Type':'application/json', ...LIMP_AUTH_HEADERS},
       body: JSON.stringify({ dia })
     });
   } catch(e) { /* offline — só local */ }
@@ -2272,7 +2274,7 @@ async function limpSendOneConfirm(apto) {
   if (!confirm(`Enviar mensagem WhatsApp para o apto ${apto} (${nome})?`)) return;
   try {
     const resp = await fetch(`${LIMPEZA_API}/api/disparar`, {
-      method:'POST', headers:{'Content-Type':'application/json'},
+      method:'POST', headers:{'Content-Type':'application/json', ...LIMP_AUTH_HEADERS},
       body: JSON.stringify({ apto, nome: row.nome || '', numero: row.numero || '' })
     });
     if (resp.ok) {
@@ -2292,7 +2294,7 @@ async function limpSaveExec(apto, executor) {
   if (row) row.executor = executor;
   try {
     await fetch(`${LIMPEZA_API}/api/agenda/${encodeURIComponent(apto)}/executor`, {
-      method:'POST', headers:{'Content-Type':'application/json'},
+      method:'POST', headers:{'Content-Type':'application/json', ...LIMP_AUTH_HEADERS},
       body: JSON.stringify({ executor })
     });
   } catch(e) { toast('Erro ao salvar executor (offline?)', 'error'); }
@@ -2304,7 +2306,7 @@ async function limpSaveObs(apto, observacao) {
   if (row) row.observacao = observacao;
   try {
     await fetch(`${LIMPEZA_API}/api/agenda/${encodeURIComponent(apto)}/observacao`, {
-      method:'POST', headers:{'Content-Type':'application/json'},
+      method:'POST', headers:{'Content-Type':'application/json', ...LIMP_AUTH_HEADERS},
       body: JSON.stringify({ observacao })
     });
   } catch(e) { /* offline — só local */ }
@@ -2372,10 +2374,10 @@ async function limpNovasSemana() {
   if (!confirm('Resetar agenda para nova semana?\nStatus, executor e observação serão limpos para todos os aptos.')) return;
   try {
     // 1. Reset de status no backend
-    await fetch(`${LIMPEZA_API}/api/reset`, { method:'POST' });
+    await fetch(`${LIMPEZA_API}/api/reset`, { method:'POST', headers: LIMP_AUTH_HEADERS });
 
     // 2. Limpar executor e observação de cada apto em paralelo
-    const opts = { method:'POST', headers:{'Content-Type':'application/json'} };
+    const opts = { method:'POST', headers:{'Content-Type':'application/json', ...LIMP_AUTH_HEADERS} };
     await Promise.all(limpData.flatMap(r => [
       fetch(`${LIMPEZA_API}/api/agenda/${encodeURIComponent(r.apto)}/executor`,
         { ...opts, body: JSON.stringify({ executor: '' }) }).catch(()=>{}),
@@ -2573,7 +2575,7 @@ async function limpStartSend() {
 
     try {
       const resp = await fetch(`${LIMPEZA_API}/api/disparar`, {
-        method:'POST', headers:{'Content-Type':'application/json'},
+        method:'POST', headers:{'Content-Type':'application/json', ...LIMP_AUTH_HEADERS},
         body: JSON.stringify({ apto, nome, numero: fone })
       });
       if (resp.ok) {
