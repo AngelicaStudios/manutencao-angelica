@@ -262,6 +262,8 @@ function toast(msg) {
 // LIMPEZA SEMANAL
 // ════════════════════════
 const LIMP_API   = 'https://limpeza.angelicastudios.com.br';
+// Domínio protegido por HTTP Basic Auth no nginx do VPS (usuário "angelica").
+const LIMP_AUTH_HEADERS = { 'Authorization': 'Basic YW5nZWxpY2E6QW5nZWxpY2FAMjAyNg==' };
 // Mesmo intervalo aleatório do disparo oficial (enviar_limpeza.py) — 45 a 75s entre envios.
 const LIMP_DELAY_MIN = 45000;
 const LIMP_DELAY_MAX = 75000;
@@ -301,7 +303,7 @@ function limpRenderSemanaInfo() {
 
 async function limpCarregarSemanaAtual() {
   try {
-    const res  = await fetch(LIMP_API + '/api/semana-atual');
+    const res  = await fetch(LIMP_API + '/api/semana-atual', { headers: LIMP_AUTH_HEADERS });
     const data = await res.json();
     limpSemana = (data && data.semana) ? data.semana : null;
   } catch(e) { limpSemana = null; }
@@ -328,7 +330,7 @@ async function limpConfirmarNovaSemana() {
   try {
     const res  = await fetch(LIMP_API + '/api/nova-semana', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...LIMP_AUTH_HEADERS },
       body: JSON.stringify({ data_inicio: inicio, data_fim: fim })
     });
     const data = await res.json();
@@ -345,7 +347,7 @@ async function limpSync() {
   const prog = document.getElementById('limp-progress');
   if (prog) prog.textContent = '⏳ Sincronizando…';
   try {
-    const res  = await fetch(LIMP_API + '/api/sync', { method: 'POST' });
+    const res  = await fetch(LIMP_API + '/api/sync', { method: 'POST', headers: LIMP_AUTH_HEADERS });
     const data = await res.json();
     if (data.ok === false) { toast('⚠️ Erro ao sincronizar: ' + (data.erro || '')); }
     else toast('🔁 Sincronizado!');
@@ -372,7 +374,7 @@ async function initLimpeza() {
   if (prog) prog.textContent = '⏳ Carregando…';
   await limpCarregarSemanaAtual();
   try {
-    const res  = await fetch(LIMP_API + '/api/agenda');
+    const res  = await fetch(LIMP_API + '/api/agenda', { headers: LIMP_AUTH_HEADERS });
     const data = await res.json();
     const raw  = Array.isArray(data) ? data : (data.agenda || data.apartamentos || []);
     const seen = new Set();
@@ -534,7 +536,7 @@ async function limpSaveStatus(apto, status) {
   try {
     await fetch(LIMP_API + '/api/agenda/' + encodeURIComponent(apto) + '/status', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...LIMP_AUTH_HEADERS },
       body: JSON.stringify({ status, dia: diaDate })
     });
     toast('✅ Status atualizado!');
@@ -547,7 +549,7 @@ async function limpSaveDia(apto, dia) {
   try {
     await fetch(LIMP_API + '/api/agenda/' + encodeURIComponent(apto) + '/dia', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...LIMP_AUTH_HEADERS },
       body: JSON.stringify({ dia })
     });
     toast('📅 Data salva!');
@@ -560,7 +562,7 @@ async function limpSaveExec(apto, executor) {
   try {
     await fetch(LIMP_API + '/api/agenda/' + encodeURIComponent(apto) + '/executor', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...LIMP_AUTH_HEADERS },
       body: JSON.stringify({ executor })
     });
     toast('👤 Executor salvo: ' + (executor || '—'));
@@ -573,7 +575,7 @@ async function limpSaveObs(apto, observacao) {
   try {
     await fetch(LIMP_API + '/api/agenda/' + encodeURIComponent(apto) + '/observacao', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...LIMP_AUTH_HEADERS },
       body: JSON.stringify({ observacao })
     });
     toast('📝 Observação salva!');
@@ -584,7 +586,7 @@ async function limpDispararUm(numero, apto, nome) {
   try {
     await fetch(LIMP_API + '/api/disparar', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...LIMP_AUTH_HEADERS },
       body: JSON.stringify({ apto, numero, nome: nome || '' })
     });
     toast('📲 Mensagem enviada para ' + apto + '!');
@@ -606,7 +608,7 @@ async function limpDisparar() {
     try {
       await fetch(LIMP_API + '/api/disparar', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...LIMP_AUTH_HEADERS },
         body: JSON.stringify({ apto: r.apto, numero: r.numero, nome: r.nome || '' })
       });
       ok++;
