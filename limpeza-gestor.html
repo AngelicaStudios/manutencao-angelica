@@ -597,28 +597,40 @@ async function limpDisparar() {
   if (limpSending) { toast('⏳ Envio em andamento…'); return; }
   const aguardando = limpData.filter(r => limpStatusInfo(r.status, r.dia).filterKey === 'aguardando' && r.numero && !r.numero.startsWith('vago_'));
   if (!aguardando.length) { toast('⚠️ Nenhum aguardando com número.'); return; }
-  if (!confirm('Disparar WhatsApp para ' + aguardando.length + ' apartamento(s)?\n\nIntervalo: 45-75s (aleatório) entre envios.')) return;
-  limpSending = true;
+  if (!confirm('Disparar WhatsApp para ' + aguardando.length + ' apartamento(s)?\n\nAgora roda no servidor — pode fechar o app/celular que o envio continua.')) return;
+
+  try {
+    const res  = await fetch(LIMP_API + '/api/disparar-massa', { method: 'POST', headers: LIMP_AUTH_HEADERS });
+    const data = await res.json();
+    if (data.ok === false) { toast('⚠️ ' + (data.erro || 'Erro ao iniciar disparo')); return; }
+  } catch(e) { toast('⚠️ Erro ao iniciar disparo (offline?)'); return; }
+
+  toast('📲 Disparo iniciado no servidor!');
+  limpAcompanharMassa();
+}
+
+async function limpAcompanharMassa() {
   const btnDisp = document.getElementById('limp-btn-disp');
-  if (btnDisp) btnDisp.disabled = true;
-  let ok = 0;
-  for (let i = 0; i < aguardando.length; i++) {
-    const r = aguardando[i];
-    toast('📲 Enviando ' + (i+1) + '/' + aguardando.length + ' → ' + r.apto + '…');
-    try {
-      await fetch(LIMP_API + '/api/disparar', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...LIMP_AUTH_HEADERS },
-        body: JSON.stringify({ apto: r.apto, numero: r.numero, nome: r.nome || '' })
-      });
-      ok++;
-    } catch(e) { /* continua */ }
-    if (i < aguardando.length - 1) await new Promise(res => setTimeout(res, limpRandomDelay()));
+  try {
+    const res = await fetch(LIMP_API + '/api/disparar-massa/status', { headers: LIMP_AUTH_HEADERS });
+    const st  = await res.json();
+    limpSending = st.rodando;
+    if (st.rodando) {
+      if (btnDisp) {
+        btnDisp.disabled = true;
+        btnDisp.textContent = '📲 Enviando ' + (st.enviados + st.erros) + '/' + st.total + (st.atual ? ' — ' + st.atual : '') + '…';
+      }
+      setTimeout(limpAcompanharMassa, 4000);
+    } else {
+      if (btnDisp) { btnDisp.disabled = false; btnDisp.textContent = '📲 Disparar WhatsApp para Aguardando'; }
+      if (st.total > 0) {
+        toast('✅ ' + st.enviados + '/' + st.total + ' mensagens enviadas!');
+        await initLimpeza();
+      }
+    }
+  } catch(e) {
+    setTimeout(limpAcompanharMassa, 6000); // rede instável — tenta de novo
   }
-  limpSending = false;
-  if (btnDisp) btnDisp.disabled = false;
-  toast('✅ ' + ok + '/' + aguardando.length + ' mensagens enviadas!');
-  await initLimpeza();
 }
 
 function limpProxData(dia) {
