@@ -595,7 +595,7 @@ async function limpDispararUm(numero, apto, nome) {
 
 async function limpDisparar() {
   if (limpSending) { toast('⏳ Envio em andamento…'); return; }
-  const aguardando = limpData.filter(r => limpStatusInfo(r.status, r.dia).filterKey === 'aguardando' && r.numero);
+  const aguardando = limpData.filter(r => limpStatusInfo(r.status, r.dia).filterKey === 'aguardando' && r.numero && !r.numero.startsWith('vago_'));
   if (!aguardando.length) { toast('⚠️ Nenhum aguardando com número.'); return; }
   if (!confirm('Disparar WhatsApp para ' + aguardando.length + ' apartamento(s)?\n\nIntervalo: 45-75s (aleatório) entre envios.')) return;
   limpSending = true;
