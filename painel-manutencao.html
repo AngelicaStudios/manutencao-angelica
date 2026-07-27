@@ -2559,49 +2559,56 @@ function limpRenderModalStep(step) {
 }
 
 async function limpStartSend() {
-  const total = limpSendList.length;
+  // Roda no servidor agora — não depende do navegador/celular continuar aberto
+  // pra terminar (loop antigo aqui quebrava se o app fosse pra segundo plano).
   const log   = document.getElementById('lp-log');
   const pbar  = document.getElementById('lpbar');
   const pstat = document.getElementById('lp-status');
 
-  for (let i = 0; i < total; i++) {
-    const row   = limpSendList[i];
-    const apto  = row.apto;
-    const nome  = (row.nome || '').split(' ')[0];
-    const fone  = row.numero || '';
-
-    pstat.textContent = `Enviando ${i+1}/${total} — Apto ${apto}`;
-    pbar.style.width  = Math.round(((i) / total) * 100) + '%';
-
-    try {
-      const resp = await fetch(`${LIMPEZA_API}/api/disparar`, {
-        method:'POST', headers:{'Content-Type':'application/json', ...LIMP_AUTH_HEADERS},
-        body: JSON.stringify({ apto, nome, numero: fone })
-      });
-      if (resp.ok) {
-        log.innerHTML += `<div class="pok">✅ Apto ${apto} — ${nome} — enviado</div>`;
-      } else {
-        const txt = await resp.text();
-        log.innerHTML += `<div class="perr">❌ Apto ${apto} — erro ${resp.status}: ${txt.slice(0,60)}</div>`;
-      }
-    } catch(e) {
-      log.innerHTML += `<div class="perr">❌ Apto ${apto} — ${e.message}</div>`;
+  try {
+    const res  = await fetch(`${LIMPEZA_API}/api/disparar-massa`, { method:'POST', headers: LIMP_AUTH_HEADERS });
+    const data = await res.json();
+    if (data.ok === false) {
+      pstat.textContent = 'Erro: ' + (data.erro || 'não foi possível iniciar');
+      log.innerHTML += `<div class="perr">❌ ${data.erro || 'Erro ao iniciar'}</div>`;
+      return;
     }
-    log.scrollTop = log.scrollHeight;
-
-    // aguarda delay aleatório (exceto no último)
-    if (i < total - 1) {
-      const delay = delaySegAleatorio();
-      pstat.textContent = `Aguardando ${delay}s antes do próximo…`;
-      log.innerHTML += `<div class="pwait">⏳ aguardando ${delay}s…</div>`;
-      log.scrollTop = log.scrollHeight;
-      await new Promise(r => setTimeout(r, delay * 1000));
-    }
+  } catch(e) {
+    pstat.textContent = 'Erro ao iniciar (offline?)';
+    return;
   }
 
-  pbar.style.width = '100%';
-  pstat.textContent = `Concluído! ${total} mensagens enviadas.`;
-  log.innerHTML += `<div class="pok" style="font-weight:700;margin-top:6px">✅ Disparo concluído!</div>`;
+  const vistos = new Set();
+  async function acompanhar() {
+    let st;
+    try {
+      const res = await fetch(`${LIMPEZA_API}/api/disparar-massa/status`, { headers: LIMP_AUTH_HEADERS });
+      st = await res.json();
+    } catch(e) {
+      setTimeout(acompanhar, 6000);
+      return;
+    }
+    // Preenche o log com qualquer envio novo desde a última checagem
+    st.log.forEach((item, idx) => {
+      if (vistos.has(idx)) return;
+      vistos.add(idx);
+      if (item.ok) log.innerHTML += `<div class="pok">✅ Apto ${item.apto} — ${item.nome} — enviado</div>`;
+      else log.innerHTML += `<div class="perr">❌ Apto ${item.apto} — ${item.erro}</div>`;
+    });
+    log.scrollTop = log.scrollHeight;
+
+    if (st.rodando) {
+      const feitos = st.enviados + st.erros;
+      pbar.style.width = st.total ? Math.round((feitos / st.total) * 100) + '%' : '0%';
+      pstat.textContent = `Enviando ${feitos}/${st.total}` + (st.atual ? ` — ${st.atual}` : '') + '…';
+      setTimeout(acompanhar, 4000);
+    } else {
+      pbar.style.width = '100%';
+      pstat.textContent = `Concluído! ${st.enviados}/${st.total} mensagens enviadas.`;
+      log.innerHTML += `<div class="pok" style="font-weight:700;margin-top:6px">✅ Disparo concluído!</div>`;
+    }
+  }
+  acompanhar();
 }
 </script>
 </body>
