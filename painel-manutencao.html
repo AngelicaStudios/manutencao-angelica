@@ -2391,10 +2391,11 @@ async function limpCriarTarefaUnica(apto) {
   if (!(status in LIMP_DAY_MAP)) { toast('⚠️ Apto sem dia de limpeza agendado (defina Terça/Sexta/etc).', 'warn'); return; }
 
   const dataISO  = row.dia || limpProximaData(status);
+  const dataBR   = dataISO.split('-').reverse().join('/');
   const diaLabel = LIMP_DIA_LABEL_TAREFA[status] || '';
   const obs      = (row.observacao || '').trim();
 
-  if (!confirm(`Criar tarefa de limpeza?\n\nApto: ${apto}\nExecutor: ${executor}\nData: ${diaLabel} (${dataISO})`)) return;
+  if (!confirm(`Criar tarefa de limpeza?\n\nApto: ${apto}\nExecutor: ${executor}\nData: ${diaLabel} (${dataBR})`)) return;
 
   const tarefa = {
     id: uid(), apto: apto, tipo: 'Limpeza Semanal',
@@ -2415,11 +2416,12 @@ async function limpNotificarExecutor(nomeExecutor, apto, diaLabel, dataISO, obs)
   const tel  = func && func.tel ? func.tel.trim() : '';
   if (!tel) return null;
 
+  const dataBR = dataISO.split('-').reverse().join('/');
   const primeiroNome = nomeExecutor.split(' ')[0];
   const msg = `Oi, *${primeiroNome}*! 🧹\n\n` +
     `Nova tarefa de limpeza:\n` +
     `🏠 *Apto ${apto}*\n` +
-    `📅 ${diaLabel} (${dataISO})` +
+    `📅 ${diaLabel} (${dataBR})` +
     (obs ? `\n📝 ${obs}` : '') +
     `\n\nVerifique o painel de Tarefas 📋`;
 
