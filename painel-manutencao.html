@@ -2392,17 +2392,47 @@ async function limpCriarTarefaUnica(apto) {
 
   const dataISO  = row.dia || limpProximaData(status);
   const diaLabel = LIMP_DIA_LABEL_TAREFA[status] || '';
+  const obs      = (row.observacao || '').trim();
 
   if (!confirm(`Criar tarefa de limpeza?\n\nApto: ${apto}\nExecutor: ${executor}\nData: ${diaLabel} (${dataISO})`)) return;
 
   const tarefa = {
     id: uid(), apto: apto, tipo: 'Limpeza Semanal',
     prio: 'media', resp: executor, data: dataISO,
-    desc: (row.observacao || '').trim() || `${diaLabel} — Limpeza apto ${apto}`,
+    desc: obs || `${diaLabel} — Limpeza apto ${apto}`,
     status: 'pendente', obs: '', dataExec: '', fotos: [], criadoEm: Date.now()
   };
   await dbSet('tarefas', tarefa.id, tarefa);
-  toast(`✅ Tarefa criada pro apto ${apto}!`, 'success');
+
+  const wppOk = await limpNotificarExecutor(executor, apto, diaLabel, dataISO, obs);
+  if (wppOk === null)  toast(`✅ Tarefa criada pro apto ${apto}! (⚠️ ${executor} sem telefone cadastrado — avise manualmente)`, 'warn');
+  else if (wppOk)      toast(`✅ Tarefa criada e WhatsApp enviado pra ${executor}!`, 'success');
+  else                  toast(`✅ Tarefa criada, mas o WhatsApp pra ${executor} falhou — avise manualmente.`, 'warn');
+}
+
+async function limpNotificarExecutor(nomeExecutor, apto, diaLabel, dataISO, obs) {
+  const func = funcs.find(f => f.nome === nomeExecutor);
+  const tel  = func && func.tel ? func.tel.trim() : '';
+  if (!tel) return null;
+
+  const primeiroNome = nomeExecutor.split(' ')[0];
+  const msg = `Oi, *${primeiroNome}*! 🧹\n\n` +
+    `Nova tarefa de limpeza:\n` +
+    `🏠 *Apto ${apto}*\n` +
+    `📅 ${diaLabel} (${dataISO})` +
+    (obs ? `\n📝 ${obs}` : '') +
+    `\n\nVerifique o painel de Tarefas 📋`;
+
+  try {
+    const res  = await fetch(`${LIMPEZA_API}/api/notificar-executor`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json', ...LIMP_AUTH_HEADERS },
+      body: JSON.stringify({ numero: tel, mensagem: msg })
+    });
+    const data = await res.json();
+    return !!data.ok;
+  } catch(e) {
+    return false;
+  }
 }
 
 async function limpNovasSemana() {
