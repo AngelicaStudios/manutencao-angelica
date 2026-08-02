@@ -132,6 +132,7 @@
   .lb-nr    { background: #f1f5f9; color: #475569; }
   .lb-outro { background: #ede9fe; color: #5b21b6; }
   .limp-wa-btn { flex-shrink: 0; padding: 6px 10px; background: #dcfce7; border: 1.5px solid #86efac; border-radius: 8px; font-size: .85rem; cursor: pointer; }
+  .limp-task-btn { flex-shrink: 0; padding: 6px 10px; background: #e0f2fe; border: 1.5px solid #bae6fd; border-radius: 8px; font-size: .85rem; cursor: pointer; color: #075985; }
   .limp-card-edit { border-top: 1px solid var(--border); padding: 8px 13px; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; background: #fafbfc; }
   .limp-status-sel { flex: 0 0 auto; padding: 6px 8px; border: 1.5px solid var(--border); border-radius: 8px; font-size: .75rem; min-width: 120px; appearance: none; background: #fff; font-family: inherit; font-weight: 600; }
   .limp-exec-sel { flex: 0 0 auto; padding: 6px 8px; border: 1.5px solid var(--border); border-radius: 8px; font-size: .75rem; min-width: 100px; max-width: 140px; appearance: none; background: #fff; font-family: inherit; }
@@ -488,6 +489,7 @@ function limpRender() {
     const waBtnHtml = r.numero
       ? '<button class="limp-wa-btn" onclick="limpDispararUm(\'' + esc(r.numero) + '\',\'' + esc(aptoKey) + '\',\'' + esc(r.nome) + '\')">📲</button>'
       : '';
+    const taskBtnHtml = '<button class="limp-task-btn" onclick="limpCriarTarefaUnica(\'' + esc(aptoKey) + '\')" title="Criar tarefa de limpeza pra este apto">📋</button>';
     const dayKey = LIMP_DAY_UPPER[info.filterKey] || null;
     const statusVal = dayKey || (info.filterKey === 'nao' ? 'NAO' : 'AGUARDANDO');
     const statusOptsHtml = [
@@ -515,6 +517,7 @@ function limpRender() {
         '</div>' +
         '<span class="limp-badge ' + info.cls + '">' + info.label + '</span>' +
         waBtnHtml +
+        taskBtnHtml +
       '</div>' +
       '<div class="limp-card-edit">' +
         statusSelHtml +
@@ -686,6 +689,36 @@ async function limpCriarTarefas() {
     ok++;
   }
   toast('✅ ' + ok + ' tarefa(s) criada(s) no painel de Manutenção!');
+}
+
+const LIMP_DIA_LABEL_TAREFA = {
+  SEGUNDA: 'Segunda-feira', TERCA: 'Terça-feira', QUARTA: 'Quarta-feira',
+  QUINTA: 'Quinta-feira', SEXTA: 'Sexta-feira', SABADO: 'Sábado', DOMINGO: 'Domingo'
+};
+
+async function limpCriarTarefaUnica(apto) {
+  const r = limpData.find(x => x.apto === apto);
+  if (!r) return;
+  if (!r.executor || !r.executor.trim()) { toast('⚠️ Selecione um executor pra esse apto antes de criar a tarefa.'); return; }
+
+  const info   = limpStatusInfo(r.status, r.dia);
+  const dayKey = LIMP_DAY_UPPER[info.filterKey] || null;
+  if (!dayKey) { toast('⚠️ Apto sem dia de limpeza agendado (defina Terça/Sexta/etc).'); return; }
+
+  const dataISO   = r.diaISO || limpProximaData(dayKey);
+  const diaLabel  = LIMP_DIA_LABEL_TAREFA[dayKey] || '';
+  const executor  = r.executor.trim();
+
+  if (!confirm('Criar tarefa de limpeza?\n\nApto: ' + apto + '\nExecutor: ' + executor + '\nData: ' + diaLabel + ' (' + dataISO + ')')) return;
+
+  const tarefa = {
+    id: uid(), apto: apto, tipo: 'Limpeza Semanal',
+    prio: 'media', resp: executor, data: dataISO,
+    desc: r.observacao && r.observacao.trim() ? r.observacao.trim() : (diaLabel + ' — Limpeza apto ' + apto),
+    status: 'pendente', obs: '', dataExec: '', fotos: [], criadoEm: Date.now()
+  };
+  await dbSet('tarefas', tarefa.id, tarefa);
+  toast('✅ Tarefa criada pro apto ' + apto + '!');
 }
 
 // ════════════════════════
