@@ -1,0 +1,16 @@
+{
+  "id": "/manutencao-angelica/apontamento",
+  "name": "Apontamento de Horas",
+  "short_name": "Apontamento",
+  "description": "Painel do gestor: horas dos colaboradores e rateio de custo por unidade",
+  "start_url": "./apontamento-gestor.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#7c3aed",
+  "theme_color": "#7c3aed",
+  "orientation": "portrait",
+  "icons": [
+    { "src": "icon-gestor-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-gestor-180.png", "sizes": "180x180", "type": "image/png", "purpose": "any" }
+  ]
+}
