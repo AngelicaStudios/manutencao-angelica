@@ -1,0 +1,1062 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Apontamento">
+<meta name="theme-color" content="#7c3aed">
+<link rel="manifest" href="manifest-apontamento.json">
+<link rel="apple-touch-icon" href="icon-gestor-180.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-gestor-192.png">
+<title>Apontamento — Gestor</title>
+<style>
+  :root {
+    --roxo:    #7c3aed;
+    --roxo-d:  #6d28d9;
+    --roxo-l:  #ede9fe;
+    --green:   #16a34a;
+    --blue:    #2563eb;
+    --yellow:  #d97706;
+    --red:     #dc2626;
+    --bg:      #f0f2f5;
+    --card:    #ffffff;
+    --text:    #1e293b;
+    --muted:   #64748b;
+    --border:  #e2e8f0;
+    --radius:  14px;
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; }
+  body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    overflow-x: hidden;
+  }
+
+  /* ═══ HEADER ═══ */
+  header {
+    background: var(--roxo);
+    color: #fff;
+    padding: 14px 16px 12px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: 0 2px 8px rgba(0,0,0,.2);
+  }
+  .hdr-left h1   { font-size: 1rem; font-weight: 800; }
+  .hdr-left span { font-size: .72rem; opacity: .82; }
+  .mes-picker {
+    background: rgba(255,255,255,.18);
+    border: 1.5px solid rgba(255,255,255,.5);
+    color: #fff;
+    border-radius: 10px;
+    padding: 7px 10px;
+    font-size: .82rem;
+    font-weight: 700;
+    font-family: inherit;
+    cursor: pointer;
+  }
+  .mes-picker::-webkit-calendar-picker-indicator { filter: invert(1); }
+
+  /* ═══ NAV ═══ */
+  nav {
+    display: flex;
+    background: #fff;
+    border-bottom: 1.5px solid var(--border);
+    position: sticky;
+    top: 57px;
+    z-index: 99;
+  }
+  nav button {
+    flex: 1;
+    padding: 12px 4px;
+    background: none;
+    border: none;
+    border-bottom: 3px solid transparent;
+    font-family: inherit;
+    font-size: .8rem;
+    font-weight: 700;
+    color: var(--muted);
+    cursor: pointer;
+  }
+  nav button.active { color: var(--roxo); border-bottom-color: var(--roxo); }
+
+  main { padding: 14px 12px calc(24px + var(--safe-bottom)); }
+  section { display: none; }
+  section.active { display: block; }
+
+  .card {
+    background: var(--card);
+    border-radius: var(--radius);
+    box-shadow: 0 2px 8px rgba(0,0,0,.08);
+    padding: 14px;
+    margin-bottom: 12px;
+  }
+  .card h2 {
+    font-size: .78rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: .5px;
+    color: var(--muted);
+    margin-bottom: 12px;
+  }
+
+  /* ═══ STATUS DO MÊS ═══ */
+  .status-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    flex-wrap: wrap;
+    background: var(--roxo-l);
+    border-radius: 10px;
+    padding: 10px 12px;
+    margin-bottom: 12px;
+    font-size: .8rem;
+    font-weight: 700;
+    color: #5b21b6;
+  }
+  .pill {
+    padding: 3px 12px;
+    border-radius: 20px;
+    font-size: .7rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: .3px;
+  }
+  .pill-est   { background: #fef3c7; color: #92400e; }
+  .pill-fech  { background: #dcfce7; color: #166534; }
+
+  /* ═══ GRADE DO MÊS ═══ */
+  .grade-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  table.grade { border-collapse: collapse; font-size: .72rem; white-space: nowrap; }
+  table.grade th, table.grade td { border: 1px solid var(--border); padding: 0; }
+  table.grade th.dia {
+    width: 26px; text-align: center; font-size: .62rem; font-weight: 700;
+    color: var(--muted); padding: 4px 0; background: #f8fafc;
+  }
+  table.grade th.dia.fds { background: #f1f5f9; color: #94a3b8; }
+  table.grade th.nome {
+    text-align: left; padding: 6px 10px; font-weight: 700; background: #f8fafc;
+    position: sticky; left: 0; z-index: 2; min-width: 108px;
+  }
+  table.grade td.nome {
+    text-align: left; padding: 6px 10px; font-weight: 700; background: #fff;
+    position: sticky; left: 0; z-index: 1; min-width: 108px;
+  }
+  .cel { display: flex; flex-direction: column; height: 34px; width: 26px; cursor: pointer; }
+  .cel .t { flex: 1; border-bottom: 1px solid rgba(255,255,255,.6); font-size: .5rem;
+            display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 800; }
+  .cel .t:last-child { border-bottom: none; }
+  .t-vazio { background: #f8fafc; }
+  .t-vazio-atras { background: repeating-linear-gradient(45deg,#fee2e2,#fee2e2 3px,#fecaca 3px,#fecaca 6px); }
+  .t-folga { background: #cbd5e1; color: #475569 !important; }
+  .t-falta { background: #94a3b8; }
+  .t-ext   { background: #475569; }
+  .t-multi { background: linear-gradient(135deg,#7c3aed,#a78bfa); }
+
+  .legenda { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; font-size: .68rem; color: var(--muted); }
+  .legenda span { display: inline-flex; align-items: center; gap: 4px; }
+  .legenda i { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
+
+  /* ═══ TABELAS GERAIS ═══ */
+  table.dados { width: 100%; border-collapse: collapse; font-size: .8rem; }
+  table.dados th {
+    text-align: left; font-size: .66rem; text-transform: uppercase; letter-spacing: .4px;
+    color: var(--muted); padding: 6px 8px; border-bottom: 1.5px solid var(--border);
+  }
+  table.dados td { padding: 8px; border-bottom: 1px solid var(--border); }
+  table.dados td.num, table.dados th.num { text-align: right; font-variant-numeric: tabular-nums; }
+  table.dados tr.total td { font-weight: 800; border-top: 2px solid var(--border); border-bottom: none; }
+  table.dados tr.sub td { color: var(--muted); font-size: .74rem; }
+
+  .inp {
+    width: 100%;
+    padding: 9px 10px;
+    border: 1.5px solid var(--border);
+    border-radius: 9px;
+    font-size: .85rem;
+    font-family: inherit;
+    color: var(--text);
+    background: #fff;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+  .inp:focus { outline: none; border-color: var(--roxo); }
+  .inp:disabled { background: #f8fafc; color: var(--muted); }
+
+  .btn {
+    padding: 12px 16px;
+    border: none;
+    border-radius: 11px;
+    font-size: .88rem;
+    font-weight: 800;
+    font-family: inherit;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+  }
+  .btn:active { transform: scale(.98); }
+  .btn-roxo   { background: var(--roxo);  color: #fff; }
+  .btn-green  { background: var(--green); color: #fff; }
+  .btn-ghost  { background: #fff; color: var(--muted); border: 1.5px solid var(--border); }
+  .btn-red    { background: var(--red); color: #fff; }
+  .btn-full   { width: 100%; }
+  .btn-row    { display: flex; gap: 8px; flex-wrap: wrap; }
+
+  /* ═══ CARDS DE UNIDADE ═══ */
+  .un-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+  .un-card {
+    border: 1.5px solid var(--border);
+    border-left: 5px solid var(--roxo);
+    border-radius: 11px;
+    padding: 11px 12px;
+  }
+  .un-card .un-nome { font-size: .82rem; font-weight: 800; }
+  .un-card .un-sub  { font-size: .66rem; color: var(--muted); margin-top: 1px; }
+  .un-card .un-val  { font-size: 1.15rem; font-weight: 800; margin-top: 7px; }
+  .un-card .un-apto { font-size: .7rem; color: var(--muted); margin-top: 2px; }
+
+  .alerta {
+    background: #fef2f2;
+    border: 1.5px solid #fecaca;
+    color: #991b1b;
+    border-radius: 10px;
+    padding: 10px 12px;
+    font-size: .78rem;
+    font-weight: 600;
+    line-height: 1.45;
+    margin-bottom: 12px;
+  }
+  .aviso {
+    background: #fffbeb;
+    border: 1.5px solid #fde68a;
+    color: #92400e;
+    border-radius: 10px;
+    padding: 10px 12px;
+    font-size: .78rem;
+    font-weight: 600;
+    line-height: 1.45;
+    margin-bottom: 12px;
+  }
+  .vazio { text-align: center; padding: 34px 16px; color: var(--muted); font-size: .85rem; }
+
+  /* ═══ MODAL ═══ */
+  #modal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(15,23,42,.6);
+    z-index: 500;
+    align-items: flex-end;
+    justify-content: center;
+  }
+  #modal.open { display: flex; }
+  .modal-box {
+    background: #fff;
+    width: 100%;
+    max-width: 480px;
+    border-radius: 18px 18px 0 0;
+    padding: 18px 16px calc(18px + var(--safe-bottom));
+    max-height: 92vh;
+    overflow-y: auto;
+  }
+  .modal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+  .modal-head h3 { font-size: 1rem; font-weight: 800; }
+  .x-btn { background: none; border: none; font-size: 1.2rem; color: var(--muted); cursor: pointer; }
+
+  .turno-box { border: 1.5px solid var(--border); border-radius: 12px; padding: 12px; margin-bottom: 12px; }
+  .turno-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+  .turno-head strong { font-size: .88rem; }
+  .turno-head small  { font-size: .7rem; color: var(--muted); }
+
+  .chips { display: flex; flex-wrap: wrap; gap: 7px; }
+  .chip {
+    padding: 8px 12px;
+    border: 2px solid var(--border);
+    border-radius: 20px;
+    background: #fff;
+    font-size: .78rem;
+    font-weight: 700;
+    color: var(--muted);
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .chip.on      { background: var(--roxo-l); border-color: var(--roxo); color: #5b21b6; }
+  .chip.on-cinza{ background: #e2e8f0; border-color: #94a3b8; color: #334155; }
+  .chip.on-esc  { background: #334155; border-color: #334155; color: #fff; }
+
+  .ext-box { margin-top: 10px; display: none; gap: 8px; }
+  .ext-box.open { display: flex; }
+  .ext-box input { flex: 1; text-align: left; }
+  .ext-box input.h { max-width: 88px; text-align: right; }
+
+  .resumo-turno { margin-top: 9px; font-size: .72rem; color: var(--muted); line-height: 1.5; }
+  .resumo-turno b { color: var(--text); }
+
+  #toast {
+    position: fixed;
+    bottom: calc(20px + var(--safe-bottom));
+    left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: #1e293b;
+    color: #fff;
+    padding: 12px 22px;
+    border-radius: 24px;
+    font-size: .86rem;
+    font-weight: 700;
+    box-shadow: 0 4px 20px rgba(0,0,0,.3);
+    opacity: 0;
+    transition: all .3s;
+    pointer-events: none;
+    z-index: 600;
+  }
+  #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+</style>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script src="firebase-config.js"></script>
+</head>
+<body>
+
+<header>
+  <div class="hdr-left">
+    <h1>🕐 Apontamento</h1>
+    <span id="hdr-sub">Horas e rateio de custo</span>
+  </div>
+  <input type="month" class="mes-picker" id="mes-picker" onchange="trocarMes(this.value)">
+</header>
+
+<nav>
+  <button class="active" data-sec="mes"    onclick="showSec(this)">📅 Mês</button>
+  <button              data-sec="custos" onclick="showSec(this)">💰 Custos</button>
+  <button              data-sec="rateio" onclick="showSec(this)">📊 Rateio</button>
+</nav>
+
+<main>
+  <!-- ═══════════ MÊS ═══════════ -->
+  <section id="sec-mes" class="active">
+    <div id="mes-alertas"></div>
+    <div class="card">
+      <h2>Grade do mês</h2>
+      <div class="grade-wrap" id="grade-wrap"></div>
+      <div class="legenda">
+        <span><i style="background:linear-gradient(135deg,#7c3aed,#a78bfa)"></i> Angelica</span>
+        <span><i style="background:#475569"></i> Externo</span>
+        <span><i style="background:#cbd5e1"></i> Folga</span>
+        <span><i style="background:#94a3b8"></i> Falta</span>
+        <span><i style="background:repeating-linear-gradient(45deg,#fee2e2,#fee2e2 3px,#fecaca 3px,#fecaca 6px)"></i> Em atraso</span>
+      </div>
+    </div>
+    <div class="card">
+      <h2>Resumo por colaborador</h2>
+      <table class="dados" id="tb-resumo"></table>
+    </div>
+  </section>
+
+  <!-- ═══════════ CUSTOS ═══════════ -->
+  <section id="sec-custos">
+    <div id="custos-status"></div>
+    <div class="card">
+      <h2>Custo do mês por colaborador</h2>
+      <table class="dados" id="tb-custos"></table>
+      <div class="btn-row" style="margin-top:14px">
+        <button class="btn btn-roxo btn-full" onclick="salvarCustos()">💾 Salvar valores</button>
+      </div>
+      <div class="btn-row" style="margin-top:8px">
+        <button class="btn btn-green btn-full" id="btn-fechar" onclick="fecharMes()">🔒 Fechar mês (usar valores reais)</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════ RATEIO ═══════════ -->
+  <section id="sec-rateio">
+    <div id="rateio-avisos"></div>
+    <div class="card">
+      <h2>Custo por unidade</h2>
+      <div class="un-grid" id="un-grid"></div>
+    </div>
+    <div class="card">
+      <h2>Rateio detalhado</h2>
+      <div class="grade-wrap"><table class="dados" id="tb-rateio"></table></div>
+    </div>
+    <div class="card">
+      <h2>Horas externas</h2>
+      <table class="dados" id="tb-externo"></table>
+    </div>
+    <button class="btn btn-ghost btn-full" onclick="exportarCSV()">⬇️ Exportar CSV</button>
+  </section>
+</main>
+
+<!-- ═══════════ MODAL DE EDIÇÃO ═══════════ -->
+<div id="modal" onclick="if(event.target===this)fecharModal()">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3 id="modal-titulo">Editar dia</h3>
+      <button class="x-btn" onclick="fecharModal()">✕</button>
+    </div>
+    <div id="modal-body"></div>
+    <div class="btn-row" style="margin-top:4px">
+      <button class="btn btn-roxo" style="flex:1" onclick="salvarDia()">💾 Salvar</button>
+      <button class="btn btn-red" onclick="apagarDia()">🗑️</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ══════════════════════════════════════════════
+// CONSTANTES DE NEGÓCIO
+// ══════════════════════════════════════════════
+// Peso do rateio = nº de apartamentos da unidade. "Angelica Todas" e qualquer
+// seleção com 2+ unidades divide as horas do turno por esse peso.
+const UNIDADES = [
+  { id:'A1', nome:'Angelica 1', aptos:6  },
+  { id:'A2', nome:'Angelica 2', aptos:8  },
+  { id:'A3', nome:'Angelica 3', aptos:16 },
+  { id:'A4', nome:'Angelica 4', aptos:12 },
+  { id:'A5', nome:'Angelica 5', aptos:4  },
+];
+const APTOS = Object.fromEntries(UNIDADES.map(u => [u.id, u.aptos]));
+const NOMES = Object.fromEntries(UNIDADES.map(u => [u.id, u.nome]));
+const HORAS_TURNO = 4;   // manhã 08–12, tarde 13–17
+const INICIO_PADRAO = '2026-08-01';   // sobrescrito por config/apontamento.inicio
+
+// ══════════════════════════════════════════════
+// ESTADO
+// ══════════════════════════════════════════════
+let funcs      = [];     // [{nome, pin, tel}]
+let apts       = [];      // apontamentos do mês selecionado
+let custos     = null;    // doc custos_mao_obra/{mes}
+let inicioApont= INICIO_PADRAO;
+let mesAtual   = '';      // 'YYYY-MM'
+let editando   = null;    // {func, data, manha, tarde}
+let unsubApts  = null;
+let unsubCust  = null;
+
+// ══════════════════════════════════════════════
+// UTILS
+// ══════════════════════════════════════════════
+function hojeISO() {
+  return new Date().toLocaleDateString('sv-SE', { timeZone: 'America/Sao_Paulo' });
+}
+function mesDe(iso) { return iso.slice(0,7); }
+function fmtBR(iso) { const [y,m,d] = iso.split('-'); return `${d}/${m}`; }
+function diasDoMes(mes) {
+  const [y,m] = mes.split('-').map(Number);
+  return new Date(y, m, 0).getDate();
+}
+function diaSemana(iso) {
+  const [y,m,d] = iso.split('-').map(Number);
+  return new Date(y, m-1, d).getDay();   // 0=dom … 6=sáb
+}
+function ehUtil(iso) { const w = diaSemana(iso); return w >= 1 && w <= 5; }
+function moeda(v) {
+  return (v||0).toLocaleString('pt-BR', { style:'currency', currency:'BRL' });
+}
+function h(v) {
+  const n = Math.round((v||0) * 100) / 100;
+  return n.toLocaleString('pt-BR', { maximumFractionDigits: 2 }) + 'h';
+}
+function esc(s) {
+  return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function slug(nome) {
+  return String(nome||'').normalize('NFD').replace(/[̀-ͯ]/g,'')
+    .replace(/[^a-zA-Z0-9]+/g,'-').replace(/^-|-$/g,'').toLowerCase();
+}
+function docId(data, nome) { return `${data}_${slug(nome)}`; }
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 2600);
+}
+
+// ══════════════════════════════════════════════
+// REGRA DE RATEIO
+// ══════════════════════════════════════════════
+// Um turno vale 4h. As horas externas saem primeiro (rateadas por hora, fora das
+// Angelicas); o que sobra é dividido entre as unidades marcadas, proporcional
+// ao nº de apartamentos de cada uma.
+function ratearTurno(t) {
+  const out = { unidades:{}, externo:{}, horas:0, incompleto:false };
+  if (!t || t.status !== 'trabalho') return out;
+
+  const ext  = Math.max(0, Math.min(HORAS_TURNO, Number(t.extHoras) || 0));
+  const rest = HORAS_TURNO - ext;
+  if (ext > 0) {
+    const dest = (t.extDest || '').trim() || 'Externo (sem destino)';
+    out.externo[dest] = (out.externo[dest] || 0) + ext;
+    out.horas += ext;
+  }
+  const sel = (t.unidades || []).filter(u => APTOS[u]);
+  if (rest > 0) {
+    if (!sel.length) { out.incompleto = true; }
+    else {
+      const peso = sel.reduce((s,u) => s + APTOS[u], 0);
+      sel.forEach(u => {
+        const hs = rest * APTOS[u] / peso;
+        out.unidades[u] = (out.unidades[u] || 0) + hs;
+        out.horas += hs;
+      });
+    }
+  }
+  return out;
+}
+
+function agregarFunc(nome) {
+  const meus = apts.filter(a => a.func === nome);
+  const ag = { unidades:{}, externo:{}, horas:0, dias:0, folgas:0, faltas:0, incompletos:0 };
+  meus.forEach(d => {
+    let hDia = 0;
+    ['manha','tarde'].forEach(k => {
+      const t = d[k];
+      if (t && t.status === 'folga') ag.folgas += .5;
+      if (t && t.status === 'falta') ag.faltas += .5;
+      const r = ratearTurno(t);
+      if (r.incompleto) ag.incompletos++;
+      Object.entries(r.unidades).forEach(([u,v]) => ag.unidades[u] = (ag.unidades[u]||0) + v);
+      Object.entries(r.externo).forEach(([e,v]) => ag.externo[e] = (ag.externo[e]||0) + v);
+      hDia += r.horas;
+    });
+    if (hDia > 0) ag.dias++;
+    ag.horas += hDia;
+  });
+  return ag;
+}
+
+function valorFunc(nome) {
+  const v = (custos && custos.valores && custos.valores[nome]) || {};
+  const usaReal = custos && custos.status === 'fechado';
+  const val = usaReal ? (v.real ?? v.estimado ?? 0) : (v.estimado ?? 0);
+  return { valor: Number(val) || 0, estimado: Number(v.estimado)||0, real: v.real==null?null:Number(v.real) };
+}
+
+// Dias úteis sem lançamento nenhum, do início do apontamento até ontem.
+function pendenciasFunc(nome) {
+  const hoje = hojeISO();
+  const total = diasDoMes(mesAtual);
+  const out = [];
+  for (let i = 1; i <= total; i++) {
+    const iso = `${mesAtual}-${String(i).padStart(2,'0')}`;
+    if (iso >= hoje) break;
+    if (iso < inicioApont) continue;
+    if (!ehUtil(iso)) continue;
+    if (!apts.some(a => a.func === nome && a.data === iso)) out.push(iso);
+  }
+  return out;
+}
+
+// ══════════════════════════════════════════════
+// FIREBASE
+// ══════════════════════════════════════════════
+function initListeners() {
+  db.collection('config').doc('funcionarios').onSnapshot(snap => {
+    const d = snap.exists ? snap.data() : {};
+    funcs = d.funcionarios || (d.nomes ? d.nomes.map(n => ({nome:n})) : []);
+    renderTudo();
+  });
+  db.collection('config').doc('apontamento').onSnapshot(snap => {
+    if (snap.exists && snap.data().inicio) inicioApont = snap.data().inicio;
+    renderTudo();
+  });
+}
+
+function ouvirMes(mes) {
+  if (unsubApts) unsubApts();
+  if (unsubCust) unsubCust();
+  unsubApts = db.collection('apontamentos').where('anoMes', '==', mes)
+    .onSnapshot(snap => { apts = snap.docs.map(d => ({ id:d.id, ...d.data() })); renderTudo(); });
+  unsubCust = db.collection('custos_mao_obra').doc(mes)
+    .onSnapshot(snap => { custos = snap.exists ? snap.data() : null; renderTudo(); });
+}
+
+function trocarMes(mes) {
+  if (!mes) return;
+  mesAtual = mes;
+  apts = []; custos = null;
+  ouvirMes(mes);
+  renderTudo();
+}
+
+// ══════════════════════════════════════════════
+// NAVEGAÇÃO
+// ══════════════════════════════════════════════
+function showSec(btn) {
+  document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  document.querySelectorAll('section').forEach(s => s.classList.remove('active'));
+  document.getElementById('sec-' + btn.dataset.sec).classList.add('active');
+}
+
+function renderTudo() {
+  if (!mesAtual) return;
+  renderGrade();
+  renderResumo();
+  renderCustos();
+  renderRateio();
+}
+
+// ══════════════════════════════════════════════
+// ABA MÊS — GRADE
+// ══════════════════════════════════════════════
+function classeTurno(t, iso) {
+  const hoje = hojeISO();
+  if (!t) {
+    const atras = iso < hoje && iso >= inicioApont && ehUtil(iso);
+    return { cls: atras ? 't-vazio-atras' : 't-vazio', txt: '' };
+  }
+  if (t.status === 'folga') return { cls:'t-folga', txt:'F' };
+  if (t.status === 'falta') return { cls:'t-falta', txt:'!' };
+  const r = ratearTurno(t);
+  const us = Object.keys(r.unidades);
+  const ext = Object.keys(r.externo).length > 0;
+  if (!us.length && ext) return { cls:'t-ext', txt:'E' };
+  if (us.length === 1)   return { cls:'t-multi', txt: us[0].replace('A','') };
+  if (us.length > 1)     return { cls:'t-multi', txt:'•' };
+  return { cls:'t-vazio', txt:'' };
+}
+
+function renderGrade() {
+  const wrap = document.getElementById('grade-wrap');
+  const alertas = document.getElementById('mes-alertas');
+  if (!funcs.length) {
+    wrap.innerHTML = `<div class="vazio">Nenhum colaborador cadastrado.<br>Cadastre em Manutenção · Gestor → Config.</div>`;
+    alertas.innerHTML = '';
+    return;
+  }
+
+  // Alerta de atraso
+  const atrasados = funcs.map(f => ({ nome:f.nome, dias:pendenciasFunc(f.nome) }))
+                         .filter(x => x.dias.length);
+  alertas.innerHTML = atrasados.length
+    ? `<div class="alerta">⚠️ <b>Apontamento em atraso:</b><br>${atrasados.map(a =>
+        `${esc(a.nome)} — ${a.dias.length} dia(s): ${a.dias.map(fmtBR).join(', ')}`).join('<br>')}</div>`
+    : '';
+
+  const total = diasDoMes(mesAtual);
+  let head = '<tr><th class="nome">Colaborador</th>';
+  for (let i = 1; i <= total; i++) {
+    const iso = `${mesAtual}-${String(i).padStart(2,'0')}`;
+    head += `<th class="dia ${ehUtil(iso)?'':'fds'}">${i}</th>`;
+  }
+  head += '</tr>';
+
+  let body = '';
+  funcs.forEach(f => {
+    body += `<tr><td class="nome">${esc(f.nome)}</td>`;
+    for (let i = 1; i <= total; i++) {
+      const iso = `${mesAtual}-${String(i).padStart(2,'0')}`;
+      const d = apts.find(a => a.func === f.nome && a.data === iso);
+      const m = classeTurno(d && d.manha, iso);
+      const t = classeTurno(d && d.tarde, iso);
+      body += `<td><div class="cel" onclick="abrirDia('${esc(f.nome).replace(/'/g,"\\'")}','${iso}')">
+                 <div class="t ${m.cls}">${m.txt}</div>
+                 <div class="t ${t.cls}">${t.txt}</div>
+               </div></td>`;
+    }
+    body += '</tr>';
+  });
+
+  wrap.innerHTML = `<table class="grade">${head}${body}</table>`;
+}
+
+function renderResumo() {
+  const el = document.getElementById('tb-resumo');
+  if (!funcs.length) { el.innerHTML = ''; return; }
+  let rows = '';
+  let tH = 0, tD = 0;
+  funcs.forEach(f => {
+    const ag = agregarFunc(f.nome);
+    const pend = pendenciasFunc(f.nome).length;
+    tH += ag.horas; tD += ag.dias;
+    rows += `<tr>
+      <td>${esc(f.nome)}</td>
+      <td class="num">${ag.dias}</td>
+      <td class="num">${h(ag.horas)}</td>
+      <td class="num">${ag.folgas || '—'}</td>
+      <td class="num">${pend ? `<span style="color:var(--red);font-weight:800">${pend}</span>` : '—'}</td>
+    </tr>`;
+  });
+  el.innerHTML = `
+    <tr><th>Colaborador</th><th class="num">Dias</th><th class="num">Horas</th>
+        <th class="num">Folgas</th><th class="num">Atraso</th></tr>
+    ${rows}
+    <tr class="total"><td>Total</td><td class="num">${tD}</td><td class="num">${h(tH)}</td><td></td><td></td></tr>`;
+}
+
+// ══════════════════════════════════════════════
+// ABA CUSTOS
+// ══════════════════════════════════════════════
+function renderCustos() {
+  const st = document.getElementById('custos-status');
+  const fechado = custos && custos.status === 'fechado';
+  st.innerHTML = `<div class="status-bar">
+      <span>Mês ${mesAtual.split('-').reverse().join('/')}</span>
+      <span class="pill ${fechado?'pill-fech':'pill-est'}">${fechado?'Fechado · valor real':'Aberto · valor estimado'}</span>
+    </div>`;
+
+  const el = document.getElementById('tb-custos');
+  if (!funcs.length) { el.innerHTML = `<tr><td class="vazio">Nenhum colaborador cadastrado.</td></tr>`; return; }
+
+  let rows = '';
+  funcs.forEach(f => {
+    const v  = valorFunc(f.nome);
+    const ag = agregarFunc(f.nome);
+    const ch = ag.horas ? v.valor / ag.horas : 0;
+    const cd = ag.dias  ? v.valor / ag.dias  : 0;
+    const id = slug(f.nome);
+    rows += `<tr>
+        <td colspan="3"><b>${esc(f.nome)}</b></td>
+      </tr>
+      <tr>
+        <td style="width:34%">Estimado</td>
+        <td colspan="2"><input class="inp" type="number" step="0.01" min="0" id="est-${id}"
+            value="${v.estimado || ''}" placeholder="0,00"></td>
+      </tr>
+      <tr>
+        <td>Real</td>
+        <td colspan="2"><input class="inp" type="number" step="0.01" min="0" id="real-${id}"
+            value="${v.real ?? ''}" placeholder="preencher no fechamento"></td>
+      </tr>
+      <tr class="sub">
+        <td>Usando ${custos && custos.status==='fechado' ? 'real' : 'estimado'}</td>
+        <td class="num">${h(ag.horas)} · ${ag.dias} dia(s)</td>
+        <td class="num">${moeda(ch)}/h · ${moeda(cd)}/dia</td>
+      </tr>`;
+  });
+  el.innerHTML = `<tr><th colspan="3">Valores do mês</th></tr>${rows}`;
+
+  const btn = document.getElementById('btn-fechar');
+  btn.textContent = (custos && custos.status === 'fechado')
+    ? '🔓 Reabrir mês (voltar ao estimado)'
+    : '🔒 Fechar mês (usar valores reais)';
+}
+
+async function salvarCustos() {
+  const valores = (custos && custos.valores) ? { ...custos.valores } : {};
+  funcs.forEach(f => {
+    const id  = slug(f.nome);
+    const est = document.getElementById('est-'  + id);
+    const rl  = document.getElementById('real-' + id);
+    valores[f.nome] = {
+      estimado: est && est.value !== '' ? Number(est.value) : 0,
+      real:     rl  && rl.value  !== '' ? Number(rl.value)  : null,
+    };
+  });
+  await db.collection('custos_mao_obra').doc(mesAtual).set({
+    anoMes: mesAtual,
+    status: (custos && custos.status) || 'estimado',
+    valores,
+    atualizadoEm: new Date().toISOString(),
+  }, { merge: true });
+  toast('💾 Valores salvos!');
+}
+
+async function fecharMes() {
+  const fechado = custos && custos.status === 'fechado';
+  if (!fechado) {
+    const semReal = funcs.filter(f => {
+      const id = slug(f.nome);
+      const rl = document.getElementById('real-' + id);
+      return !rl || rl.value === '';
+    }).map(f => f.nome);
+    if (semReal.length && !confirm(`Sem valor real: ${semReal.join(', ')}.\nEsses vão continuar no estimado. Fechar assim mesmo?`)) return;
+  }
+  await salvarCustos();
+  await db.collection('custos_mao_obra').doc(mesAtual).set({
+    status: fechado ? 'estimado' : 'fechado',
+    fechadoEm: fechado ? null : new Date().toISOString(),
+  }, { merge: true });
+  toast(fechado ? '🔓 Mês reaberto.' : '🔒 Mês fechado com valores reais!');
+}
+
+// ══════════════════════════════════════════════
+// ABA RATEIO
+// ══════════════════════════════════════════════
+function calcularRateio() {
+  const porUnidade = {};   // A1: {horas, valor}
+  const porExterno = {};   // destino: {horas, valor}
+  const matriz     = {};   // func: {A1: valor, ...}
+  let totalValor = 0, horasSemCusto = 0;
+
+  UNIDADES.forEach(u => porUnidade[u.id] = { horas:0, valor:0 });
+
+  funcs.forEach(f => {
+    const ag = agregarFunc(f.nome);
+    const v  = valorFunc(f.nome).valor;
+    const ch = ag.horas ? v / ag.horas : 0;
+    if (ag.horas && !v) horasSemCusto += ag.horas;
+    matriz[f.nome] = {};
+    Object.entries(ag.unidades).forEach(([u, hs]) => {
+      porUnidade[u].horas += hs;
+      porUnidade[u].valor += hs * ch;
+      matriz[f.nome][u] = hs * ch;
+      totalValor += hs * ch;
+    });
+    Object.entries(ag.externo).forEach(([e, hs]) => {
+      if (!porExterno[e]) porExterno[e] = { horas:0, valor:0 };
+      porExterno[e].horas += hs;
+      porExterno[e].valor += hs * ch;
+      matriz[f.nome]['EXT'] = (matriz[f.nome]['EXT'] || 0) + hs * ch;
+      totalValor += hs * ch;
+    });
+  });
+  return { porUnidade, porExterno, matriz, totalValor, horasSemCusto };
+}
+
+function renderRateio() {
+  const r = calcularRateio();
+  const avisos = document.getElementById('rateio-avisos');
+  const msgs = [];
+  if (r.horasSemCusto > 0)
+    msgs.push(`Tem ${h(r.horasSemCusto)} lançadas sem custo cadastrado — preencha os valores na aba 💰 Custos.`);
+  const incompletos = funcs.reduce((s,f) => s + agregarFunc(f.nome).incompletos, 0);
+  if (incompletos > 0)
+    msgs.push(`${incompletos} turno(s) marcados como trabalhado mas sem unidade nem externo — essas horas ficaram fora do rateio.`);
+  const atrasoTotal = funcs.reduce((s,f) => s + pendenciasFunc(f.nome).length, 0);
+  if (atrasoTotal > 0)
+    msgs.push(`${atrasoTotal} dia(s) útil(eis) sem apontamento — o rateio está incompleto até regularizar.`);
+  avisos.innerHTML = msgs.length ? `<div class="aviso">⚠️ ${msgs.join('<br>')}</div>` : '';
+
+  // Cards por unidade
+  document.getElementById('un-grid').innerHTML = UNIDADES.map(u => {
+    const d = r.porUnidade[u.id];
+    return `<div class="un-card">
+      <div class="un-nome">${u.nome}</div>
+      <div class="un-sub">${u.aptos} aptos · ${h(d.horas)}</div>
+      <div class="un-val">${moeda(d.valor)}</div>
+      <div class="un-apto">${moeda(d.valor / u.aptos)} por apto</div>
+    </div>`;
+  }).join('');
+
+  // Matriz colaborador × unidade
+  const el = document.getElementById('tb-rateio');
+  if (!funcs.length) { el.innerHTML = ''; return; }
+  const cols = UNIDADES.map(u => u.id);
+  let head = `<tr><th>Colaborador</th>${UNIDADES.map(u =>
+    `<th class="num">${u.nome.replace('Angelica ','A')}</th>`).join('')}<th class="num">Ext.</th><th class="num">Total</th></tr>`;
+  let body = '';
+  funcs.forEach(f => {
+    const m = r.matriz[f.nome] || {};
+    const tot = Object.values(m).reduce((a,b) => a+b, 0);
+    if (!tot) return;
+    body += `<tr><td>${esc(f.nome)}</td>${cols.map(c =>
+      `<td class="num">${m[c] ? moeda(m[c]) : '—'}</td>`).join('')}
+      <td class="num">${m.EXT ? moeda(m.EXT) : '—'}</td>
+      <td class="num"><b>${moeda(tot)}</b></td></tr>`;
+  });
+  const totExt = Object.values(r.porExterno).reduce((s,x) => s + x.valor, 0);
+  body += `<tr class="total"><td>Total</td>${cols.map(c =>
+    `<td class="num">${moeda(r.porUnidade[c].valor)}</td>`).join('')}
+    <td class="num">${moeda(totExt)}</td>
+    <td class="num">${moeda(r.totalValor)}</td></tr>`;
+  el.innerHTML = head + (body || `<tr><td class="vazio" colspan="8">Sem lançamentos neste mês.</td></tr>`);
+
+  // Externo por destino
+  const ext = document.getElementById('tb-externo');
+  const linhas = Object.entries(r.porExterno).sort((a,b) => b[1].valor - a[1].valor);
+  ext.innerHTML = linhas.length
+    ? `<tr><th>Destino</th><th class="num">Horas</th><th class="num">Custo</th></tr>` +
+      linhas.map(([d,v]) => `<tr><td>${esc(d)}</td><td class="num">${h(v.horas)}</td><td class="num">${moeda(v.valor)}</td></tr>`).join('') +
+      `<tr class="total"><td>Total</td><td class="num">${h(linhas.reduce((s,[,v])=>s+v.horas,0))}</td>
+       <td class="num">${moeda(totExt)}</td></tr>`
+    : `<tr><td class="vazio">Nenhuma hora externa neste mês.</td></tr>`;
+}
+
+function exportarCSV() {
+  const r = calcularRateio();
+  const sep = ';';
+  const linhas = [];
+  linhas.push(`Rateio de mão de obra${sep}${mesAtual}`);
+  linhas.push(`Base${sep}${custos && custos.status==='fechado' ? 'valor real (mês fechado)' : 'valor estimado'}`);
+  linhas.push('');
+  linhas.push(['Colaborador', ...UNIDADES.map(u => u.nome), 'Externo', 'Total'].join(sep));
+  funcs.forEach(f => {
+    const m = r.matriz[f.nome] || {};
+    const tot = Object.values(m).reduce((a,b)=>a+b,0);
+    if (!tot) return;
+    linhas.push([f.nome, ...UNIDADES.map(u => (m[u.id]||0).toFixed(2)),
+                 (m.EXT||0).toFixed(2), tot.toFixed(2)].join(sep));
+  });
+  const totExt = Object.values(r.porExterno).reduce((s,x)=>s+x.valor,0);
+  linhas.push(['TOTAL', ...UNIDADES.map(u => r.porUnidade[u.id].valor.toFixed(2)),
+               totExt.toFixed(2), r.totalValor.toFixed(2)].join(sep));
+  linhas.push('');
+  linhas.push(['Unidade','Aptos','Horas','Custo','Custo por apto'].join(sep));
+  UNIDADES.forEach(u => {
+    const d = r.porUnidade[u.id];
+    linhas.push([u.nome, u.aptos, d.horas.toFixed(2), d.valor.toFixed(2), (d.valor/u.aptos).toFixed(2)].join(sep));
+  });
+  linhas.push('');
+  linhas.push(['Destino externo','Horas','Custo'].join(sep));
+  Object.entries(r.porExterno).forEach(([d,v]) =>
+    linhas.push([d, v.horas.toFixed(2), v.valor.toFixed(2)].join(sep)));
+
+  const blob = new Blob(['﻿' + linhas.join('\n')], { type:'text/csv;charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `rateio-mao-de-obra-${mesAtual}.csv`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+  toast('⬇️ CSV gerado!');
+}
+
+// ══════════════════════════════════════════════
+// MODAL — EDIÇÃO DE UM DIA (gestor edita qualquer data)
+// ══════════════════════════════════════════════
+function turnoVazio() { return { status:'trabalho', unidades:[], extHoras:0, extDest:'' }; }
+
+function abrirDia(nome, data) {
+  const d = apts.find(a => a.func === nome && a.data === data);
+  editando = {
+    func: nome,
+    data,
+    manha: d && d.manha ? { ...turnoVazio(), ...d.manha, unidades:[...(d.manha.unidades||[])] } : turnoVazio(),
+    tarde: d && d.tarde ? { ...turnoVazio(), ...d.tarde, unidades:[...(d.tarde.unidades||[])] } : turnoVazio(),
+    existe: !!d,
+  };
+  document.getElementById('modal-titulo').textContent = `${nome} — ${fmtBR(data)}`;
+  renderModal();
+  document.getElementById('modal').classList.add('open');
+}
+
+function fecharModal() {
+  document.getElementById('modal').classList.remove('open');
+  editando = null;
+}
+
+function renderModal() {
+  document.getElementById('modal-body').innerHTML =
+    turnoHTML('manha', 'Manhã', '08:00 – 12:00') +
+    turnoHTML('tarde', 'Tarde', '13:00 – 17:00');
+}
+
+function turnoHTML(key, label, faixa) {
+  const t = editando[key];
+  const trab = t.status === 'trabalho';
+  const todas = UNIDADES.every(u => t.unidades.includes(u.id));
+  const chips = UNIDADES.map(u =>
+    `<button class="chip ${t.unidades.includes(u.id)?'on':''}" onclick="toggleUn('${key}','${u.id}')">${u.nome}</button>`
+  ).join('');
+  const r = ratearTurno(t);
+  const detalhe = trab
+    ? (r.incompleto
+        ? '<b style="color:#dc2626">Faltam horas:</b> marque uma unidade ou complete as horas externas.'
+        : Object.entries(r.unidades).map(([u,v]) => `${NOMES[u]}: <b>${h(v)}</b>`)
+            .concat(Object.entries(r.externo).map(([e,v]) => `${esc(e)}: <b>${h(v)}</b>`)).join(' · ') || 'Nada marcado.')
+    : (t.status === 'folga' ? 'Folga — não entra no rateio.' : 'Falta — não entra no rateio.');
+
+  return `
+  <div class="turno-box">
+    <div class="turno-head">
+      <div><strong>${label}</strong> <small>${faixa} · ${HORAS_TURNO}h</small></div>
+    </div>
+    <div class="chips" style="margin-bottom:8px">
+      <button class="chip ${trab?'on':''}" onclick="setStatusTurno('${key}','trabalho')">Trabalhou</button>
+      <button class="chip ${t.status==='folga'?'on-cinza':''}" onclick="setStatusTurno('${key}','folga')">Folga</button>
+      <button class="chip ${t.status==='falta'?'on-cinza':''}" onclick="setStatusTurno('${key}','falta')">Falta</button>
+    </div>
+    ${trab ? `
+      <div class="chips">
+        ${chips}
+        <button class="chip ${todas?'on':''}" onclick="marcarTodas('${key}')">Todas</button>
+        <button class="chip ${t.extHoras>0?'on-esc':''}" onclick="toggleExt('${key}')">Externo</button>
+      </div>
+      <div class="ext-box ${t.extHoras>0?'open':''}">
+        <input class="inp h" type="number" step="0.5" min="0" max="${HORAS_TURNO}" value="${t.extHoras||''}"
+          placeholder="h" onchange="setExtHoras('${key}', this.value)">
+        <input class="inp" type="text" value="${esc(t.extDest)}" placeholder="Onde? ex: Obra academia"
+          onchange="setExtDest('${key}', this.value)">
+      </div>
+    ` : ''}
+    <div class="resumo-turno">${detalhe}</div>
+  </div>`;
+}
+
+function setStatusTurno(key, st) {
+  editando[key].status = st;
+  if (st !== 'trabalho') { editando[key].unidades = []; editando[key].extHoras = 0; editando[key].extDest = ''; }
+  renderModal();
+}
+function toggleUn(key, id) {
+  const arr = editando[key].unidades;
+  const i = arr.indexOf(id);
+  if (i >= 0) arr.splice(i,1); else arr.push(id);
+  renderModal();
+}
+function marcarTodas(key) {
+  const t = editando[key];
+  t.unidades = UNIDADES.every(u => t.unidades.includes(u.id)) ? [] : UNIDADES.map(u => u.id);
+  renderModal();
+}
+function toggleExt(key) {
+  const t = editando[key];
+  if (t.extHoras > 0) { t.extHoras = 0; t.extDest = ''; }
+  else { t.extHoras = HORAS_TURNO; }
+  renderModal();
+}
+function setExtHoras(key, v) {
+  editando[key].extHoras = Math.max(0, Math.min(HORAS_TURNO, Number(v)||0));
+  renderModal();
+}
+function setExtDest(key, v) { editando[key].extDest = v; renderModal(); }
+
+async function salvarDia() {
+  if (!editando) return;
+  const { func, data, manha, tarde } = editando;
+  await db.collection('apontamentos').doc(docId(data, func)).set({
+    data, anoMes: mesDe(data), func,
+    manha, tarde,
+    editadoPor: 'gestor',
+    atualizadoEm: new Date().toISOString(),
+  }, { merge: true });
+  fecharModal();
+  toast('💾 Dia salvo!');
+}
+
+async function apagarDia() {
+  if (!editando) return;
+  if (!confirm(`Apagar o apontamento de ${editando.func} em ${fmtBR(editando.data)}?`)) return;
+  await db.collection('apontamentos').doc(docId(editando.data, editando.func)).delete();
+  fecharModal();
+  toast('🗑️ Apontamento apagado.');
+}
+
+// ══════════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════════
+const EQUIPE_EMAIL = 'equipe@angelicastudios.com.br';
+const EQUIPE_SENHA = 'Angelica@2026';
+
+(function init() {
+  firebase.auth().signInWithEmailAndPassword(EQUIPE_EMAIL, EQUIPE_SENHA).then(() => {
+    mesAtual = mesDe(hojeISO());
+    document.getElementById('mes-picker').value = mesAtual;
+    initListeners();
+    ouvirMes(mesAtual);
+  }).catch(e => {
+    console.error('Falha no acesso ao servidor:', e);
+    document.getElementById('grade-wrap').innerHTML =
+      `<div class="vazio" style="color:var(--red)">Erro de conexão. Verifique a internet.</div>`;
+  });
+})();
+</script>
+</body>
+</html>
