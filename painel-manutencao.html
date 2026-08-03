@@ -975,7 +975,7 @@
         <table class="limp-table" id="limp-table">
           <thead>
             <tr>
-              <th><div class="thi">Apto</div></th>
+              <th><div class="thi">Studio</div></th>
               <th><div class="thi">Inquilino</div></th>
               <th class="col-filt" id="th-status" onclick="limpToggleDd('th-status')">
                 <div class="thi">Status <span class="arr">▾</span></div>
@@ -2180,8 +2180,8 @@ function limpRender() {
                onkeydown="if(event.key==='Enter')limpSaveObs('${apto}',this.value)">
       </td>
       <td style="white-space:nowrap">
-        <button class="limp-act limp-act-wa" ${vago?'disabled title="Apto vago — sem WhatsApp"':'title="Enviar mensagem no WhatsApp"'} onclick="limpSendOneConfirm('${apto}')">${ICO_WA}</button>
-        <button class="limp-act limp-act-task" title="Criar tarefa de limpeza pra este apto" onclick="limpCriarTarefaUnica('${apto}')">${ICO_TAREFA}</button>
+        <button class="limp-act limp-act-wa" ${vago?'disabled title="Studio vago — sem WhatsApp"':'title="Enviar mensagem no WhatsApp"'} onclick="limpSendOneConfirm('${apto}')">${ICO_WA}</button>
+        <button class="limp-act limp-act-task" title="Criar tarefa de limpeza pra este studio" onclick="limpCriarTarefaUnica('${apto}')">${ICO_TAREFA}</button>
         ${(() => {
           // A trava real é no servidor; aqui só refletimos o estado dela no botão.
           const confirmou = (s in LIMP_DAY_MAP);
@@ -2382,7 +2382,7 @@ async function limpCriarTarefas() {
 
   const lista = Object.values(grupos);
   const preview = lista.map(g =>
-    `• ${g.exec} — ${g.aptos.length} apto(s) — ${g.diaKey === 'sexta' ? 'Sexta-feira' : 'Terça-feira'}\n  Aptos: ${g.aptos.join(', ')}`
+    `• ${g.exec} — ${g.aptos.length} studio(s) — ${g.diaKey === 'sexta' ? 'Sexta-feira' : 'Terça-feira'}\n  Studios: ${g.aptos.join(', ')}`
   ).join('\n');
 
   if (!confirm(`Criar ${lista.length} tarefa(s) no painel de manutenção?\n\n${preview}`)) return;
@@ -2394,7 +2394,7 @@ async function limpCriarTarefas() {
     const tarefa = {
       id: uid(), apto: 'Limpeza', tipo: 'Limpeza Semanal',
       prio: 'media', resp: g.exec, data,
-      desc: `${diaLabel} — Aptos: ${g.aptos.join(', ')}`,
+      desc: `${diaLabel} — Studios: ${g.aptos.join(', ')}`,
       status: 'pendente', obs: '', dataExec: '', fotos: [], criadoEm: Date.now()
     };
     await dbSet('tarefas', tarefa.id, tarefa);
@@ -2413,28 +2413,28 @@ async function limpCriarTarefaUnica(apto) {
   const row = limpData.find(r => r.apto === apto);
   if (!row) return;
   const executor = (row.executor || '').trim();
-  if (!executor) { toast('⚠️ Selecione um executor pra esse apto antes de criar a tarefa.', 'warn'); return; }
+  if (!executor) { toast('⚠️ Selecione um executor pra esse studio antes de criar a tarefa.', 'warn'); return; }
 
   const status = row.status || '';
-  if (!(status in LIMP_DAY_MAP)) { toast('⚠️ Apto sem dia de limpeza agendado (defina Terça/Sexta/etc).', 'warn'); return; }
+  if (!(status in LIMP_DAY_MAP)) { toast('⚠️ Studio sem dia de limpeza agendado (defina Terça/Sexta/etc).', 'warn'); return; }
 
   const dataISO  = row.dia || limpProximaData(status);
   const dataBR   = dataISO.split('-').reverse().join('/');
   const diaLabel = LIMP_DIA_LABEL_TAREFA[status] || '';
   const obs      = (row.observacao || '').trim();
 
-  if (!confirm(`Criar tarefa de limpeza?\n\nApto: ${apto}\nExecutor: ${executor}\nData: ${diaLabel} (${dataBR})`)) return;
+  if (!confirm(`Criar tarefa de limpeza?\n\nStudio: ${apto}\nExecutor: ${executor}\nData: ${diaLabel} (${dataBR})`)) return;
 
   const tarefa = {
     id: uid(), apto: apto, tipo: 'Limpeza Semanal',
     prio: 'media', resp: executor, data: dataISO,
-    desc: obs || `${diaLabel} — Limpeza apto ${apto}`,
+    desc: obs || `${diaLabel} — Limpeza studio ${apto}`,
     status: 'pendente', obs: '', dataExec: '', fotos: [], criadoEm: Date.now()
   };
   await dbSet('tarefas', tarefa.id, tarefa);
 
   const wppOk = await limpNotificarExecutor(executor, apto, diaLabel, dataISO, obs);
-  if (wppOk === null)  toast(`✅ Tarefa criada pro apto ${apto}! (⚠️ ${executor} sem telefone cadastrado — avise manualmente)`, 'warn');
+  if (wppOk === null)  toast(`✅ Tarefa criada pro studio ${apto}! (⚠️ ${executor} sem telefone cadastrado — avise manualmente)`, 'warn');
   else if (wppOk)      toast(`✅ Tarefa criada e WhatsApp enviado pra ${executor}!`, 'success');
   else                  toast(`✅ Tarefa criada, mas o WhatsApp pra ${executor} falhou — avise manualmente.`, 'warn');
 }
@@ -2473,11 +2473,11 @@ async function limpCobrarUm(apto) {
     previa = await res.json();
   } catch(e) { toast('Erro ao consultar a cobrança (offline?)', 'error'); return; }
 
-  if (previa.pulados && previa.pulados.length) { toast(`⚠️ Apto ${apto}: ${previa.pulados[0].motivo}`, 'warn'); return; }
-  if (!previa.aEmitir || !previa.aEmitir.length) { toast('⚠️ Nada a cobrar nesse apto.', 'warn'); return; }
+  if (previa.pulados && previa.pulados.length) { toast(`⚠️ Studio ${apto}: ${previa.pulados[0].motivo}`, 'warn'); return; }
+  if (!previa.aEmitir || !previa.aEmitir.length) { toast('⚠️ Nada a cobrar nesse studio.', 'warn'); return; }
 
   const i = previa.aEmitir[0];
-  if (!confirm(`Emitir boleto da taxa de limpeza?\n\nApto: ${i.apto} — ${i.nome}\nValor: ${_fmtBRL(i.valor)}` +
+  if (!confirm(`Emitir boleto da taxa de limpeza?\n\nStudio: ${i.apto} — ${i.nome}\nValor: ${_fmtBRL(i.valor)}` +
                `\nVencimento: ${_fmtDataBR(i.dataVencimento)}\nConta: PF\n\nO Pix vai por WhatsApp automaticamente.`)) return;
 
   limpCobrando = true;
@@ -2488,7 +2488,7 @@ async function limpCobrarUm(apto) {
       body: JSON.stringify({ apto })
     });
     const data = await res.json();
-    if (data.ok) toast(`✅ Boleto emitido e enviado pro apto ${apto}!`, 'success');
+    if (data.ok) toast(`✅ Boleto emitido e enviado pro studio ${apto}!`, 'success');
     else         toast(`⚠️ ${data.erro || 'Falha ao emitir'}`, 'warn');
   } catch(e) {
     toast('Erro ao emitir (a conexão caiu — confira no relatório antes de repetir)', 'error');
@@ -2811,8 +2811,8 @@ async function limpStartSend() {
     st.log.forEach((item, idx) => {
       if (vistos.has(idx)) return;
       vistos.add(idx);
-      if (item.ok) log.innerHTML += `<div class="pok">✅ Apto ${item.apto} — ${item.nome} — enviado</div>`;
-      else log.innerHTML += `<div class="perr">❌ Apto ${item.apto} — ${item.erro}</div>`;
+      if (item.ok) log.innerHTML += `<div class="pok">✅ Studio ${item.apto} — ${item.nome} — enviado</div>`;
+      else log.innerHTML += `<div class="perr">❌ Studio ${item.apto} — ${item.erro}</div>`;
     });
     log.scrollTop = log.scrollHeight;
 
