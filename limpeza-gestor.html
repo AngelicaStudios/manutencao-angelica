@@ -529,7 +529,7 @@ function limpRender() {
     const waBtnHtml = r.numero
       ? '<button class="limp-act limp-act-wa" title="Enviar mensagem no WhatsApp" onclick="limpDispararUm(\'' + esc(r.numero) + '\',\'' + esc(aptoKey) + '\',\'' + esc(r.nome) + '\')">' + ICO_WA + '</button>'
       : '';
-    const taskBtnHtml = '<button class="limp-act limp-act-task" title="Criar tarefa de limpeza pra este apto" onclick="limpCriarTarefaUnica(\'' + esc(aptoKey) + '\')">' + ICO_TAREFA + '</button>';
+    const taskBtnHtml = '<button class="limp-act limp-act-task" title="Criar tarefa de limpeza pra este studio" onclick="limpCriarTarefaUnica(\'' + esc(aptoKey) + '\')">' + ICO_TAREFA + '</button>';
     // Boleto: só pra quem confirmou um dia (sem dia não há vencimento) e ainda não foi
     // cobrado. O estado vem do servidor — a trava real é lá, aqui é só o reflexo dela.
     const confirmou = !!LIMP_DAY_UPPER[info.filterKey];
@@ -565,7 +565,7 @@ function limpRender() {
     return '<div class="limp-card ' + info.cardCls + '">' +
       '<div class="limp-card-top">' +
         '<div class="limp-card-info">' +
-          '<div class="limp-card-apto">🏠 ' + esc(aptoKey) + '</div>' +
+          '<div class="limp-card-apto">Studio ' + esc(aptoKey) + '</div>' +
           '<div class="limp-card-nome">' + esc(r.nome) + '</div>' +
         '</div>' +
         '<span class="limp-badge ' + info.cls + '">' + info.label + '</span>' +
@@ -724,7 +724,7 @@ async function limpCriarTarefas() {
 
   const lista = Object.values(grupos);
   const preview = lista.map(g =>
-    '• ' + g.exec + ' — ' + g.aptos.length + ' apto(s) — ' + (g.diaKey === 'sexta' ? 'Sexta' : 'Terça')
+    '• ' + g.exec + ' — ' + g.aptos.length + ' studio(s) — ' + (g.diaKey === 'sexta' ? 'Sexta' : 'Terça')
   ).join('\n');
 
   if (!confirm('Criar ' + lista.length + ' tarefa(s) no painel de Manutenção?\n\n' + preview)) return;
@@ -736,7 +736,7 @@ async function limpCriarTarefas() {
     const tarefa   = {
       id: uid(), apto: 'Limpeza', tipo: 'Limpeza Semanal',
       prio: 'media', resp: g.exec, data,
-      desc: diaLabel + ' — Aptos: ' + g.aptos.join(', '),
+      desc: diaLabel + ' — Studios: ' + g.aptos.join(', '),
       status: 'pendente', obs: '', dataExec: '', fotos: [], criadoEm: Date.now()
     };
     await dbSet('tarefas', tarefa.id, tarefa);
@@ -753,11 +753,11 @@ const LIMP_DIA_LABEL_TAREFA = {
 async function limpCriarTarefaUnica(apto) {
   const r = limpData.find(x => x.apto === apto);
   if (!r) return;
-  if (!r.executor || !r.executor.trim()) { toast('⚠️ Selecione um executor pra esse apto antes de criar a tarefa.'); return; }
+  if (!r.executor || !r.executor.trim()) { toast('⚠️ Selecione um executor pra esse studio antes de criar a tarefa.'); return; }
 
   const info   = limpStatusInfo(r.status, r.dia);
   const dayKey = LIMP_DAY_UPPER[info.filterKey] || null;
-  if (!dayKey) { toast('⚠️ Apto sem dia de limpeza agendado (defina Terça/Sexta/etc).'); return; }
+  if (!dayKey) { toast('⚠️ Studio sem dia de limpeza agendado (defina Terça/Sexta/etc).'); return; }
 
   const dataISO   = r.diaISO || limpProximaData(dayKey);
   const dataBR    = dataISO.split('-').reverse().join('/');
@@ -765,18 +765,18 @@ async function limpCriarTarefaUnica(apto) {
   const executor  = r.executor.trim();
   const obs       = (r.observacao || '').trim();
 
-  if (!confirm('Criar tarefa de limpeza?\n\nApto: ' + apto + '\nExecutor: ' + executor + '\nData: ' + diaLabel + ' (' + dataBR + ')')) return;
+  if (!confirm('Criar tarefa de limpeza?\n\nStudio: ' + apto + '\nExecutor: ' + executor + '\nData: ' + diaLabel + ' (' + dataBR + ')')) return;
 
   const tarefa = {
     id: uid(), apto: apto, tipo: 'Limpeza Semanal',
     prio: 'media', resp: executor, data: dataISO,
-    desc: obs || (diaLabel + ' — Limpeza apto ' + apto),
+    desc: obs || (diaLabel + ' — Limpeza studio ' + apto),
     status: 'pendente', obs: '', dataExec: '', fotos: [], criadoEm: Date.now()
   };
   await dbSet('tarefas', tarefa.id, tarefa);
 
   const wppOk = await limpNotificarExecutor(executor, apto, diaLabel, dataISO, obs);
-  if (wppOk === null)  toast('✅ Tarefa criada pro apto ' + apto + '! (⚠️ ' + executor + ' sem telefone cadastrado — avise manualmente)');
+  if (wppOk === null)  toast('✅ Tarefa criada pro studio ' + apto + '! (⚠️ ' + executor + ' sem telefone cadastrado — avise manualmente)');
   else if (wppOk)      toast('✅ Tarefa criada e WhatsApp enviado pra ' + executor + '!');
   else                  toast('✅ Tarefa criada, mas o WhatsApp pra ' + executor + ' falhou — avise manualmente.');
 }
@@ -805,13 +805,13 @@ async function limpCobrarUm(apto) {
   } catch(e) { toast('⚠️ Não consegui consultar a cobrança (offline?)'); return; }
 
   if (previa.pulados && previa.pulados.length) {
-    toast('⚠️ Apto ' + apto + ': ' + previa.pulados[0].motivo);
+    toast('⚠️ Studio ' + apto + ': ' + previa.pulados[0].motivo);
     return;
   }
-  if (!previa.aEmitir || !previa.aEmitir.length) { toast('⚠️ Nada a cobrar nesse apto.'); return; }
+  if (!previa.aEmitir || !previa.aEmitir.length) { toast('⚠️ Nada a cobrar nesse studio.'); return; }
 
   const i = previa.aEmitir[0];
-  if (!confirm('Emitir boleto da taxa de limpeza?\n\nApto: ' + i.apto + ' — ' + i.nome +
+  if (!confirm('Emitir boleto da taxa de limpeza?\n\nStudio: ' + i.apto + ' — ' + i.nome +
                '\nValor: ' + _fmtBRL(i.valor) + '\nVencimento: ' + _fmtDataBR(i.dataVencimento) +
                '\nConta: PF\n\nO Pix vai por WhatsApp automaticamente.')) return;
 
@@ -823,7 +823,7 @@ async function limpCobrarUm(apto) {
       body: JSON.stringify({ apto })
     });
     const data = await res.json();
-    if (data.ok) toast('✅ Boleto emitido e enviado pro apto ' + apto + '!');
+    if (data.ok) toast('✅ Boleto emitido e enviado pro studio ' + apto + '!');
     else         toast('⚠️ ' + (data.erro || 'Falha ao emitir'));
   } catch(e) {
     toast('⚠️ Erro ao emitir (a conexão caiu — confira no relatório antes de repetir)');
