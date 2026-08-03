@@ -906,12 +906,14 @@ async function limpNotificarExecutor(nomeExecutor, apto, diaLabel, dataISO, obs)
 
   const dataBR = dataISO.split('-').reverse().join('/');
   const primeiroNome = nomeExecutor.split(' ')[0];
+  // Só a vassoura, no cumprimento. O corpo vai sem emoji de propósito (pedido do
+  // Silvio em 03/08): ícone em cada linha polui a mensagem pro colaborador.
   const msg = 'Oi, *' + primeiroNome + '*! 🧹\n\n' +
     'Nova tarefa de limpeza:\n' +
-    '🏠 *Apto ' + apto + '*\n' +
-    '📅 ' + diaLabel + ' (' + dataBR + ')' +
-    (obs ? ('\n📝 ' + obs) : '') +
-    '\n\nVerifique o painel de Tarefas 📋';
+    '*Apto ' + apto + '*\n' +
+    diaLabel + ' (' + dataBR + ')' +
+    (obs ? ('\n' + obs) : '') +
+    '\n\nVerifique o painel de Tarefas';
 
   try {
     const res  = await fetch(LIMP_API + '/api/notificar-executor', {
