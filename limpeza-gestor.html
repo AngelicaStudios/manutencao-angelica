@@ -142,6 +142,9 @@
   .limp-act-wa   { background: #dcfce7; border-color: #86efac; color: #15803d; }
   .limp-act-task { background: #e0f2fe; border-color: #bae6fd; color: #0369a1; }
   .limp-act-cob  { background: #ede9fe; border-color: #ddd6fe; color: #6d28d9; }
+  /* Já cobrado: verde e apagado — dá pra ver de longe quem já tem boleto. */
+  .limp-act-cob-ok { background: #dcfce7; border-color: #86efac; color: #15803d; }
+  .limp-act-cob-ok:disabled { opacity: .8; }
   .limp-card-edit { border-top: 1px solid var(--border); padding: 8px 13px; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; background: #fafbfc; }
   .limp-status-sel { flex: 0 0 auto; padding: 6px 8px; border: 1.5px solid var(--border); border-radius: 8px; font-size: .75rem; min-width: 120px; appearance: none; background: #fff; font-family: inherit; font-weight: 600; }
   .limp-exec-sel { flex: 0 0 auto; padding: 6px 8px; border: 1.5px solid var(--border); border-radius: 8px; font-size: .75rem; min-width: 100px; max-width: 140px; appearance: none; background: #fff; font-family: inherit; }
@@ -400,9 +403,28 @@ async function initLimpeza() {
     });
     if (prog) prog.textContent = '';
     limpRender();
+    limpCarregarStatusCobranca();   // pinta os botões de boleto (já emitido / bloqueado)
   } catch(e) {
     if (prog) prog.textContent = '⚠️ Erro ao carregar. Verifique a conexão.';
   }
+}
+
+/**
+ * Descobre, pra cada apto, se dá pra emitir boleto da limpeza — e por que não, quando
+ * não dá. É o servidor que decide (mesma regra que o botão usa na hora de emitir),
+ * aqui só refletimos no visual pra você não clicar num botão que vai recusar.
+ */
+async function limpCarregarStatusCobranca() {
+  try {
+    const res = await fetch(LIMP_API + '/api/cobranca-limpeza/previa', { headers: LIMP_AUTH_HEADERS });
+    const d   = await res.json();
+    limpCobStatus = {};
+    (d.aEmitir || []).forEach(i => { limpCobStatus[i.apto] = { pode: true }; });
+    (d.pulados || []).forEach(p => {
+      limpCobStatus[p.apto] = { pode: false, motivo: p.motivo, emitido: /ja tem boleto/i.test(p.motivo || '') };
+    });
+    limpRender();
+  } catch(e) { /* offline — botão fica no estado neutro */ }
 }
 
 function limpStatFilter(el) {
@@ -420,6 +442,8 @@ const _svg = (p) => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" 
 const ICO_WA     = _svg('<path d="M21 11.5a8.4 8.4 0 0 1-8.5 8.4 8.5 8.5 0 0 1-4-1L3 21l2.1-5.4A8.4 8.4 0 0 1 12.5 3 8.4 8.4 0 0 1 21 11.5z"/>');
 const ICO_TAREFA = _svg('<path d="M9 3h6v3H9z"/><path d="M15 4.5h2A2 2 0 0 1 19 6.5v13a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-13a2 2 0 0 1 2-2h2"/><path d="m9 14 2 2 4-4"/>');
 const ICO_BOLETO = _svg('<path d="M4 6v12M7.5 6v12M11 6v8M14.5 6v12M18 6v12M20.5 6v12"/>');
+// Já cobrado: código de barras com um "check" — deixa claro que o boleto saiu.
+const ICO_BOLETO_OK = _svg('<path d="M4 6v12M7.5 6v12M11 6v6M14.5 6v4"/><path d="m14 17 2.5 2.5L21 15"/>');
 
 const LIMP_DAY_UPPER = {
   segunda:'SEGUNDA', terca:'TERCA', quarta:'QUARTA', quinta:'QUINTA',
@@ -506,11 +530,19 @@ function limpRender() {
       ? '<button class="limp-act limp-act-wa" title="Enviar mensagem no WhatsApp" onclick="limpDispararUm(\'' + esc(r.numero) + '\',\'' + esc(aptoKey) + '\',\'' + esc(r.nome) + '\')">' + ICO_WA + '</button>'
       : '';
     const taskBtnHtml = '<button class="limp-act limp-act-task" title="Criar tarefa de limpeza pra este apto" onclick="limpCriarTarefaUnica(\'' + esc(aptoKey) + '\')">' + ICO_TAREFA + '</button>';
-    // Boleto só pra quem confirmou um dia — sem dia não há vencimento pra cobrar.
+    // Boleto: só pra quem confirmou um dia (sem dia não há vencimento) e ainda não foi
+    // cobrado. O estado vem do servidor — a trava real é lá, aqui é só o reflexo dela.
     const confirmou = !!LIMP_DAY_UPPER[info.filterKey];
-    const cobBtnHtml = '<button class="limp-act limp-act-cob"' + (confirmou ? '' : ' disabled') +
-      ' title="' + (confirmou ? 'Emitir boleto da taxa de limpeza (R$ 90)' : 'Só depois que o inquilino confirmar o dia') + '"' +
-      ' onclick="limpCobrarUm(\'' + esc(aptoKey) + '\')">' + ICO_BOLETO + '</button>';
+    const cob = limpCobStatus[aptoKey];
+    let cobCls = 'limp-act-cob', cobOff = !confirmou, cobIco = ICO_BOLETO;
+    let cobTit = confirmou ? 'Emitir boleto da taxa de limpeza (R$ 90)' : 'Só depois que o inquilino confirmar o dia';
+    if (confirmou && cob) {
+      if (cob.emitido)      { cobOff = true; cobCls = 'limp-act-cob-ok';  cobIco = ICO_BOLETO_OK; cobTit = 'Boleto já emitido — ' + (cob.motivo || ''); }
+      else if (!cob.pode)   { cobOff = true; cobTit = 'Não dá pra cobrar: ' + (cob.motivo || ''); }
+    }
+    const cobBtnHtml = '<button class="limp-act ' + cobCls + '"' + (cobOff ? ' disabled' : '') +
+      ' title="' + esc(cobTit) + '"' +
+      ' onclick="limpCobrarUm(\'' + esc(aptoKey) + '\')">' + cobIco + '</button>';
     const dayKey = LIMP_DAY_UPPER[info.filterKey] || null;
     const statusVal = dayKey || (info.filterKey === 'nao' ? 'NAO' : 'AGUARDANDO');
     const statusOptsHtml = [
@@ -756,6 +788,8 @@ async function limpCriarTarefaUnica(apto) {
 // ════════════════════════
 const LIMP_TAXA = 90;
 let limpCobrando = false;
+// apto -> {pode, motivo, emitido} — quem já tem boleto e quem não pode ser cobrado.
+let limpCobStatus = {};
 
 const _fmtBRL = v => 'R$ ' + Number(v || 0).toFixed(2).replace('.', ',');
 const _fmtDataBR = iso => (iso || '').split('-').reverse().join('/');
@@ -795,6 +829,7 @@ async function limpCobrarUm(apto) {
     toast('⚠️ Erro ao emitir (a conexão caiu — confira no relatório antes de repetir)');
   }
   limpCobrando = false;
+  limpCarregarStatusCobranca();   // trava o botão do apto que acabou de ser cobrado
 }
 
 /** Emite pra todos que confirmaram a faxina. Roda no servidor, em segundo plano. */
@@ -856,6 +891,7 @@ async function limpAcompanharCobranca() {
               (st.pulados ? ' · ' + st.pulados + ' pulado(s)' : '') +
               (st.erros ? ' · ' + st.erros + ' erro(s)' : ''));
         if (st.log && st.log.length) console.table(st.log);
+        limpCarregarStatusCobranca();   // trava os botões dos aptos cobrados no lote
       }
     }
   } catch(e) {
