@@ -128,8 +128,8 @@
     gap: 8px;
     align-items: center;
     position: sticky;
-    top: 57px;
-    z-index: 99;
+    top: 102px;   /* header (57px) + barra de abas (45px) */
+    z-index: 98;
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
   }
@@ -456,6 +456,139 @@
   }
 
   /* ═══════════════════════════
+     NAV (Tarefas / Meu Dia)
+  ═══════════════════════════ */
+  nav.tabs {
+    display: flex;
+    background: #fff;
+    border-bottom: 1.5px solid var(--border);
+    position: sticky;
+    top: 57px;
+    z-index: 99;
+  }
+  nav.tabs button {
+    flex: 1;
+    padding: 12px 4px;
+    background: none;
+    border: none;
+    border-bottom: 3px solid transparent;
+    font-family: inherit;
+    font-size: .82rem;
+    font-weight: 700;
+    color: var(--muted);
+    cursor: pointer;
+    position: relative;
+  }
+  nav.tabs button.active { color: var(--green); border-bottom-color: var(--green); }
+  .nav-badge {
+    display: none;
+    background: var(--red);
+    color: #fff;
+    border-radius: 20px;
+    font-size: .62rem;
+    font-weight: 800;
+    padding: 1px 7px;
+    margin-left: 4px;
+    vertical-align: middle;
+  }
+  .nav-badge.on { display: inline-block; }
+
+  .view { display: none; flex: 1; flex-direction: column; }
+  .view.active { display: flex; }
+
+  /* ═══════════════════════════
+     MEU DIA
+  ═══════════════════════════ */
+  #meudia { padding: 14px 12px calc(24px + var(--safe-bottom)); gap: 12px; }
+
+  .md-card {
+    background: var(--card);
+    border-radius: var(--radius);
+    box-shadow: 0 2px 8px rgba(0,0,0,.08);
+    padding: 14px;
+  }
+  .md-trava {
+    background: #fef2f2;
+    border: 1.5px solid #fecaca;
+    color: #991b1b;
+    border-radius: var(--radius);
+    padding: 14px;
+    font-size: .85rem;
+    font-weight: 700;
+    line-height: 1.5;
+  }
+  .md-trava .lista { font-weight: 600; margin-top: 6px; font-size: .82rem; }
+  .md-ok {
+    background: #dcfce7;
+    border: 1.5px solid #bbf7d0;
+    color: #166534;
+    border-radius: var(--radius);
+    padding: 12px 14px;
+    font-size: .85rem;
+    font-weight: 700;
+    text-align: center;
+  }
+  .md-data {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 4px;
+  }
+  .md-data h3 { font-size: 1rem; font-weight: 800; }
+  .md-data .sub { font-size: .72rem; color: var(--muted); font-weight: 600; }
+
+  .turno-box { border: 1.5px solid var(--border); border-radius: 12px; padding: 12px; }
+  .turno-head { display: flex; align-items: baseline; gap: 8px; margin-bottom: 10px; }
+  .turno-head strong { font-size: .95rem; }
+  .turno-head small  { font-size: .72rem; color: var(--muted); }
+
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chip {
+    padding: 10px 14px;
+    border: 2px solid var(--border);
+    border-radius: 22px;
+    background: #fff;
+    font-size: .82rem;
+    font-weight: 700;
+    color: var(--muted);
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .chip:active { transform: scale(.97); }
+  .chip.on       { background: #dcfce7; border-color: var(--green); color: #166534; }
+  .chip.on-cinza { background: #e2e8f0; border-color: #94a3b8; color: #334155; }
+  .chip.on-esc   { background: #334155; border-color: #334155; color: #fff; }
+
+  .ext-box { margin-top: 10px; display: none; gap: 8px; }
+  .ext-box.open { display: flex; }
+  .ext-box input {
+    padding: 11px 12px;
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    font-size: .88rem;
+    font-family: inherit;
+    color: var(--text);
+    background: #fff;
+    min-width: 0;
+  }
+  .ext-box input.h { width: 82px; text-align: right; flex-shrink: 0; }
+  .ext-box input.d { flex: 1; }
+
+  .resumo-turno { margin-top: 10px; font-size: .76rem; color: var(--muted); line-height: 1.5; }
+  .resumo-turno b { color: var(--text); }
+  .resumo-turno .erro { color: var(--red); font-weight: 700; }
+
+  .md-hist { font-size: .78rem; }
+  .md-hist-row {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 8px; padding: 8px 0; border-bottom: 1px solid var(--border);
+  }
+  .md-hist-row:last-child { border-bottom: none; }
+  .md-hist-row .dt { font-weight: 700; white-space: nowrap; }
+  .md-hist-row .de { color: var(--muted); text-align: right; line-height: 1.4; }
+
+  /* ═══════════════════════════
      TOAST
   ═══════════════════════════ */
   #toast {
@@ -520,20 +653,34 @@
     </div>
   </header>
 
-  <!-- Contadores -->
-  <div class="counters-bar" id="counters-bar"></div>
+  <!-- Abas -->
+  <nav class="tabs">
+    <button class="active" data-view="tarefas" onclick="showView(this)">📋 Tarefas</button>
+    <button data-view="meudia" onclick="showView(this)">🕐 Meu Dia<span class="nav-badge" id="badge-md"></span></button>
+  </nav>
 
-  <!-- Filtros -->
-  <div class="filter-bar">
-    <input type="date" class="date-filter" id="filter-date" onchange="render()" />
-    <button class="filter-chip" data-status="" onclick="setStatusFilter(this)">Todas</button>
-    <button class="filter-chip" data-status="pendente"  onclick="setStatusFilter(this)">⏳ Pendentes</button>
-    <button class="filter-chip" data-status="andamento" onclick="setStatusFilter(this)">🔄 Em andamento</button>
-    <button class="filter-chip" data-status="concluida" onclick="setStatusFilter(this)">✅ Concluídas</button>
+  <!-- ─── VIEW: TAREFAS ─── -->
+  <div class="view active" id="view-tarefas">
+    <!-- Contadores -->
+    <div class="counters-bar" id="counters-bar"></div>
+
+    <!-- Filtros -->
+    <div class="filter-bar">
+      <input type="date" class="date-filter" id="filter-date" onchange="render()" />
+      <button class="filter-chip" data-status="" onclick="setStatusFilter(this)">Todas</button>
+      <button class="filter-chip" data-status="pendente"  onclick="setStatusFilter(this)">⏳ Pendentes</button>
+      <button class="filter-chip" data-status="andamento" onclick="setStatusFilter(this)">🔄 Em andamento</button>
+      <button class="filter-chip" data-status="concluida" onclick="setStatusFilter(this)">✅ Concluídas</button>
+    </div>
+
+    <!-- Lista -->
+    <div id="task-list"></div>
   </div>
 
-  <!-- Lista -->
-  <div id="task-list"></div>
+  <!-- ─── VIEW: MEU DIA ─── -->
+  <div class="view" id="view-meudia">
+    <div id="meudia" style="display:flex;flex-direction:column"></div>
+  </div>
 
 </div>
 
@@ -662,10 +809,13 @@ function entrar(nome) {
   // Sem data pré-selecionada: mostra todas as tarefas
   document.querySelector('.filter-chip').classList.add('active');
   initListeners();
+  initApont();
   render();
+  renderMeuDia();
 }
 
 function logout() {
+  pararApont();
   currentUser = '';
   sessionStorage.removeItem('manut_equipe_nome');
   document.getElementById('app').classList.remove('visible');
@@ -899,6 +1049,340 @@ function openLightbox(taskId, idx) {
 function closeLightbox() {
   document.getElementById('lightbox').classList.remove('open');
   document.getElementById('lb-img').src = '';
+}
+
+// ════════════════════════════════
+// MEU DIA — APONTAMENTO DE HORAS
+// ════════════════════════════════
+// Turno = 4h. Horas externas saem primeiro (rateadas por hora, fora das Angelicas);
+// o resto se divide entre as unidades marcadas, proporcional ao nº de apartamentos.
+const UNIDADES = [
+  { id:'A1', nome:'Angelica 1', aptos:6  },
+  { id:'A2', nome:'Angelica 2', aptos:8  },
+  { id:'A3', nome:'Angelica 3', aptos:16 },
+  { id:'A4', nome:'Angelica 4', aptos:12 },
+  { id:'A5', nome:'Angelica 5', aptos:4  },
+];
+const APTOS       = Object.fromEntries(UNIDADES.map(u => [u.id, u.aptos]));
+const NOMES_UN    = Object.fromEntries(UNIDADES.map(u => [u.id, u.nome]));
+const HORAS_TURNO = 4;
+const DIAS_RETRO  = 7;    // colaborador corrige até 7 dias atrás
+const INICIO_PADRAO = '2026-08-01';
+
+let meusApts    = [];
+let inicioApont = INICIO_PADRAO;
+let diaEdit     = null;   // {data, manha, tarde}
+let apontOn     = false;
+
+let unsubApont = null, unsubCfgApont = null;
+
+function initApont() {
+  if (apontOn) return;
+  apontOn = true;
+  // Filtra só por func: range de data junto exigiria índice composto no Firestore.
+  unsubApont = db.collection('apontamentos').where('func', '==', currentUser).onSnapshot(snap => {
+    meusApts = snap.docs.map(d => ({ id:d.id, ...d.data() }));
+    renderMeuDia();
+  });
+  unsubCfgApont = db.collection('config').doc('apontamento').onSnapshot(snap => {
+    if (snap.exists && snap.data().inicio) inicioApont = snap.data().inicio;
+    renderMeuDia();
+  });
+}
+
+function pararApont() {
+  if (unsubApont)    unsubApont();
+  if (unsubCfgApont) unsubCfgApont();
+  unsubApont = unsubCfgApont = null;
+  apontOn  = false;
+  meusApts = [];
+  diaEdit  = null;
+}
+
+// ── Datas ──
+function hojeISO() {
+  return new Date().toLocaleDateString('sv-SE', { timeZone: 'America/Sao_Paulo' });
+}
+function addDias(iso, n) {
+  const [y,m,d] = iso.split('-').map(Number);
+  const dt = new Date(Date.UTC(y, m-1, d + n));
+  return dt.toISOString().slice(0,10);
+}
+function ehUtilISO(iso) {
+  const [y,m,d] = iso.split('-').map(Number);
+  const w = new Date(Date.UTC(y, m-1, d)).getUTCDay();
+  return w >= 1 && w <= 5;
+}
+function fmtDiaSem(iso) {
+  const [y,m,d] = iso.split('-').map(Number);
+  const dt = new Date(Date.UTC(y, m-1, d));
+  const sem = ['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado'][dt.getUTCDay()];
+  return `${sem}, ${String(d).padStart(2,'0')}/${String(m).padStart(2,'0')}`;
+}
+
+// Dias úteis sem lançamento, do início do apontamento até ontem (limite de 60 dias).
+function diasPendentes() {
+  const hoje = hojeISO();
+  const limite = addDias(hoje, -60);
+  let d = inicioApont > limite ? inicioApont : limite;
+  const out = [];
+  while (d < hoje) {
+    if (ehUtilISO(d) && !meusApts.some(a => a.data === d)) out.push(d);
+    d = addDias(d, 1);
+  }
+  return out;
+}
+
+function turnoVazio() { return { status:'trabalho', unidades:[], extHoras:0, extDest:'' }; }
+
+function carregarDia(data) {
+  const doc = meusApts.find(a => a.data === data);
+  diaEdit = {
+    data,
+    manha: doc && doc.manha ? { ...turnoVazio(), ...doc.manha, unidades:[...(doc.manha.unidades||[])] } : turnoVazio(),
+    tarde: doc && doc.tarde ? { ...turnoVazio(), ...doc.tarde, unidades:[...(doc.tarde.unidades||[])] } : turnoVazio(),
+  };
+}
+
+function ratearTurno(t) {
+  const out = { unidades:{}, externo:{}, horas:0, incompleto:false };
+  if (!t || t.status !== 'trabalho') return out;
+  const ext  = Math.max(0, Math.min(HORAS_TURNO, Number(t.extHoras) || 0));
+  const rest = HORAS_TURNO - ext;
+  if (ext > 0) { out.externo[(t.extDest||'').trim() || 'Externo'] = ext; out.horas += ext; }
+  const sel = (t.unidades || []).filter(u => APTOS[u]);
+  if (rest > 0) {
+    if (!sel.length) out.incompleto = true;
+    else {
+      const peso = sel.reduce((s,u) => s + APTOS[u], 0);
+      sel.forEach(u => { const hs = rest * APTOS[u] / peso; out.unidades[u] = hs; out.horas += hs; });
+    }
+  }
+  return out;
+}
+function fmtH(v) {
+  return (Math.round((v||0)*100)/100).toLocaleString('pt-BR', { maximumFractionDigits:2 }) + 'h';
+}
+
+// ── Abas ──
+function showView(btn) {
+  document.querySelectorAll('nav.tabs button').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.getElementById('view-' + btn.dataset.view).classList.add('active');
+  if (btn.dataset.view === 'meudia') renderMeuDia();
+}
+
+// ── Render ──
+function renderMeuDia() {
+  const el = document.getElementById('meudia');
+  if (!el || !currentUser) return;
+
+  const pend  = diasPendentes();
+  const hoje  = hojeISO();
+  const badge = document.getElementById('badge-md');
+  if (badge) {
+    badge.textContent = pend.length || '';
+    badge.classList.toggle('on', pend.length > 0);
+  }
+
+  // Com atraso, o alvo é sempre o dia mais antigo em aberto — hoje fica bloqueado.
+  const alvo = pend.length ? pend[0] : hoje;
+  if (!diaEdit || (pend.length && diaEdit.data !== alvo) ||
+      (!pend.length && diaEdit.data > hoje)) carregarDia(alvo);
+  if (!diaEdit) carregarDia(alvo);
+
+  let topo = '';
+  if (pend.length) {
+    topo = `<div class="md-trava">
+        🔒 Você tem <b>${pend.length} dia(s)</b> sem apontamento.
+        <div class="lista">${pend.map(fmtDiaSem).join(' · ')}</div>
+        <div style="font-weight:600;margin-top:8px;font-size:.8rem">
+          Preencha o mais antigo abaixo para liberar o lançamento de hoje.</div>
+        ${pend.length > 1 ? `<button class="btn-save" style="background:#64748b;margin-top:10px"
+            onclick="mdFolgaLote()">🌴 Foram todos folga/férias — marcar tudo</button>` : ''}
+      </div>`;
+  } else {
+    topo = `<div class="md-ok">✅ Apontamento em dia</div>`;
+  }
+
+  const hist = meusApts.slice().sort((a,b) => b.data.localeCompare(a.data)).slice(0,7);
+  const histHTML = hist.length ? `
+    <div class="md-card md-hist">
+      <div style="font-size:.72rem;font-weight:800;color:var(--muted);text-transform:uppercase;
+                  letter-spacing:.4px;margin-bottom:8px">Últimos lançamentos</div>
+      ${hist.map(d => `<div class="md-hist-row">
+          <span class="dt">${fmtDiaSem(d.data)}</span>
+          <span class="de">${resumoDia(d)}</span>
+        </div>`).join('')}
+    </div>` : '';
+
+  const seletor = !pend.length ? `
+    <div class="md-data">
+      <div>
+        <h3>${diaEdit.data === hoje ? 'Hoje' : fmtDiaSem(diaEdit.data)}</h3>
+        <div class="sub">${diaEdit.data === hoje ? fmtDiaSem(hoje) : 'Correção de dia anterior'}</div>
+      </div>
+      <input type="date" class="date-filter" value="${diaEdit.data}"
+        min="${addDias(hoje, -DIAS_RETRO)}" max="${hoje}" onchange="mdTrocarData(this.value)">
+    </div>` : `
+    <div class="md-data">
+      <div>
+        <h3>${fmtDiaSem(diaEdit.data)}</h3>
+        <div class="sub">Dia em aberto</div>
+      </div>
+    </div>`;
+
+  el.innerHTML = `
+    ${topo}
+    <div class="md-card">
+      ${seletor}
+      ${mdTurnoHTML('manha', 'Manhã', '08:00 – 12:00')}
+      <div style="height:12px"></div>
+      ${mdTurnoHTML('tarde', 'Tarde', '13:00 – 17:00')}
+      <button class="btn-save" style="margin-top:14px" onclick="mdSalvar()">💾 Salvar o dia</button>
+    </div>
+    ${histHTML}`;
+}
+
+function resumoDia(d) {
+  const partes = [];
+  [['manha','M'],['tarde','T']].forEach(([k,lbl]) => {
+    const t = d[k];
+    if (!t) return;
+    if (t.status === 'folga') { partes.push(`${lbl}: folga`); return; }
+    if (t.status === 'falta') { partes.push(`${lbl}: falta`); return; }
+    const r = ratearTurno(t);
+    const txt = Object.keys(r.unidades).map(u => u).join('+')
+      + (Object.keys(r.externo).length ? (Object.keys(r.unidades).length ? '+' : '') + 'Ext' : '');
+    partes.push(`${lbl}: ${txt || '—'}`);
+  });
+  return partes.join(' · ') || '—';
+}
+
+function mdTurnoHTML(key, label, faixa) {
+  const t = diaEdit[key];
+  const trab  = t.status === 'trabalho';
+  const todas = UNIDADES.every(u => t.unidades.includes(u.id));
+  const r = ratearTurno(t);
+
+  let detalhe;
+  if (!trab) {
+    detalhe = t.status === 'folga' ? 'Folga — não entra no rateio.' : 'Falta — não entra no rateio.';
+  } else if (r.incompleto) {
+    detalhe = `<span class="erro">Faltam ${fmtH(HORAS_TURNO - (Number(t.extHoras)||0))}</span> — marque uma Angelica ou aumente as horas externas.`;
+  } else {
+    const its = Object.entries(r.unidades).map(([u,v]) => `${NOMES_UN[u]}: <b>${fmtH(v)}</b>`)
+      .concat(Object.entries(r.externo).map(([e,v]) => `${esc(e)}: <b>${fmtH(v)}</b>`));
+    detalhe = its.join(' · ') || 'Nada marcado ainda.';
+  }
+
+  return `
+  <div class="turno-box">
+    <div class="turno-head"><strong>${label}</strong><small>${faixa} · ${HORAS_TURNO}h</small></div>
+    <div class="chips" style="margin-bottom:10px">
+      <button class="chip ${trab?'on':''}" onclick="mdStatus('${key}','trabalho')">Trabalhei</button>
+      <button class="chip ${t.status==='folga'?'on-cinza':''}" onclick="mdStatus('${key}','folga')">Folga</button>
+      <button class="chip ${t.status==='falta'?'on-cinza':''}" onclick="mdStatus('${key}','falta')">Falta</button>
+    </div>
+    ${trab ? `
+      <div class="chips">
+        ${UNIDADES.map(u => `<button class="chip ${t.unidades.includes(u.id)?'on':''}"
+            onclick="mdUnidade('${key}','${u.id}')">${u.nome}</button>`).join('')}
+        <button class="chip ${todas?'on':''}" onclick="mdTodas('${key}')">Todas</button>
+        <button class="chip ${(Number(t.extHoras)||0)>0?'on-esc':''}" onclick="mdExt('${key}')">Externo</button>
+      </div>
+      <div class="ext-box ${(Number(t.extHoras)||0)>0?'open':''}">
+        <input class="h" type="number" step="0.5" min="0" max="${HORAS_TURNO}" value="${t.extHoras||''}"
+          placeholder="h" onchange="mdExtHoras('${key}', this.value)">
+        <input class="d" type="text" value="${esc(t.extDest)}" placeholder="Onde? ex: Obra academia"
+          onchange="mdExtDest('${key}', this.value)">
+      </div>` : ''}
+    <div class="resumo-turno">${detalhe}</div>
+  </div>`;
+}
+
+// ── Ações ──
+function mdTrocarData(data) { carregarDia(data); renderMeuDia(); }
+function mdStatus(key, st) {
+  diaEdit[key].status = st;
+  if (st !== 'trabalho') { diaEdit[key].unidades = []; diaEdit[key].extHoras = 0; diaEdit[key].extDest = ''; }
+  renderMeuDia();
+}
+function mdUnidade(key, id) {
+  const arr = diaEdit[key].unidades;
+  const i = arr.indexOf(id);
+  if (i >= 0) arr.splice(i,1); else arr.push(id);
+  renderMeuDia();
+}
+function mdTodas(key) {
+  const t = diaEdit[key];
+  t.unidades = UNIDADES.every(u => t.unidades.includes(u.id)) ? [] : UNIDADES.map(u => u.id);
+  renderMeuDia();
+}
+function mdExt(key) {
+  const t = diaEdit[key];
+  if ((Number(t.extHoras)||0) > 0) { t.extHoras = 0; t.extDest = ''; }
+  else { t.extHoras = HORAS_TURNO; t.unidades = []; }
+  renderMeuDia();
+}
+function mdExtHoras(key, v) {
+  diaEdit[key].extHoras = Math.max(0, Math.min(HORAS_TURNO, Number(v)||0));
+  renderMeuDia();
+}
+function mdExtDest(key, v) { diaEdit[key].extDest = v; renderMeuDia(); }
+
+function validarTurno(t, label) {
+  if (t.status !== 'trabalho') return null;
+  const ext = Number(t.extHoras) || 0;
+  if (ext > 0 && !(t.extDest||'').trim()) return `${label}: informe onde foi o trabalho externo.`;
+  if (ext < HORAS_TURNO && !(t.unidades||[]).length)
+    return `${label}: faltam ${fmtH(HORAS_TURNO - ext)} — marque uma Angelica.`;
+  return null;
+}
+
+function docIdApont(data, nome) {
+  const s = String(nome||'').normalize('NFD').replace(/[̀-ͯ]/g,'')
+    .replace(/[^a-zA-Z0-9]+/g,'-').replace(/^-|-$/g,'').toLowerCase();
+  return `${data}_${s}`;
+}
+
+async function mdSalvar() {
+  if (!diaEdit) return;
+  const e1 = validarTurno(diaEdit.manha, 'Manhã');
+  const e2 = validarTurno(diaEdit.tarde, 'Tarde');
+  if (e1 || e2) { toast('⚠️ ' + (e1 || e2)); return; }
+
+  await db.collection('apontamentos').doc(docIdApont(diaEdit.data, currentUser)).set({
+    data: diaEdit.data,
+    anoMes: diaEdit.data.slice(0,7),
+    func: currentUser,
+    manha: diaEdit.manha,
+    tarde: diaEdit.tarde,
+    editadoPor: 'equipe',
+    atualizadoEm: new Date().toISOString(),
+  }, { merge: true });
+
+  diaEdit = null;
+  toast('💾 Dia lançado!');
+}
+
+async function mdFolgaLote() {
+  const pend = diasPendentes();
+  if (!pend.length) return;
+  if (!confirm(`Marcar folga nos ${pend.length} dia(s) em aberto?\n${pend.map(fmtDiaSem).join('\n')}`)) return;
+  const folga = { status:'folga', unidades:[], extHoras:0, extDest:'' };
+  const lote = db.batch();
+  pend.forEach(data => {
+    lote.set(db.collection('apontamentos').doc(docIdApont(data, currentUser)), {
+      data, anoMes: data.slice(0,7), func: currentUser,
+      manha: { ...folga }, tarde: { ...folga },
+      editadoPor: 'equipe', atualizadoEm: new Date().toISOString(),
+    }, { merge: true });
+  });
+  await lote.commit();
+  diaEdit = null;
+  toast('🌴 Dias marcados como folga.');
 }
 
 // ════════════════════════════════
