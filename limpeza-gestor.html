@@ -131,8 +131,17 @@
   .lb-nao   { background: #fee2e2; color: #991b1b; }
   .lb-nr    { background: #f1f5f9; color: #475569; }
   .lb-outro { background: #ede9fe; color: #5b21b6; }
-  .limp-wa-btn { flex-shrink: 0; padding: 6px 10px; background: #dcfce7; border: 1.5px solid #86efac; border-radius: 8px; font-size: .85rem; cursor: pointer; }
-  .limp-task-btn { flex-shrink: 0; padding: 6px 10px; background: #e0f2fe; border: 1.5px solid #bae6fd; border-radius: 8px; font-size: .85rem; cursor: pointer; color: #075985; }
+  /* Botões de ação do card. Ícones desenhados (SVG) em vez de emoji: emoji muda de
+     desenho conforme o aparelho e some em tela pequena — o traço é sempre igual. */
+  .limp-act { flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center;
+              width: 34px; height: 34px; border-radius: 9px; cursor: pointer; padding: 0;
+              border: 1.5px solid transparent; transition: filter .12s; }
+  .limp-act:hover:not(:disabled) { filter: brightness(.94); }
+  .limp-act:disabled { opacity: .38; cursor: not-allowed; }
+  .limp-act svg { width: 17px; height: 17px; }
+  .limp-act-wa   { background: #dcfce7; border-color: #86efac; color: #15803d; }
+  .limp-act-task { background: #e0f2fe; border-color: #bae6fd; color: #0369a1; }
+  .limp-act-cob  { background: #ede9fe; border-color: #ddd6fe; color: #6d28d9; }
   .limp-card-edit { border-top: 1px solid var(--border); padding: 8px 13px; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; background: #fafbfc; }
   .limp-status-sel { flex: 0 0 auto; padding: 6px 8px; border: 1.5px solid var(--border); border-radius: 8px; font-size: .75rem; min-width: 120px; appearance: none; background: #fff; font-family: inherit; font-weight: 600; }
   .limp-exec-sel { flex: 0 0 auto; padding: 6px 8px; border: 1.5px solid var(--border); border-radius: 8px; font-size: .75rem; min-width: 100px; max-width: 140px; appearance: none; background: #fff; font-family: inherit; }
@@ -188,6 +197,7 @@
         <button class="btn-sm btn-ghost" onclick="limpSync()">🔁 Sincronizar</button>
         <button class="btn-sm" style="background:#e0f2fe;color:#075985;border:1.5px solid #bae6fd;border-radius:10px;font-weight:700;padding:10px 14px;cursor:pointer;" onclick="limpCriarTarefas()">📋 Criar Tarefas</button>
         <button class="btn-sm" style="background:#ede9fe;color:#5b21b6;border:1.5px solid #ddd6fe;border-radius:10px;font-weight:700;padding:10px 14px;cursor:pointer;" onclick="limpToggleNovaSemana()">📅 Criar Semana</button>
+        <button class="btn-sm" id="limp-btn-cobrar" style="background:#f3e8ff;color:#6d28d9;border:1.5px solid #d8b4fe;border-radius:10px;font-weight:700;padding:10px 14px;cursor:pointer;" onclick="limpCobrarTodos()">💸 Emitir Boletos</button>
       </div>
       <div id="limp-semana-info" style="display:none;padding:8px 12px;background:#faf5ff;border-bottom:1.5px solid var(--border);font-size:.78rem;color:#6b21a8;font-weight:600"></div>
       <div id="limp-semana-form" style="display:none;padding:10px 12px;background:#faf5ff;border-bottom:1.5px solid var(--border);gap:8px;flex-wrap:wrap;align-items:center;">
@@ -405,6 +415,12 @@ const LIMP_DAY_LABEL = {
   segunda:'Segunda', terca:'Terça', quarta:'Quarta', quinta:'Quinta',
   sexta:'Sexta', sabado:'Sábado', domingo:'Domingo'
 };
+// Ícones dos botões de ação (traço, herdam a cor do botão via currentColor).
+const _svg = (p) => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + p + '</svg>';
+const ICO_WA     = _svg('<path d="M21 11.5a8.4 8.4 0 0 1-8.5 8.4 8.5 8.5 0 0 1-4-1L3 21l2.1-5.4A8.4 8.4 0 0 1 12.5 3 8.4 8.4 0 0 1 21 11.5z"/>');
+const ICO_TAREFA = _svg('<path d="M9 3h6v3H9z"/><path d="M15 4.5h2A2 2 0 0 1 19 6.5v13a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-13a2 2 0 0 1 2-2h2"/><path d="m9 14 2 2 4-4"/>');
+const ICO_BOLETO = _svg('<path d="M4 6v12M7.5 6v12M11 6v8M14.5 6v12M18 6v12M20.5 6v12"/>');
+
 const LIMP_DAY_UPPER = {
   segunda:'SEGUNDA', terca:'TERCA', quarta:'QUARTA', quinta:'QUINTA',
   sexta:'SEXTA', sabado:'SABADO', domingo:'DOMINGO'
@@ -487,9 +503,14 @@ function limpRender() {
       '<option value="' + esc(f) + '"' + (r.executor === f ? ' selected' : '') + '>' + (f || '👤 Executor…') + '</option>'
     ).join('');
     const waBtnHtml = r.numero
-      ? '<button class="limp-wa-btn" onclick="limpDispararUm(\'' + esc(r.numero) + '\',\'' + esc(aptoKey) + '\',\'' + esc(r.nome) + '\')">📲</button>'
+      ? '<button class="limp-act limp-act-wa" title="Enviar mensagem no WhatsApp" onclick="limpDispararUm(\'' + esc(r.numero) + '\',\'' + esc(aptoKey) + '\',\'' + esc(r.nome) + '\')">' + ICO_WA + '</button>'
       : '';
-    const taskBtnHtml = '<button class="limp-task-btn" onclick="limpCriarTarefaUnica(\'' + esc(aptoKey) + '\')" title="Criar tarefa de limpeza pra este apto">📋</button>';
+    const taskBtnHtml = '<button class="limp-act limp-act-task" title="Criar tarefa de limpeza pra este apto" onclick="limpCriarTarefaUnica(\'' + esc(aptoKey) + '\')">' + ICO_TAREFA + '</button>';
+    // Boleto só pra quem confirmou um dia — sem dia não há vencimento pra cobrar.
+    const confirmou = !!LIMP_DAY_UPPER[info.filterKey];
+    const cobBtnHtml = '<button class="limp-act limp-act-cob"' + (confirmou ? '' : ' disabled') +
+      ' title="' + (confirmou ? 'Emitir boleto da taxa de limpeza (R$ 90)' : 'Só depois que o inquilino confirmar o dia') + '"' +
+      ' onclick="limpCobrarUm(\'' + esc(aptoKey) + '\')">' + ICO_BOLETO + '</button>';
     const dayKey = LIMP_DAY_UPPER[info.filterKey] || null;
     const statusVal = dayKey || (info.filterKey === 'nao' ? 'NAO' : 'AGUARDANDO');
     const statusOptsHtml = [
@@ -518,6 +539,7 @@ function limpRender() {
         '<span class="limp-badge ' + info.cls + '">' + info.label + '</span>' +
         waBtnHtml +
         taskBtnHtml +
+        cobBtnHtml +
       '</div>' +
       '<div class="limp-card-edit">' +
         statusSelHtml +
@@ -725,6 +747,120 @@ async function limpCriarTarefaUnica(apto) {
   if (wppOk === null)  toast('✅ Tarefa criada pro apto ' + apto + '! (⚠️ ' + executor + ' sem telefone cadastrado — avise manualmente)');
   else if (wppOk)      toast('✅ Tarefa criada e WhatsApp enviado pra ' + executor + '!');
   else                  toast('✅ Tarefa criada, mas o WhatsApp pra ' + executor + ' falhou — avise manualmente.');
+}
+
+// ════════════════════════
+// COBRANÇA DA TAXA DE LIMPEZA
+// Quem fala com o Asaas é o servidor — o painel só pede. Nada é automático:
+// só sai boleto quando você clica.
+// ════════════════════════
+const LIMP_TAXA = 90;
+let limpCobrando = false;
+
+const _fmtBRL = v => 'R$ ' + Number(v || 0).toFixed(2).replace('.', ',');
+const _fmtDataBR = iso => (iso || '').split('-').reverse().join('/');
+
+/** Emite o boleto da taxa de limpeza de um apartamento só. */
+async function limpCobrarUm(apto) {
+  if (limpCobrando) { toast('⏳ Já tem uma emissão em andamento…'); return; }
+
+  let previa;
+  try {
+    const res = await fetch(LIMP_API + '/api/cobranca-limpeza/previa?apto=' + encodeURIComponent(apto), { headers: LIMP_AUTH_HEADERS });
+    previa = await res.json();
+  } catch(e) { toast('⚠️ Não consegui consultar a cobrança (offline?)'); return; }
+
+  if (previa.pulados && previa.pulados.length) {
+    toast('⚠️ Apto ' + apto + ': ' + previa.pulados[0].motivo);
+    return;
+  }
+  if (!previa.aEmitir || !previa.aEmitir.length) { toast('⚠️ Nada a cobrar nesse apto.'); return; }
+
+  const i = previa.aEmitir[0];
+  if (!confirm('Emitir boleto da taxa de limpeza?\n\nApto: ' + i.apto + ' — ' + i.nome +
+               '\nValor: ' + _fmtBRL(i.valor) + '\nVencimento: ' + _fmtDataBR(i.dataVencimento) +
+               '\nConta: PF\n\nO Pix vai por WhatsApp automaticamente.')) return;
+
+  limpCobrando = true;
+  toast('💸 Emitindo…');
+  try {
+    const res  = await fetch(LIMP_API + '/api/cobranca-limpeza/emitir', {
+      method: 'POST', headers: { 'Content-Type': 'application/json', ...LIMP_AUTH_HEADERS },
+      body: JSON.stringify({ apto })
+    });
+    const data = await res.json();
+    if (data.ok) toast('✅ Boleto emitido e enviado pro apto ' + apto + '!');
+    else         toast('⚠️ ' + (data.erro || 'Falha ao emitir'));
+  } catch(e) {
+    toast('⚠️ Erro ao emitir (a conexão caiu — confira no relatório antes de repetir)');
+  }
+  limpCobrando = false;
+}
+
+/** Emite pra todos que confirmaram a faxina. Roda no servidor, em segundo plano. */
+async function limpCobrarTodos() {
+  if (limpCobrando) { toast('⏳ Já tem uma emissão em andamento…'); return; }
+
+  let previa;
+  try {
+    const res = await fetch(LIMP_API + '/api/cobranca-limpeza/previa', { headers: LIMP_AUTH_HEADERS });
+    previa = await res.json();
+  } catch(e) { toast('⚠️ Não consegui consultar as cobranças (offline?)'); return; }
+
+  const aEmitir = previa.aEmitir || [];
+  const pulados = previa.pulados || [];
+
+  if (!aEmitir.length) {
+    toast(pulados.length ? '⚠️ Ninguém elegível — ' + pulados.length + ' pulado(s). Veja o console.' : '⚠️ Ninguém confirmou a limpeza ainda.');
+    if (pulados.length) console.table(pulados);
+    return;
+  }
+
+  let msg = 'Emitir ' + aEmitir.length + ' boleto(s) de limpeza?\n\n' +
+            'Total: ' + _fmtBRL(previa.valorTotal) + ' (conta PF)\n' +
+            aEmitir.slice(0, 12).map(i => '• ' + i.apto + ' — ' + i.nome + ' — ' + _fmtDataBR(i.dataVencimento)).join('\n') +
+            (aEmitir.length > 12 ? '\n• …e mais ' + (aEmitir.length - 12) : '');
+  if (pulados.length) {
+    msg += '\n\n⚠️ ' + pulados.length + ' fora da lista:\n' +
+           pulados.slice(0, 8).map(p => '• ' + p.apto + ' — ' + p.motivo).join('\n') +
+           (pulados.length > 8 ? '\n• …e mais ' + (pulados.length - 8) : '');
+  }
+  msg += '\n\nO Pix vai por WhatsApp automaticamente.';
+  if (!confirm(msg)) return;
+
+  try {
+    const res  = await fetch(LIMP_API + '/api/cobranca-limpeza/emitir-lote', { method: 'POST', headers: LIMP_AUTH_HEADERS });
+    const data = await res.json();
+    if (data.ok === false) { toast('⚠️ ' + (data.erro || 'Erro ao iniciar')); return; }
+  } catch(e) { toast('⚠️ Erro ao iniciar a emissão'); return; }
+
+  toast('💸 Emissão iniciada no servidor!');
+  limpAcompanharCobranca();
+}
+
+/** Acompanha o lote. Como roda no servidor, pode fechar o app que continua. */
+async function limpAcompanharCobranca() {
+  const btn = document.getElementById('limp-btn-cobrar');
+  try {
+    const res = await fetch(LIMP_API + '/api/cobranca-limpeza/emitir-lote/status', { headers: LIMP_AUTH_HEADERS });
+    const st  = await res.json();
+    limpCobrando = !!st.rodando;
+
+    if (st.rodando) {
+      if (btn) { btn.disabled = true; btn.textContent = '💸 ' + (st.emitidos + st.erros) + '/' + st.total + (st.atual ? ' — ' + st.atual : '') + '…'; }
+      setTimeout(limpAcompanharCobranca, 4000);
+    } else {
+      if (btn) { btn.disabled = false; btn.textContent = '💸 Emitir Boletos'; }
+      if (st.total > 0 || st.pulados > 0) {
+        toast('✅ ' + st.emitidos + ' boleto(s) emitido(s)' +
+              (st.pulados ? ' · ' + st.pulados + ' pulado(s)' : '') +
+              (st.erros ? ' · ' + st.erros + ' erro(s)' : ''));
+        if (st.log && st.log.length) console.table(st.log);
+      }
+    }
+  } catch(e) {
+    setTimeout(limpAcompanharCobranca, 6000);  // rede instável — tenta de novo
+  }
 }
 
 async function limpNotificarExecutor(nomeExecutor, apto, diaLabel, dataISO, obs) {
