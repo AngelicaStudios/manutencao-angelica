@@ -664,6 +664,9 @@
 .limp-act-wa   { background:#dcfce7; border-color:#86efac; color:#15803d; }
 .limp-act-task { background:#e0f2fe; border-color:#bae6fd; color:#0369a1; }
 .limp-act-cob  { background:#ede9fe; border-color:#ddd6fe; color:#6d28d9; }
+/* Já cobrado: verde e apagado — dá pra ver de longe quem já tem boleto. */
+.limp-act-cob-ok { background:#dcfce7; border-color:#86efac; color:#15803d; }
+.limp-act-cob-ok:disabled { opacity:.8; }
 .lsave-btn { background:none; border:1px solid var(--border); border-radius:6px; padding:4px 8px; cursor:pointer; font-size:.78rem; color:var(--muted); }
 .lsave-btn:hover { border-color:var(--success); color:var(--success); background:#f0fdf4; }
 
@@ -1987,6 +1990,10 @@ const _svgIco = (p) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColo
 const ICO_WA     = _svgIco('<path d="M21 11.5a8.4 8.4 0 0 1-8.5 8.4 8.5 8.5 0 0 1-4-1L3 21l2.1-5.4A8.4 8.4 0 0 1 12.5 3 8.4 8.4 0 0 1 21 11.5z"/>');
 const ICO_TAREFA = _svgIco('<path d="M9 3h6v3H9z"/><path d="M15 4.5h2A2 2 0 0 1 19 6.5v13a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-13a2 2 0 0 1 2-2h2"/><path d="m9 14 2 2 4-4"/>');
 const ICO_BOLETO = _svgIco('<path d="M4 6v12M7.5 6v12M11 6v8M14.5 6v12M18 6v12M20.5 6v12"/>');
+// Já cobrado: código de barras com um "check" — deixa claro que o boleto saiu.
+const ICO_BOLETO_OK = _svgIco('<path d="M4 6v12M7.5 6v12M11 6v6M14.5 6v4"/><path d="m14 17 2.5 2.5L21 15"/>');
+// apto -> {pode, motivo, emitido} — quem já tem boleto e quem não pode ser cobrado.
+let limpCobStatus = {};
 
 const LIMP_DAY_MAP = {SEGUNDA:1,TERCA:2,QUARTA:3,QUINTA:4,SEXTA:5,SABADO:6,DOMINGO:0};
 function limpProximaData(status) {
@@ -2083,6 +2090,7 @@ async function initLimpeza() {
     limpFuncs = ['Irani','Geone'];
   }
   limpRender();
+  limpCarregarStatusCobranca();   // pinta os botões de boleto (já emitido / bloqueado)
   document.getElementById('btn-disparar').disabled = limpData.length === 0;
 }
 
@@ -2174,7 +2182,18 @@ function limpRender() {
       <td style="white-space:nowrap">
         <button class="limp-act limp-act-wa" ${vago?'disabled title="Apto vago — sem WhatsApp"':'title="Enviar mensagem no WhatsApp"'} onclick="limpSendOneConfirm('${apto}')">${ICO_WA}</button>
         <button class="limp-act limp-act-task" title="Criar tarefa de limpeza pra este apto" onclick="limpCriarTarefaUnica('${apto}')">${ICO_TAREFA}</button>
-        <button class="limp-act limp-act-cob" ${(s in LIMP_DAY_MAP) ? 'title="Emitir boleto da taxa de limpeza (R$ 90)"' : 'disabled title="Só depois que o inquilino confirmar o dia"'} onclick="limpCobrarUm('${apto}')">${ICO_BOLETO}</button>
+        ${(() => {
+          // A trava real é no servidor; aqui só refletimos o estado dela no botão.
+          const confirmou = (s in LIMP_DAY_MAP);
+          const cob = limpCobStatus[apto];
+          let cls = 'limp-act-cob', off = !confirmou, ico = ICO_BOLETO;
+          let tit = confirmou ? 'Emitir boleto da taxa de limpeza (R$ 90)' : 'Só depois que o inquilino confirmar o dia';
+          if (confirmou && cob) {
+            if (cob.emitido)    { off = true; cls = 'limp-act-cob-ok'; ico = ICO_BOLETO_OK; tit = 'Boleto já emitido — ' + (cob.motivo || ''); }
+            else if (!cob.pode) { off = true; tit = 'Não dá pra cobrar: ' + (cob.motivo || ''); }
+          }
+          return `<button class="limp-act ${cls}" ${off ? 'disabled' : ''} title="${escHtml(tit)}" onclick="limpCobrarUm('${apto}')">${ico}</button>`;
+        })()}
       </td>
     </tr>`;
   });
@@ -2424,6 +2443,24 @@ async function limpCriarTarefaUnica(apto) {
    Quem fala com o Asaas é o servidor — o painel só pede. Nada é automático:
    só sai boleto quando você clica. */
 let limpCobrando = false;
+
+/**
+ * Descobre, pra cada apto, se dá pra emitir boleto da limpeza — e por que não, quando
+ * não dá. É o servidor que decide (mesma regra que o botão usa na hora de emitir),
+ * aqui só refletimos no visual pra você não clicar num botão que vai recusar.
+ */
+async function limpCarregarStatusCobranca() {
+  try {
+    const res = await fetch(`${LIMPEZA_API}/api/cobranca-limpeza/previa`, { headers: LIMP_AUTH_HEADERS });
+    const d   = await res.json();
+    limpCobStatus = {};
+    (d.aEmitir || []).forEach(i => { limpCobStatus[i.apto] = { pode: true }; });
+    (d.pulados || []).forEach(p => {
+      limpCobStatus[p.apto] = { pode: false, motivo: p.motivo, emitido: /ja tem boleto/i.test(p.motivo || '') };
+    });
+    limpRender();
+  } catch(e) { /* offline — botão fica no estado neutro */ }
+}
 const _fmtBRL    = v => 'R$ ' + Number(v || 0).toFixed(2).replace('.', ',');
 const _fmtDataBR = iso => (iso || '').split('-').reverse().join('/');
 
@@ -2457,6 +2494,7 @@ async function limpCobrarUm(apto) {
     toast('Erro ao emitir (a conexão caiu — confira no relatório antes de repetir)', 'error');
   }
   limpCobrando = false;
+  limpCarregarStatusCobranca();   // trava o botão do apto que acabou de ser cobrado
 }
 
 async function limpCobrarTodos() {
@@ -2515,6 +2553,7 @@ async function limpAcompanharCobranca() {
               (st.pulados ? ` · ${st.pulados} pulado(s)` : '') +
               (st.erros ? ` · ${st.erros} erro(s)` : ''), 'success');
         if (st.log && st.log.length) console.table(st.log);
+        limpCarregarStatusCobranca();   // trava os botões dos aptos cobrados no lote
       }
     }
   } catch(e) {
