@@ -118,77 +118,44 @@
   }
 
   /* ═══════════════════════════
-     FILTRO STICKY
-  ═══════════════════════════ */
-  .filter-bar {
-    background: #fff;
-    border-bottom: 1.5px solid var(--border);
-    padding: 10px 14px;
-    display: flex;
-    gap: 8px;
-    align-items: center;
-    position: sticky;
-    top: 102px;   /* header (57px) + barra de abas (45px) */
-    z-index: 98;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-  }
-  .filter-bar::-webkit-scrollbar { display: none; }
-
-  .filter-chip {
-    flex-shrink: 0;
-    padding: 6px 14px;
-    border: 1.5px solid var(--border);
-    border-radius: 20px;
-    font-size: .78rem;
-    font-weight: 600;
-    cursor: pointer;
-    background: #fff;
-    color: var(--muted);
-    transition: all .15s;
-    white-space: nowrap;
-  }
-  .filter-chip.active {
-    background: var(--green);
-    color: #fff;
-    border-color: var(--green);
-  }
-
-  .date-filter {
-    flex-shrink: 0;
-    padding: 6px 10px;
-    border: 1.5px solid var(--border);
-    border-radius: 10px;
-    font-size: .78rem;
-    font-family: inherit;
-    color: var(--text);
-    background: #fff;
-    cursor: pointer;
-  }
-  .date-filter:focus { outline: none; border-color: var(--green); }
-
-  /* ═══════════════════════════
-     CONTADORES
+     CONTADORES = FILTROS
+     Os números viram os próprios botões de filtro: um toque só, sem uma segunda
+     barra de opções embaixo. Some também o seletor de data — a tela já abre no
+     dia de hoje (e mantém o que ficou atrasado), então não há o que escolher.
   ═══════════════════════════ */
   .counters-bar {
     display: flex;
-    gap: 0;
+    gap: 8px;
     background: #fff;
     border-bottom: 1.5px solid var(--border);
+    padding: 10px;
   }
   .cnt {
     flex: 1;
     text-align: center;
-    padding: 10px 4px;
-    border-right: 1px solid var(--border);
+    padding: 9px 2px;
+    border: 1.5px solid var(--border);
+    border-radius: 12px;
+    background: #fff;
+    font-family: inherit;
+    cursor: pointer;
+    transition: all .15s;
   }
-  .cnt:last-child { border-right: none; }
-  .cnt .num { font-size: 1.4rem; font-weight: 800; line-height: 1; }
-  .cnt .lbl { font-size: .62rem; color: var(--muted); text-transform: uppercase; letter-spacing: .4px; margin-top: 2px; }
+  .cnt:active { transform: scale(.97); }
+  .cnt .num { font-size: 1.35rem; font-weight: 800; line-height: 1; }
+  .cnt .lbl { font-size: .58rem; color: var(--muted); text-transform: uppercase; letter-spacing: .3px; margin-top: 3px; }
   .cnt.c-pend  .num { color: var(--yellow); }
   .cnt.c-and   .num { color: var(--blue);   }
   .cnt.c-conc  .num { color: var(--green);  }
   .cnt.c-total .num { color: var(--text);   }
+
+  /* filtro ativo: fundo suave na cor do próprio status */
+  .cnt.on              { border-width: 2px; }
+  .cnt.c-total.on      { background: #f1f5f9; border-color: #64748b; }
+  .cnt.c-pend.on       { background: #fef9c3; border-color: var(--yellow); }
+  .cnt.c-and.on        { background: #dbeafe; border-color: var(--blue); }
+  .cnt.c-conc.on       { background: #dcfce7; border-color: var(--green); }
+  .cnt.on .lbl         { color: var(--text); font-weight: 700; }
 
   /* ═══════════════════════════
      LISTA DE TAREFAS
@@ -478,28 +445,39 @@
   /* ═══════════════════════════
      NAV (Tarefas / Meu Dia)
   ═══════════════════════════ */
+  /* Abas como botões: contorno visível e fundo suave no ativo, para ficar claro
+     que dá para tocar — a barrinha embaixo sozinha não passava isso. */
   nav.tabs {
     display: flex;
+    gap: 8px;
     background: #fff;
     border-bottom: 1.5px solid var(--border);
+    padding: 10px;
     position: sticky;
     top: 57px;
     z-index: 99;
   }
   nav.tabs button {
     flex: 1;
-    padding: 12px 4px;
-    background: none;
-    border: none;
-    border-bottom: 3px solid transparent;
+    padding: 12px 6px;
+    background: #fff;
+    border: 1.5px solid var(--border);
+    border-radius: 22px;
     font-family: inherit;
-    font-size: .82rem;
+    font-size: .85rem;
     font-weight: 700;
     color: var(--muted);
     cursor: pointer;
     position: relative;
+    transition: all .15s;
   }
-  nav.tabs button.active { color: var(--green); border-bottom-color: var(--green); }
+  nav.tabs button:active { transform: scale(.97); }
+  nav.tabs button.active {
+    color: #166534;
+    background: #dcfce7;
+    border-color: var(--green);
+    border-width: 2px;
+  }
   .nav-badge {
     display: none;
     background: var(--red);
@@ -686,17 +664,8 @@
 
   <!-- ─── VIEW: TAREFAS ─── -->
   <div class="view active" id="view-tarefas">
-    <!-- Contadores -->
+    <!-- Contadores, que também são os filtros -->
     <div class="counters-bar" id="counters-bar"></div>
-
-    <!-- Filtros -->
-    <div class="filter-bar">
-      <input type="date" class="date-filter" id="filter-date" onchange="render()" />
-      <button class="filter-chip" data-status="" onclick="setStatusFilter(this)">Todas</button>
-      <button class="filter-chip" data-status="pendente"  onclick="setStatusFilter(this)">⏳ Pendentes</button>
-      <button class="filter-chip" data-status="andamento" onclick="setStatusFilter(this)">🔄 Em andamento</button>
-      <button class="filter-chip" data-status="concluida" onclick="setStatusFilter(this)">✅ Concluídas</button>
-    </div>
 
     <!-- Lista -->
     <div id="task-list"></div>
@@ -831,8 +800,7 @@ function entrar(nome) {
   document.getElementById('app').classList.add('visible');
   document.getElementById('header-date').textContent = fmtDateFull();
   document.getElementById('header-user').textContent = nome;
-  // Sem data pré-selecionada: mostra todas as tarefas
-  document.querySelector('.filter-chip').classList.add('active');
+  activeStatus = '';   // abre em "Todas": hoje + o que ficou atrasado
   initListeners();
   initApont();
   render();
@@ -853,10 +821,10 @@ function logout() {
 // ════════════════════════════════
 let activeStatus = '';
 
-function setStatusFilter(btn) {
-  document.querySelectorAll('.filter-chip').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
-  activeStatus = btn.dataset.status;
+// Tocar de novo no filtro ativo volta para "Todas" — evita ele ficar preso
+// numa lista vazia sem saber como sair.
+function setFiltro(status) {
+  activeStatus = (activeStatus === status) ? '' : status;
   render();
 }
 
@@ -864,27 +832,32 @@ function setStatusFilter(btn) {
 // RENDER
 // ════════════════════════════════
 function render() {
-  const date = document.getElementById('filter-date') ? document.getElementById('filter-date').value : '';
+  const hoje = today();
 
-  // Apenas tarefas deste funcionário
-  const minhas = tasks.filter(t => t.resp === currentUser);
+  // Sem seletor de data: a tela é sempre "o que ele tem para fazer agora" —
+  // as de hoje mais o que ficou atrasado em dia anterior e ainda não foi concluído.
+  // Tarefa futura não aparece: só polui quem está em campo.
+  const minhas = tasks.filter(t => t.resp === currentUser)
+                      .filter(t => t.data === hoje || (t.data < hoje && t.status !== 'concluida'));
+
   const pend   = minhas.filter(t => t.status === 'pendente').length;
   const and    = minhas.filter(t => t.status === 'andamento').length;
   const conc   = minhas.filter(t => t.status === 'concluida').length;
 
   const cEl = document.getElementById('counters-bar');
+  const on  = v => activeStatus === v ? ' on' : '';
   if (cEl) cEl.innerHTML = `
-    <div class="cnt c-total"><div class="num">${minhas.length}</div><div class="lbl">Minhas</div></div>
-    <div class="cnt c-pend"><div class="num">${pend}</div><div class="lbl">Pendentes</div></div>
-    <div class="cnt c-and"><div class="num">${and}</div><div class="lbl">Andamento</div></div>
-    <div class="cnt c-conc"><div class="num">${conc}</div><div class="lbl">Concluídas</div></div>
+    <button class="cnt c-total${on('')}"          onclick="setFiltro('')">
+      <div class="num">${minhas.length}</div><div class="lbl">Todas</div></button>
+    <button class="cnt c-pend${on('pendente')}"   onclick="setFiltro('pendente')">
+      <div class="num">${pend}</div><div class="lbl">Pendentes</div></button>
+    <button class="cnt c-and${on('andamento')}"   onclick="setFiltro('andamento')">
+      <div class="num">${and}</div><div class="lbl">Andamento</div></button>
+    <button class="cnt c-conc${on('concluida')}"  onclick="setFiltro('concluida')">
+      <div class="num">${conc}</div><div class="lbl">Concluídas</div></button>
   `;
 
-  // Filtro de data é opcional — sem data mostra tudo
-  let list = minhas.filter(t =>
-    (!date || t.data === date) &&
-    (!activeStatus || t.status === activeStatus)
-  );
+  let list = minhas.filter(t => !activeStatus || t.status === activeStatus);
   // Ordena: atrasadas e pendentes primeiro, depois por data e prioridade
   list.sort((a,b) => {
     const today_ = today();
@@ -899,7 +872,11 @@ function render() {
   const el = document.getElementById('task-list');
   if (!el) return;
   if (!list.length) {
-    el.innerHTML = `<div class="empty"><div class="icon">✅</div><p>Nenhuma tarefa para você${date ? ' neste dia' : ''}.</p></div>`;
+    const msg = activeStatus
+      ? { pendente:'Nenhuma tarefa pendente.', andamento:'Nenhuma tarefa em andamento.',
+          concluida:'Nenhuma tarefa concluída ainda.' }[activeStatus]
+      : 'Nenhuma tarefa para hoje.';
+    el.innerHTML = `<div class="empty"><div class="icon">✅</div><p>${msg}</p></div>`;
     return;
   }
   el.innerHTML = list.map(cardHTML).join('');
