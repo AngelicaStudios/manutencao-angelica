@@ -197,10 +197,69 @@
   table.dados tr.total td { font-weight: 800; border-top: 2px solid var(--border); border-bottom: none; }
   table.dados tr.sub td { color: var(--muted); font-size: .74rem; }
 
+  /* ═══════════════════════════════════════════
+     CELULAR — o resumo por colaborador tem 6 colunas e uma delas é um <select>:
+     não cabe em tela estreita (precisava de ~478px num card de ~350px, cortando
+     colunas). Aqui cada linha vira um cartão empilhado, com o rótulo vindo do
+     data-rot. Volta a ser tabela normal a partir de 700px.
+  ═══════════════════════════════════════════ */
+  @media (max-width: 699px) {
+    #tb-resumo tr.cab { display: none; }
+    #tb-resumo tr {
+      display: block;
+      border: 1.5px solid var(--border);
+      border-radius: 12px;
+      padding: 10px 12px;
+      margin-bottom: 10px;
+    }
+    #tb-resumo tr.total { background: #f8fafc; }
+    #tb-resumo td {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 5px 0;
+      border-bottom: none;
+      text-align: right;
+      font-size: .88rem;
+    }
+    #tb-resumo td::before {
+      content: attr(data-rot);
+      color: var(--muted);
+      font-size: .68rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: .4px;
+    }
+    #tb-resumo td.col-nome {
+      display: block;
+      font-size: .98rem;
+      font-weight: 800;
+      text-align: left;
+      padding-bottom: 8px;
+      margin-bottom: 4px;
+      border-bottom: 1px solid var(--border);
+    }
+    #tb-resumo td.col-nome::before { content: none; }
+    #tb-resumo td.col-sel { display: block; padding-top: 9px; }
+    #tb-resumo td.col-sel::before { content: none; }
+    #tb-resumo td.col-sel:empty { display: none; }
+    #tb-resumo .sel-lib { width: 100%; padding: 10px; font-size: .85rem; }
+  }
+
+  /* Tela bem estreita: o subtítulo cede espaço para o seletor de mês não cortar */
+  @media (max-width: 430px) {
+    .hdr-left span { display: none; }
+    .hdr-left h1   { font-size: .95rem; }
+    .mes-picker    { font-size: .76rem; padding: 7px 8px; }
+    main { padding-left: 10px; padding-right: 10px; }
+    .card { padding: 12px 11px; }
+  }
+
   /* Colaborador liberado do apontamento: some do rateio e não é cobrado */
   /* cor em vez de opacity: opacity no <tr> apagaria junto o seletor dentro dele */
   tr.linha-liberada td { color: #94a3b8; }
-  tr.linha-liberada td.nome { font-style: italic; }
+  tr.linha-liberada td.nome, tr.linha-liberada td.col-nome { font-style: italic; }
   .tag-lib { font-size: .8em; }
   .sel-lib {
     padding: 6px 8px;
@@ -833,21 +892,23 @@ function renderResumo() {
         <option value="mes"    ${lib === 'mes'   ? 'selected' : ''}>Liberado neste mês</option>
         <option value="sempre" ${lib === 'sempre'? 'selected' : ''}>Nunca cobrar</option>
       </select>`;
+    // data-rot alimenta o rótulo no celular, onde cada linha vira um cartão (ver CSS)
     rows += `<tr${lib ? ' class="linha-liberada"' : ''}>
-      <td>${esc(f.nome)}</td>
-      <td class="num">${lib ? '—' : ag.dias}</td>
-      <td class="num">${lib ? '—' : h(ag.horas)}</td>
-      <td class="num">${lib ? '—' : (ag.folgas || '—')}</td>
-      <td class="num">${lib ? '—' : (pend ? `<span style="color:var(--red);font-weight:800">${pend}</span>` : '—')}</td>
-      <td>${sel}</td>
+      <td class="col-nome">${esc(f.nome)}${lib ? ' <span class="tag-lib">🔕</span>' : ''}</td>
+      <td class="num" data-rot="Dias">${lib ? '—' : ag.dias}</td>
+      <td class="num" data-rot="Horas">${lib ? '—' : h(ag.horas)}</td>
+      <td class="num" data-rot="Folgas">${lib ? '—' : (ag.folgas || '—')}</td>
+      <td class="num" data-rot="Atraso">${lib ? '—' : (pend ? `<span style="color:var(--red);font-weight:800">${pend}</span>` : '—')}</td>
+      <td class="col-sel">${sel}</td>
     </tr>`;
   });
   el.innerHTML = `
-    <tr><th>Colaborador</th><th class="num">Dias</th><th class="num">Horas</th>
+    <tr class="cab"><th>Colaborador</th><th class="num">Dias</th><th class="num">Horas</th>
         <th class="num">Folgas</th><th class="num">Atraso</th><th>Apontamento</th></tr>
     ${rows}
-    <tr class="total"><td>Total</td><td class="num">${tD}</td><td class="num">${h(tH)}</td>
-        <td></td><td></td><td></td></tr>`;
+    <tr class="total"><td class="col-nome">Total</td><td class="num" data-rot="Dias">${tD}</td>
+        <td class="num" data-rot="Horas">${h(tH)}</td><td class="num"></td>
+        <td class="num"></td><td class="col-sel"></td></tr>`;
 }
 
 // ══════════════════════════════════════════════
