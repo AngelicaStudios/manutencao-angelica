@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#0f172a">
+<link rel="manifest" href="manifest-check.json">
+<link rel="apple-touch-icon" href="icon-gestor-180.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-gestor-192.png">
+<title>Teste de Instalação</title>
+<style>
+  :root { --bg:#f0f2f5; --card:#fff; --text:#1e293b; --muted:#64748b; --border:#e2e8f0;
+          --ok:#16a34a; --erro:#dc2626; --safe-bottom: env(safe-area-inset-bottom, 0px); }
+  * { box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent; }
+  body { font-family:'Segoe UI', system-ui, -apple-system, sans-serif; background:var(--bg);
+         color:var(--text); padding:16px 14px calc(24px + var(--safe-bottom)); }
+
+  h1 { font-size:1.1rem; font-weight:800; margin-bottom:14px; }
+
+  .veredito { border-radius:16px; padding:24px 18px; text-align:center; margin-bottom:14px; color:#fff; }
+  .veredito .icone  { font-size:3rem; margin-bottom:8px; }
+  .veredito .titulo { font-size:1.25rem; font-weight:800; line-height:1.25; }
+  .veredito .sub    { font-size:.88rem; opacity:.92; margin-top:8px; line-height:1.45; }
+  .v-app { background:linear-gradient(160deg,#15803d,#16a34a); }
+  .v-nav { background:linear-gradient(160deg,#b91c1c,#dc2626); }
+
+  .card { background:var(--card); border-radius:14px; padding:14px; margin-bottom:12px;
+          box-shadow:0 2px 8px rgba(0,0,0,.08); }
+  .card h2 { font-size:.72rem; font-weight:800; text-transform:uppercase; letter-spacing:.5px;
+             color:var(--muted); margin-bottom:10px; }
+
+  .linha { display:flex; align-items:flex-start; gap:9px; padding:7px 0;
+           border-bottom:1px solid var(--border); font-size:.85rem; }
+  .linha:last-child { border-bottom:none; }
+  .linha .st { flex-shrink:0; font-weight:800; }
+  .linha .tx { flex:1; }
+  .linha .vl { color:var(--muted); font-size:.78rem; word-break:break-all; display:block; margin-top:2px; }
+
+  .btn { width:100%; padding:15px; border:none; border-radius:12px; font-family:inherit;
+         font-size:.95rem; font-weight:800; cursor:pointer; margin-top:10px; }
+  .btn-inst { background:#1e293b; color:#fff; display:none; }
+  .btn-copy { background:#fff; color:var(--muted); border:1.5px solid var(--border); }
+
+  .passos { font-size:.85rem; line-height:1.65; }
+  .passos li { margin-bottom:8px; margin-left:18px; }
+  .passos b { color:var(--text); }
+</style>
+</head>
+<body>
+
+<h1>🔍 Teste de instalação</h1>
+
+<div id="veredito" class="veredito v-nav">
+  <div class="icone">⏳</div>
+  <div class="titulo">Verificando…</div>
+</div>
+
+<div class="card">
+  <h2>Checagem técnica</h2>
+  <div id="checks"></div>
+</div>
+
+<button class="btn btn-inst" id="btn-inst" onclick="instalar()">📲 Instalar esta página como app</button>
+<button class="btn btn-copy" onclick="copiar()">📋 Copiar resultado</button>
+
+<div class="card" style="margin-top:12px">
+  <h2>Como usar</h2>
+  <ol class="passos">
+    <li>Abra esta página <b>pelo card do Painel de Gestão</b> e veja o resultado.</li>
+    <li>Depois toque em <b>Instalar esta página como app</b>, abra pelo <b>ícone novo</b> e compare.</li>
+    <li>Toque em <b>Copiar resultado</b> nas duas vezes e me mande.</li>
+  </ol>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+let promptInst = null, resultado = {};
+
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault(); promptInst = e; $('btn-inst').style.display = 'block';
+});
+async function instalar() {
+  if (!promptInst) return;
+  promptInst.prompt(); await promptInst.userChoice;
+  promptInst = null; $('btn-inst').style.display = 'none';
+}
+
+function modoAtual() {
+  for (const m of ['fullscreen', 'standalone', 'minimal-ui']) {
+    if (matchMedia(`(display-mode: ${m})`).matches) return m;
+  }
+  if (navigator.standalone) return 'standalone';   // iOS
+  return 'browser';
+}
+
+async function rodar() {
+  const modo = modoAtual();
+  const comoApp = modo === 'standalone' || modo === 'fullscreen';
+
+  let mf = null, mfErro = '';
+  try { mf = await fetch('manifest-check.json').then(r => r.json()); }
+  catch (e) { mfErro = String(e); }
+
+  let regs = [];
+  try { regs = await navigator.serviceWorker.getRegistrations(); } catch (e) {}
+  const sw = regs.find(r => r.scope.includes('/manutencao-angelica/'));
+
+  const itens = [
+    ['Modo de exibição', comoApp, modo === 'browser' ? 'aba do navegador (com barra)' : modo],
+    ['Manifest carregado', !!mf && !mfErro, mf ? mf.name : (mfErro || 'falhou')],
+    ['Service worker ativo', !!(sw && sw.active), sw ? sw.scope : 'nenhum registrado'],
+    ['Controlando a página', !!navigator.serviceWorker.controller,
+      navigator.serviceWorker.controller ? navigator.serviceWorker.controller.scriptURL : '—'],
+    ['Veio de outra página', !!document.referrer, document.referrer || 'aberto direto'],
+    ['Endereço', true, location.href],
+  ];
+
+  $('checks').innerHTML = itens.map(([nome, ok, valor]) => `
+    <div class="linha">
+      <span class="st" style="color:${ok ? 'var(--ok)' : 'var(--erro)'}">${ok ? '✔' : '✘'}</span>
+      <span class="tx">${nome}<span class="vl">${String(valor)}</span></span>
+    </div>`).join('');
+
+  const v = $('veredito');
+  v.className = 'veredito ' + (comoApp ? 'v-app' : 'v-nav');
+  v.innerHTML = comoApp
+    ? `<div class="icone">✅</div>
+       <div class="titulo">Abriu como APP</div>
+       <div class="sub">Sem barra do navegador. É assim que tem que ficar.</div>`
+    : `<div class="icone">🌐</div>
+       <div class="titulo">Abriu no NAVEGADOR</div>
+       <div class="sub">Por isso aparece a barra preta com o endereço em cima.</div>`;
+
+  resultado = { modo, comoApp, manifest: mf ? mf.name : 'ERRO ' + mfErro,
+                sw: sw ? sw.scope : 'nenhum', controlando: !!navigator.serviceWorker.controller,
+                referrer: document.referrer || '(direto)', url: location.href,
+                ua: navigator.userAgent };
+}
+
+function copiar() {
+  const txt = Object.entries(resultado).map(([k, v]) => `${k}: ${v}`).join('\n');
+  navigator.clipboard.writeText(txt)
+    .then(() => alert('Resultado copiado! Agora é só colar na conversa.'))
+    .catch(() => prompt('Copie o texto abaixo:', txt));
+}
+
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js').catch(() => {});
+}
+rodar();
+</script>
+</body>
+</html>
