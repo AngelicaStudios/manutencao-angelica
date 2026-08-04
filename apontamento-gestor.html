@@ -106,8 +106,12 @@
   #btn-instalar:active { background: #0f172a; }
 
   /* ═══ NAV ═══ */
+  /* Abas como botões: contorno visível e fundo suave no ativo, para ficar claro
+     que dá para tocar — a barrinha embaixo sozinha não passava isso. */
   nav {
     display: flex;
+    gap: 8px;
+    padding: 10px;
     background: #fff;
     border-bottom: 1.5px solid var(--border);
     position: sticky;
@@ -116,17 +120,24 @@
   }
   nav button {
     flex: 1;
-    padding: 12px 4px;
-    background: none;
-    border: none;
-    border-bottom: 3px solid transparent;
+    padding: 12px 6px;
+    background: #fff;
+    border: 1.5px solid var(--border);
+    border-radius: 22px;
     font-family: inherit;
-    font-size: .8rem;
+    font-size: .85rem;
     font-weight: 700;
     color: var(--muted);
     cursor: pointer;
+    transition: all .15s;
   }
-  nav button.active { color: var(--roxo); border-bottom-color: var(--roxo); }
+  nav button:active { transform: scale(.97); }
+  nav button.active {
+    color: #5b21b6;
+    background: var(--roxo-l);
+    border-color: var(--roxo);
+    border-width: 2px;
+  }
 
   main { padding: 14px 12px calc(24px + var(--safe-bottom)); }
   section { display: none; }
@@ -455,8 +466,8 @@
     .hdr-left span { font-size: .92rem; }
     .mes-picker    { font-size: 1rem; padding: 10px 14px; }
 
-    nav { top: 68px; }
-    nav button { font-size: 1.02rem; padding: 16px 4px; }
+    nav { top: 68px; padding: 12px; gap: 10px; }
+    nav button { font-size: 1.02rem; padding: 14px 6px; border-radius: 26px; }
 
     main { padding: 22px 28px 40px; max-width: 1600px; margin: 0 auto; }
     .card { padding: 22px 24px; margin-bottom: 18px; border-radius: 18px; }
@@ -871,6 +882,16 @@ function renderGrade() {
         `${esc(a.nome)} — ${a.dias.length} dia(s): ${a.dias.map(fmtBR).join(', ')}`).join('<br>')}</div>`
     : '';
 
+  // A grade mostra só quem aponta neste mês. Quem está liberado sai daqui —
+  // seriam linhas vazias ocupando espaço. Ele continua na aba de resumo logo
+  // abaixo, que é onde fica o seletor para voltar a cobrar.
+  const naGrade = funcs.filter(f => !liberado(f.nome, mesAtual));
+  if (!naGrade.length) {
+    wrap.innerHTML = `<div class="vazio">Ninguém está apontando neste mês.<br>
+      Para voltar a cobrar alguém, use o seletor no resumo abaixo.</div>`;
+    return;
+  }
+
   const total = diasDoMes(mesAtual);
   let head = '<tr><th class="nome">Colaborador</th>';
   for (let i = 1; i <= total; i++) {
@@ -880,16 +901,13 @@ function renderGrade() {
   head += '</tr>';
 
   let body = '';
-  funcs.forEach(f => {
-    const lib = liberado(f.nome, mesAtual);
-    body += `<tr${lib ? ' class="linha-liberada"' : ''}>` +
-            `<td class="nome">${esc(f.nome)}${lib ? ' <span class="tag-lib">🔕</span>' : ''}</td>`;
+  naGrade.forEach(f => {
+    body += `<tr><td class="nome">${esc(f.nome)}</td>`;
     for (let i = 1; i <= total; i++) {
       const iso = `${mesAtual}-${String(i).padStart(2,'0')}`;
       const d = apts.find(a => a.func === f.nome && a.data === iso);
-      // Liberado não mostra hachura de atraso — só o que ele porventura lançou.
-      const m = lib && !d ? { cls:'t-vazio', txt:'' } : classeTurno(d && d.manha, iso);
-      const t = lib && !d ? { cls:'t-vazio', txt:'' } : classeTurno(d && d.tarde, iso);
+      const m = classeTurno(d && d.manha, iso);
+      const t = classeTurno(d && d.tarde, iso);
       body += `<td><div class="cel" onclick="abrirDia('${esc(f.nome).replace(/'/g,"\\'")}','${iso}')">
                  <div class="t ${m.cls}">${m.txt}</div>
                  <div class="t ${t.cls}">${t.txt}</div>
