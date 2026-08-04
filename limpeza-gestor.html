@@ -932,6 +932,14 @@ async function limpNotificarExecutor(nomeExecutor, apto, diaLabel, dataISO, obs)
 // ════════════════════════
 // INIT
 // ════════════════════════
+// Service worker: sem ele o Android abre o app como atalho dentro do Chrome,
+// com a barra de endereço por cima, em vez de instalar como app de tela cheia.
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch(e => console.warn('SW não registrado:', e));
+  });
+}
+
 const EQUIPE_EMAIL = 'equipe@angelicastudios.com.br';
 const EQUIPE_SENHA = 'Angelica@2026';
 
