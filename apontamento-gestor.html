@@ -68,6 +68,23 @@
   }
   .mes-picker::-webkit-calendar-picker-indicator { filter: invert(1); }
 
+  #btn-instalar {
+    display: none;            /* só aparece se o navegador oferecer a instalação */
+    width: 100%;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 12px;
+    border: none;
+    background: #1e293b;
+    color: #fff;
+    font-family: inherit;
+    font-size: .85rem;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  #btn-instalar:active { background: #0f172a; }
+
   /* ═══ NAV ═══ */
   nav {
     display: flex;
@@ -430,6 +447,10 @@
   </div>
   <input type="month" class="mes-picker" id="mes-picker" onchange="trocarMes(this.value)">
 </header>
+
+<button id="btn-instalar" onclick="instalarApp()">
+  <span>📲</span><span>Instalar app na tela inicial</span>
+</button>
 
 <nav>
   <button class="active" data-sec="mes"    onclick="showSec(this)">📅 Mês</button>
@@ -1186,6 +1207,27 @@ async function apagarDia() {
 // ══════════════════════════════════════════════
 // INIT
 // ══════════════════════════════════════════════
+// Botão de instalar na tela inicial: só aparece quando o celular oferece a instalação.
+let promptInstalar = null;
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  promptInstalar = e;
+  const b = document.getElementById('btn-instalar');
+  if (b) b.style.display = 'flex';
+});
+window.addEventListener('appinstalled', () => {
+  promptInstalar = null;
+  const b = document.getElementById('btn-instalar');
+  if (b) b.style.display = 'none';
+});
+async function instalarApp() {
+  if (!promptInstalar) return;
+  promptInstalar.prompt();
+  await promptInstalar.userChoice;
+  promptInstalar = null;
+  document.getElementById('btn-instalar').style.display = 'none';
+}
+
 // Service worker: sem ele o Android abre o app como atalho dentro do Chrome,
 // com a barra de endereço por cima, em vez de instalar como app de tela cheia.
 if ('serviceWorker' in navigator) {
