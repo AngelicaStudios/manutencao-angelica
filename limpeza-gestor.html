@@ -97,14 +97,23 @@
   ══════════════════════ */
   #sec-limpeza { padding: 0; }
   .limp-actions { padding: 10px 12px; background: #fff; border-bottom: 1.5px solid var(--border); display: flex; gap: 8px; flex-wrap: wrap; }
-  .limp-stats-bar { display: flex; flex-wrap: wrap; background: #fff; border-bottom: 1.5px solid var(--border); }
+  /* Contadores = filtros, no mesmo acabamento do app da equipe: cada um é um
+     botão com contorno, e o ativo ganha fundo suave da própria cor (antes era
+     um bloco teal chapado que apagava a cor do número). */
+  .limp-stats-bar { display: flex; flex-wrap: wrap; gap: 6px; padding: 8px 10px;
+                    background: #fff; border-bottom: 1.5px solid var(--border); }
   .limp-header { position: sticky; top: 0; z-index: 90; background: #fff; }
-  .limp-stat-m { flex: 1 1 76px; text-align: center; padding: 10px 4px; border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); cursor: pointer; transition: background .15s, transform .1s; user-select: none; }
-  .limp-stat-m:last-child { border-right: none; }
+  .limp-stat-m { flex: 1 1 76px; text-align: center; padding: 9px 4px; background: #fff;
+                 border: 1.5px solid var(--border); border-radius: 12px;
+                 cursor: pointer; transition: background .15s, transform .1s; user-select: none; }
   .limp-stat-m:active { transform: scale(.95); }
-  .limp-stat-m.active { background: var(--teal); }
-  .limp-stat-m.active .sn { color: #fff !important; }
-  .limp-stat-m.active .sl { color: rgba(255,255,255,.8); }
+  .limp-stat-m.active { border-width: 2px; }
+  .limp-stat-m.active .sl { color: var(--text); font-weight: 700; }
+  .limp-stat-m.s-ter.active   { background: #ccfbf1; border-color: var(--teal); }
+  .limp-stat-m.s-sex.active   { background: #dcfce7; border-color: var(--green); }
+  .limp-stat-m.s-outro.active { background: #ede9fe; border-color: #7c3aed; }
+  .limp-stat-m.s-agu.active   { background: #fef9c3; border-color: var(--yellow); }
+  .limp-stat-m.s-nao.active   { background: #fee2e2; border-color: var(--red); }
   .limp-stat-m .sn { font-size: 1.35rem; font-weight: 800; line-height: 1; }
   .limp-stat-m .sl { font-size: .6rem; color: var(--muted); text-transform: uppercase; letter-spacing: .3px; margin-top: 2px; }
   .s-ter .sn   { color: var(--teal); }
@@ -163,11 +172,11 @@
       font-size: .68rem;
       white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     }
-    .limp-stats-bar { background: transparent; border-bottom: none; flex-wrap: nowrap; gap: 5px; padding: 8px 8px; }
-    .limp-stat-m { flex: 1 1 0; min-width: 0; padding: 6px 2px; border: 1.5px solid var(--border) !important; border-radius: 10px; background: #fff; }
+    /* No celular só encolhe: o contorno e as cores do ativo já vêm do estilo base */
+    .limp-stats-bar { background: transparent; border-bottom: none; flex-wrap: nowrap; gap: 5px; padding: 8px; }
+    .limp-stat-m { flex: 1 1 0; min-width: 0; padding: 6px 2px; border-radius: 10px; }
     .limp-stat-m .sn { font-size: 1.02rem; }
     .limp-stat-m .sl { font-size: .5rem; letter-spacing: 0; }
-    .limp-stat-m.active { border-color: var(--teal) !important; }
   }
 
   @media (min-width: 640px) {
@@ -526,7 +535,7 @@ function limpRender() {
     const aptoKey = r.apto;
     const info    = limpStatusInfo(r.status, r.dia);
     const optsHtml = execOpts.map(f =>
-      '<option value="' + esc(f) + '"' + (r.executor === f ? ' selected' : '') + '>' + (f || '👤 Executor…') + '</option>'
+      '<option value="' + esc(f) + '"' + (r.executor === f ? ' selected' : '') + '>' + (f || 'Executor…') + '</option>'
     ).join('');
     const waBtnHtml = r.numero
       ? '<button class="limp-act limp-act-wa" title="Enviar mensagem no WhatsApp" onclick="limpDispararUm(\'' + esc(r.numero) + '\',\'' + esc(aptoKey) + '\',\'' + esc(r.nome) + '\')">' + ICO_WA + '</button>'
@@ -579,7 +588,7 @@ function limpRender() {
         statusSelHtml +
         dateHtml +
         '<select class="limp-exec-sel" onchange="limpSaveExec(\'' + esc(aptoKey) + '\',this.value)">' + optsHtml + '</select>' +
-        '<input class="limp-obs-input" type="text" value="' + esc(r.observacao) + '" placeholder="📝 Observação…"' +
+        '<input class="limp-obs-input" type="text" value="' + esc(r.observacao) + '" placeholder="Observação…"' +
           ' onblur="limpSaveObs(\'' + esc(aptoKey) + '\',this.value)"' +
           ' onkeydown="if(event.key===\'Enter\')this.blur()" />' +
       '</div>' +
