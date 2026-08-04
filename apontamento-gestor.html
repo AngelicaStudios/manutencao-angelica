@@ -180,6 +180,26 @@
   table.dados tr.total td { font-weight: 800; border-top: 2px solid var(--border); border-bottom: none; }
   table.dados tr.sub td { color: var(--muted); font-size: .74rem; }
 
+  /* Colaborador liberado do apontamento: some do rateio e não é cobrado */
+  /* cor em vez de opacity: opacity no <tr> apagaria junto o seletor dentro dele */
+  tr.linha-liberada td { color: #94a3b8; }
+  tr.linha-liberada td.nome { font-style: italic; }
+  .tag-lib { font-size: .8em; }
+  .sel-lib {
+    padding: 6px 8px;
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
+    font-family: inherit;
+    font-size: .78rem;
+    font-weight: 600;
+    color: var(--text);
+    background: #fff;
+    cursor: pointer;
+    opacity: 1;
+  }
+  tr.linha-liberada .sel-lib { opacity: 1; border-color: #94a3b8; background: #f1f5f9; }
+  .sel-lib:focus { outline: none; border-color: var(--roxo); }
+
   .inp {
     width: 100%;
     padding: 9px 10px;
@@ -362,6 +382,7 @@
 
     .inp { font-size: 1.02rem; padding: 12px 14px; }
     .btn { font-size: 1rem; padding: 15px 22px; }
+    .sel-lib { font-size: .92rem; padding: 8px 10px; }
 
     .un-grid { grid-template-columns: repeat(auto-fit, minmax(215px, 1fr)); gap: 16px; }
     .un-card { padding: 16px 18px; }
@@ -513,6 +534,9 @@ let funcs      = [];     // [{nome, pin, tel}]
 let apts       = [];      // apontamentos do mês selecionado
 let custos     = null;    // doc custos_mao_obra/{mes}
 let inicioApont= INICIO_PADRAO;
+// { sempre: ['Fulano'], '2026-08': ['Geone'] } — quem está liberado de apontar.
+// Liberado não é cobrado, não aparece em atraso e fica fora do rateio.
+let bloqueios  = {};
 let mesAtual   = '';      // 'YYYY-MM'
 let editando   = null;    // {func, data, manha, tarde}
 let unsubApts  = null;
@@ -618,8 +642,16 @@ function valorFunc(nome) {
   return { valor: Number(val) || 0, estimado: Number(v.estimado)||0, real: v.real==null?null:Number(v.real) };
 }
 
+// Liberado de apontar: "sempre" (não aponta por definição) ou só naquele mês.
+function liberado(nome, mes) {
+  if ((bloqueios.sempre || []).includes(nome)) return 'sempre';
+  if ((bloqueios[mes]   || []).includes(nome)) return 'mes';
+  return '';
+}
+
 // Dias úteis sem lançamento nenhum, do início do apontamento até ontem.
 function pendenciasFunc(nome) {
+  if (liberado(nome, mesAtual)) return [];
   const hoje = hojeISO();
   const total = diasDoMes(mesAtual);
   const out = [];
@@ -643,9 +675,22 @@ function initListeners() {
     renderTudo();
   });
   db.collection('config').doc('apontamento').onSnapshot(snap => {
-    if (snap.exists && snap.data().inicio) inicioApont = snap.data().inicio;
+    const d = snap.exists ? snap.data() : {};
+    if (d.inicio) inicioApont = d.inicio;
+    bloqueios = d.bloqueios || {};
     renderTudo();
   });
+}
+
+async function setLiberacao(nome, valor) {
+  const mesLista = (bloqueios[mesAtual] || []).filter(n => n !== nome);
+  const semLista = (bloqueios.sempre    || []).filter(n => n !== nome);
+  if (valor === 'mes')    mesLista.push(nome);
+  if (valor === 'sempre') semLista.push(nome);
+  const novo = { ...bloqueios, [mesAtual]: mesLista, sempre: semLista };
+  await db.collection('config').doc('apontamento').set({ bloqueios: novo }, { merge: true });
+  toast(valor ? `🔕 ${nome.split(' ')[0]} liberado do apontamento.`
+              : `🔔 ${nome.split(' ')[0]} volta a apontar.`);
 }
 
 function ouvirMes(mes) {
@@ -732,12 +777,15 @@ function renderGrade() {
 
   let body = '';
   funcs.forEach(f => {
-    body += `<tr><td class="nome">${esc(f.nome)}</td>`;
+    const lib = liberado(f.nome, mesAtual);
+    body += `<tr${lib ? ' class="linha-liberada"' : ''}>` +
+            `<td class="nome">${esc(f.nome)}${lib ? ' <span class="tag-lib">🔕</span>' : ''}</td>`;
     for (let i = 1; i <= total; i++) {
       const iso = `${mesAtual}-${String(i).padStart(2,'0')}`;
       const d = apts.find(a => a.func === f.nome && a.data === iso);
-      const m = classeTurno(d && d.manha, iso);
-      const t = classeTurno(d && d.tarde, iso);
+      // Liberado não mostra hachura de atraso — só o que ele porventura lançou.
+      const m = lib && !d ? { cls:'t-vazio', txt:'' } : classeTurno(d && d.manha, iso);
+      const t = lib && !d ? { cls:'t-vazio', txt:'' } : classeTurno(d && d.tarde, iso);
       body += `<td><div class="cel" onclick="abrirDia('${esc(f.nome).replace(/'/g,"\\'")}','${iso}')">
                  <div class="t ${m.cls}">${m.txt}</div>
                  <div class="t ${t.cls}">${t.txt}</div>
@@ -755,22 +803,30 @@ function renderResumo() {
   let rows = '';
   let tH = 0, tD = 0;
   funcs.forEach(f => {
-    const ag = agregarFunc(f.nome);
+    const lib  = liberado(f.nome, mesAtual);
+    const ag   = agregarFunc(f.nome);
     const pend = pendenciasFunc(f.nome).length;
-    tH += ag.horas; tD += ag.dias;
-    rows += `<tr>
+    if (!lib) { tH += ag.horas; tD += ag.dias; }
+    const sel = `<select class="sel-lib" onchange="setLiberacao('${esc(f.nome).replace(/'/g,"\\'")}', this.value)">
+        <option value=""       ${!lib            ? 'selected' : ''}>Cobrar</option>
+        <option value="mes"    ${lib === 'mes'   ? 'selected' : ''}>Liberado neste mês</option>
+        <option value="sempre" ${lib === 'sempre'? 'selected' : ''}>Nunca cobrar</option>
+      </select>`;
+    rows += `<tr${lib ? ' class="linha-liberada"' : ''}>
       <td>${esc(f.nome)}</td>
-      <td class="num">${ag.dias}</td>
-      <td class="num">${h(ag.horas)}</td>
-      <td class="num">${ag.folgas || '—'}</td>
-      <td class="num">${pend ? `<span style="color:var(--red);font-weight:800">${pend}</span>` : '—'}</td>
+      <td class="num">${lib ? '—' : ag.dias}</td>
+      <td class="num">${lib ? '—' : h(ag.horas)}</td>
+      <td class="num">${lib ? '—' : (ag.folgas || '—')}</td>
+      <td class="num">${lib ? '—' : (pend ? `<span style="color:var(--red);font-weight:800">${pend}</span>` : '—')}</td>
+      <td>${sel}</td>
     </tr>`;
   });
   el.innerHTML = `
     <tr><th>Colaborador</th><th class="num">Dias</th><th class="num">Horas</th>
-        <th class="num">Folgas</th><th class="num">Atraso</th></tr>
+        <th class="num">Folgas</th><th class="num">Atraso</th><th>Apontamento</th></tr>
     ${rows}
-    <tr class="total"><td>Total</td><td class="num">${tD}</td><td class="num">${h(tH)}</td><td></td><td></td></tr>`;
+    <tr class="total"><td>Total</td><td class="num">${tD}</td><td class="num">${h(tH)}</td>
+        <td></td><td></td><td></td></tr>`;
 }
 
 // ══════════════════════════════════════════════
@@ -789,6 +845,14 @@ function renderCustos() {
 
   let rows = '';
   funcs.forEach(f => {
+    const lib = liberado(f.nome, mesAtual);
+    if (lib) {
+      rows += `<tr class="linha-liberada">
+          <td colspan="3"><b>${esc(f.nome)}</b> — 🔕 ${lib === 'sempre'
+            ? 'não aponta (nunca cobrar)' : 'liberado neste mês'}; fora do rateio</td>
+        </tr>`;
+      return;
+    }
     const v  = valorFunc(f.nome);
     const ag = agregarFunc(f.nome);
     const ch = ag.horas ? v.valor / ag.horas : 0;
@@ -824,6 +888,7 @@ function renderCustos() {
 async function salvarCustos() {
   const valores = (custos && custos.valores) ? { ...custos.valores } : {};
   funcs.forEach(f => {
+    if (liberado(f.nome, mesAtual)) return;   // sem campos na tela: preserva o que já estava salvo
     const id  = slug(f.nome);
     const est = document.getElementById('est-'  + id);
     const rl  = document.getElementById('real-' + id);
@@ -845,8 +910,8 @@ async function fecharMes() {
   const fechado = custos && custos.status === 'fechado';
   if (!fechado) {
     const semReal = funcs.filter(f => {
-      const id = slug(f.nome);
-      const rl = document.getElementById('real-' + id);
+      if (liberado(f.nome, mesAtual)) return false;   // liberado não precisa de valor real
+      const rl = document.getElementById('real-' + slug(f.nome));
       return !rl || rl.value === '';
     }).map(f => f.nome);
     if (semReal.length && !confirm(`Sem valor real: ${semReal.join(', ')}.\nEsses vão continuar no estimado. Fechar assim mesmo?`)) return;
@@ -871,6 +936,7 @@ function calcularRateio() {
   UNIDADES.forEach(u => porUnidade[u.id] = { horas:0, valor:0 });
 
   funcs.forEach(f => {
+    if (liberado(f.nome, mesAtual)) return;   // liberado fica fora do rateio
     const ag = agregarFunc(f.nome);
     const v  = valorFunc(f.nome).valor;
     const ch = ag.horas ? v / ag.horas : 0;
@@ -899,7 +965,11 @@ function renderRateio() {
   const msgs = [];
   if (r.horasSemCusto > 0)
     msgs.push(`Tem ${h(r.horasSemCusto)} lançadas sem custo cadastrado — preencha os valores na aba 💰 Custos.`);
-  const incompletos = funcs.reduce((s,f) => s + agregarFunc(f.nome).incompletos, 0);
+  const libs = funcs.filter(f => liberado(f.nome, mesAtual)).map(f => f.nome);
+  if (libs.length)
+    msgs.push(`Fora do rateio neste mês (liberados do apontamento): ${libs.join(', ')}.`);
+  const incompletos = funcs.filter(f => !liberado(f.nome, mesAtual))
+                           .reduce((s,f) => s + agregarFunc(f.nome).incompletos, 0);
   if (incompletos > 0)
     msgs.push(`${incompletos} turno(s) marcados como trabalhado mas sem unidade nem externo — essas horas ficaram fora do rateio.`);
   const atrasoTotal = funcs.reduce((s,f) => s + pendenciasFunc(f.nome).length, 0);
@@ -958,6 +1028,8 @@ function exportarCSV() {
   const linhas = [];
   linhas.push(`Rateio de mão de obra${sep}${mesAtual}`);
   linhas.push(`Base${sep}${custos && custos.status==='fechado' ? 'valor real (mês fechado)' : 'valor estimado'}`);
+  const fora = funcs.filter(f => liberado(f.nome, mesAtual)).map(f => f.nome);
+  if (fora.length) linhas.push(`Fora do rateio (liberados do apontamento)${sep}${fora.join(', ')}`);
   linhas.push('');
   linhas.push(['Colaborador', ...UNIDADES.map(u => u.nome), 'Externo', 'Total'].join(sep));
   funcs.forEach(f => {
