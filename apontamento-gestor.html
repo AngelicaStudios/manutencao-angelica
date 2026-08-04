@@ -48,13 +48,30 @@
     align-items: center;
     justify-content: space-between;
     gap: 10px;
+    flex-wrap: wrap;   /* no aperto o seletor desce em vez de ser cortado */
     position: sticky;
     top: 0;
     z-index: 100;
     box-shadow: 0 2px 8px rgba(0,0,0,.2);
   }
-  .hdr-left h1   { font-size: 1rem; font-weight: 800; }
-  .hdr-left span { font-size: .72rem; opacity: .82; }
+  /* O seletor de mês mostra "setembro de 2026" (17 caracteres). Espremido pelo
+     título ele corta o ano — e o corte depende da fonte do aparelho, não só da
+     largura da tela, por isso a reserva de espaço é em `em` e o título é quem
+     cede: encolhe, corta com reticências e, no aperto, o seletor cai para a
+     linha de baixo em vez de espremer. */
+  .hdr-left {
+    min-width: 0;
+    flex: 1 1 auto;
+    overflow: hidden;
+  }
+  .hdr-left h1 {
+    font-size: 1rem; font-weight: 800;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .hdr-left span {
+    font-size: .72rem; opacity: .82;
+    display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
   .mes-picker {
     background: rgba(255,255,255,.18);
     border: 1.5px solid rgba(255,255,255,.5);
@@ -65,6 +82,9 @@
     font-weight: 700;
     font-family: inherit;
     cursor: pointer;
+    flex: 0 0 auto;        /* nunca é espremido pelo título */
+    min-width: 12.5em;     /* cabe "setembro de 2026" + o ícone, acompanhando a fonte */
+    max-width: 100%;
   }
   .mes-picker::-webkit-calendar-picker-indicator { filter: invert(1); }
 
@@ -247,11 +267,15 @@
     #tb-resumo .sel-lib { width: 100%; padding: 10px; font-size: .85rem; }
   }
 
-  /* Tela bem estreita: o subtítulo cede espaço para o seletor de mês não cortar */
-  @media (max-width: 430px) {
+  /* Tela estreita: o subtítulo cede espaço para o seletor de mês não cortar.
+     Limite em 560px (e não 430) porque celular com fonte grande do sistema
+     reporta largura maior e ainda assim aperta o cabeçalho. */
+  @media (max-width: 560px) {
     .hdr-left span { display: none; }
     .hdr-left h1   { font-size: .95rem; }
-    .mes-picker    { font-size: .76rem; padding: 7px 8px; }
+    .mes-picker    { font-size: .78rem; padding: 7px 8px; }
+  }
+  @media (max-width: 430px) {
     main { padding-left: 10px; padding-right: 10px; }
     .card { padding: 12px 11px; }
   }
