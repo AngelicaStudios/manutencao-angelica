@@ -1,0 +1,17 @@
+{
+  "id": "/manutencao-angelica/check",
+  "name": "Teste de Instalação",
+  "short_name": "Teste PWA",
+  "description": "Página de diagnóstico: mostra se o painel abriu como app instalado ou dentro do navegador",
+  "start_url": "./pwa-check.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#0f172a",
+  "orientation": "portrait",
+  "icons": [
+    { "src": "icon-gestor-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-gestor-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icon-gestor-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" }
+  ]
+}
