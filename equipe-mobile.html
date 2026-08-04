@@ -456,6 +456,26 @@
   }
 
   /* ═══════════════════════════
+     BOTÃO INSTALAR
+  ═══════════════════════════ */
+  #btn-instalar {
+    display: none;            /* só aparece se o navegador oferecer a instalação */
+    width: 100%;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 12px;
+    border: none;
+    background: #1e293b;
+    color: #fff;
+    font-family: inherit;
+    font-size: .85rem;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  #btn-instalar:active { background: #0f172a; }
+
+  /* ═══════════════════════════
      NAV (Tarefas / Meu Dia)
   ═══════════════════════════ */
   nav.tabs {
@@ -652,6 +672,11 @@
       <button class="logout-btn" onclick="logout()">Sair</button>
     </div>
   </header>
+
+  <!-- Instalar na tela inicial (só aparece se o celular oferecer) -->
+  <button id="btn-instalar" onclick="instalarApp()">
+    <span>📲</span><span>Instalar app na tela inicial</span>
+  </button>
 
   <!-- Abas -->
   <nav class="tabs">
@@ -1413,6 +1438,41 @@ async function mdFolgaLote() {
   await lote.commit();
   diaEdit = null;
   toast('🌴 Dias marcados como folga.');
+}
+
+// ════════════════════════════════
+// INSTALAÇÃO NA TELA INICIAL
+// ════════════════════════════════
+// Sem service worker o Android trata o site como atalho comum e abre dentro do Chrome,
+// com a barra de endereço por cima. Registrando, o app instala de verdade e abre limpo.
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch(e => console.warn('SW não registrado:', e));
+  });
+}
+
+let promptInstalar = null;
+
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  promptInstalar = e;
+  const b = document.getElementById('btn-instalar');
+  if (b) b.style.display = 'flex';
+});
+
+window.addEventListener('appinstalled', () => {
+  promptInstalar = null;
+  const b = document.getElementById('btn-instalar');
+  if (b) b.style.display = 'none';
+});
+
+async function instalarApp() {
+  if (!promptInstalar) return;
+  promptInstalar.prompt();
+  const { outcome } = await promptInstalar.userChoice;
+  promptInstalar = null;
+  document.getElementById('btn-instalar').style.display = 'none';
+  if (outcome === 'accepted') toast('📲 App instalado!');
 }
 
 // ════════════════════════════════
