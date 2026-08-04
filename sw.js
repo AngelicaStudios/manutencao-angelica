@@ -11,7 +11,7 @@
  * Isso é de propósito — os painéis são publicados direto no GitHub Pages com frequência,
  * e um cache-first deixaria a equipe presa numa versão velha depois de cada deploy.
  */
-const CACHE = 'manutencao-v1';
+const CACHE = 'manutencao-v2';
 
 // Só o esqueleto: o resto entra no cache conforme for sendo usado.
 const ESSENCIAIS = [
@@ -45,8 +45,16 @@ self.addEventListener('fetch', e => {
   // Firebase, gstatic e qualquer outra origem passam direto, sem interferência.
   if (req.method !== 'GET' || new URL(req.url).origin !== self.location.origin) return;
 
+  // O GitHub Pages manda Cache-Control: max-age=600, e um fetch() comum respeita esse
+  // cache do navegador — no app instalado isso segurava o HTML velho depois de publicar.
+  // Para páginas, força ir à rede ignorando o cache (offline ainda cai no cache).
+  const ehPagina = req.mode === 'navigate' || req.destination === 'document';
+  const pedido = ehPagina
+    ? new Request(req.url, { cache: 'reload', credentials: 'same-origin' })
+    : req;
+
   e.respondWith(
-    fetch(req)
+    fetch(pedido)
       .then(resp => {
         if (resp && resp.ok) {
           const copia = resp.clone();
