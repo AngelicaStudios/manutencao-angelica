@@ -830,7 +830,7 @@ function entrar(nome) {
   document.getElementById('login-screen').style.display = 'none';
   document.getElementById('app').classList.add('visible');
   document.getElementById('header-date').textContent = fmtDateFull();
-  document.getElementById('header-user').textContent = '👷 ' + nome;
+  document.getElementById('header-user').textContent = nome;
   // Sem data pré-selecionada: mostra todas as tarefas
   document.querySelector('.filter-chip').classList.add('active');
   initListeners();
@@ -913,8 +913,10 @@ function prioOrder(p)   { return { alta:0, media:1, baixa:2 }[p] ?? 1; }
 // ════════════════════════════════
 function cardHTML(t) {
   const d = today();
-  let dateCls = 'date-futura', dateLabel = '📆 ' + fmtDate(t.data);
-  if (t.data === d)  { dateCls = 'date-hoje';     dateLabel = '📅 Hoje'; }
+  // Sem ícone de calendário: a cor do texto já diz se é hoje, futura ou atrasada.
+  // O ⚠️ da atrasada fica, porque é o único aviso de verdade no card.
+  let dateCls = 'date-futura', dateLabel = fmtDate(t.data);
+  if (t.data === d)  { dateCls = 'date-hoje';     dateLabel = 'Hoje'; }
   else if (t.data<d) { dateCls = 'date-atrasada'; dateLabel = '⚠️ ' + fmtDate(t.data); }
 
   const statusTagCls = { pendente:'tag-pend', andamento:'tag-and', concluida:'tag-conc' }[t.status] || '';
@@ -948,8 +950,8 @@ function cardHTML(t) {
           <div class="card-date ${dateCls}">${dateLabel}</div>
         </div>
         <div class="card-tags">
-          <span class="tag tag-apto">🏠 ${esc(t.apto)}</span>
-          ${t.resp ? `<span class="tag tag-resp">👷 ${esc(t.resp)}</span>` : ''}
+          <span class="tag tag-apto">${esc(t.apto)}</span>
+          ${t.resp ? `<span class="tag tag-resp">${esc(t.resp)}</span>` : ''}
           <span class="tag ${statusTagCls}">${statusLabel}</span>
         </div>
         ${t.desc ? `<div class="card-desc">${esc(t.desc)}</div>` : ''}
