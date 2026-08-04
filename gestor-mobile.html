@@ -798,9 +798,11 @@ function renderArquivo() {
 // ════════════════════════
 function taskCardHTML(t, isArq) {
   const d = today();
-  let dateCls = 'date-futura', dateLabel = '📆 ' + fmtDate(t.data);
+  // Sem ícone de calendário: a cor do texto já diz se é hoje, futura ou atrasada.
+  // O ⚠️ da atrasada fica, porque é o único aviso de verdade no card.
+  let dateCls = 'date-futura', dateLabel = fmtDate(t.data);
   if (!isArq) {
-    if (t.data === d)  { dateCls = 'date-hoje';     dateLabel = '📅 Hoje'; }
+    if (t.data === d)  { dateCls = 'date-hoje';     dateLabel = 'Hoje'; }
     else if (t.data<d) { dateCls = 'date-atrasada'; dateLabel = '⚠️ ' + fmtDate(t.data); }
   }
 
@@ -846,8 +848,8 @@ function taskCardHTML(t, isArq) {
           ${!isArq ? `<div class="card-date ${dateCls}" style="display:flex;align-items:center;flex-wrap:wrap;gap:2px">${dateLabel}${periodoBadge}</div>` : ''}
         </div>
         <div class="card-tags">
-          <span class="tag tag-apto">🏠 ${esc(t.apto)}</span>
-          ${t.resp ? `<span class="tag tag-resp">👷 ${esc(t.resp)}</span>` : ''}
+          <span class="tag tag-apto">${esc(t.apto)}</span>
+          ${t.resp ? `<span class="tag tag-resp">${esc(t.resp)}</span>` : ''}
           ${isArq
             ? `<span class="tag tag-arq">📁 ${fmtDate(t.data)}</span>`
             : `<span class="tag ${sTagCls}">${sLabel}</span>`}
