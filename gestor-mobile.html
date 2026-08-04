@@ -179,27 +179,33 @@
   /* ══════════════════════
      CONTADORES
   ══════════════════════ */
+  /* Contadores = filtros, no mesmo padrão dos outros painéis: cada um é um botão
+     com contorno, e o ativo ganha fundo suave da própria cor — o azul chapado de
+     antes apagava a cor do número. */
   .counters-bar {
-    display: flex; gap: 0;
+    display: flex; gap: 8px; padding: 10px;
     background: #fff; border-bottom: 1.5px solid var(--border);
   }
   .cnt {
-    flex: 1; text-align: center; padding: 10px 4px;
-    border-right: 1px solid var(--border);
-    border: none; background: none; cursor: pointer;
-    border-right: 1px solid var(--border);
-    transition: background .15s;
+    flex: 1; text-align: center; padding: 9px 2px;
+    background: #fff; cursor: pointer; font-family: inherit;
+    border: 1.5px solid var(--border); border-radius: 12px;
+    transition: all .15s;
   }
-  .cnt:last-child { border-right: none; }
-  .cnt .num { font-size: 1.4rem; font-weight: 800; line-height: 1; }
-  .cnt .lbl { font-size: .6rem; color: var(--muted); text-transform: uppercase; letter-spacing: .3px; margin-top: 2px; }
+  .cnt:active { transform: scale(.97); }
+  .cnt .num { font-size: 1.35rem; font-weight: 800; line-height: 1; }
+  .cnt .lbl { font-size: .58rem; color: var(--muted); text-transform: uppercase; letter-spacing: .3px; margin-top: 3px; }
   .cnt.c-total .num { color: var(--text); }
   .cnt.c-pend  .num { color: var(--yellow); }
   .cnt.c-and   .num { color: var(--blue); }
   .cnt.c-conc  .num { color: var(--green); }
-  .cnt.cnt-active { background: var(--blue); }
-  .cnt.cnt-active .num,
-  .cnt.cnt-active .lbl { color: #fff !important; }
+
+  .cnt.cnt-active { border-width: 2px; }
+  .cnt.cnt-active .lbl { color: var(--text); font-weight: 700; }
+  .cnt.c-total.cnt-active { background: #eef2f7; border-color: #64748b; }
+  .cnt.c-pend.cnt-active  { background: #fef9c3; border-color: var(--yellow); }
+  .cnt.c-and.cnt-active   { background: #dbeafe; border-color: var(--blue); }
+  .cnt.c-conc.cnt-active  { background: #dcfce7; border-color: var(--green); }
 
   /* ══════════════════════
      FILTROS
