@@ -1071,6 +1071,7 @@ const INICIO_PADRAO = '2026-08-01';
 
 let meusApts    = [];
 let inicioApont = INICIO_PADRAO;
+let bloqueios   = {};     // { sempre:[...], '2026-08':[...] } — quem o gestor liberou de apontar
 let diaEdit     = null;   // {data, manha, tarde}
 let apontOn     = false;
 
@@ -1085,7 +1086,9 @@ function initApont() {
     renderMeuDia();
   });
   unsubCfgApont = db.collection('config').doc('apontamento').onSnapshot(snap => {
-    if (snap.exists && snap.data().inicio) inicioApont = snap.data().inicio;
+    const d = snap.exists ? snap.data() : {};
+    if (d.inicio) inicioApont = d.inicio;
+    bloqueios = d.bloqueios || {};
     renderMeuDia();
   });
 }
@@ -1120,14 +1123,21 @@ function fmtDiaSem(iso) {
   return `${sem}, ${String(d).padStart(2,'0')}/${String(m).padStart(2,'0')}`;
 }
 
+// Liberado de apontar (decidido pelo gestor): sempre, ou só naquele mês.
+function liberadoNoMes(mes) {
+  return (bloqueios.sempre || []).includes(currentUser) ? 'sempre'
+       : (bloqueios[mes]   || []).includes(currentUser) ? 'mes' : '';
+}
+
 // Dias úteis sem lançamento, do início do apontamento até ontem (limite de 60 dias).
+// Dia de mês liberado não conta como pendência.
 function diasPendentes() {
   const hoje = hojeISO();
   const limite = addDias(hoje, -60);
   let d = inicioApont > limite ? inicioApont : limite;
   const out = [];
   while (d < hoje) {
-    if (ehUtilISO(d) && !meusApts.some(a => a.data === d)) out.push(d);
+    if (ehUtilISO(d) && !liberadoNoMes(d.slice(0,7)) && !meusApts.some(a => a.data === d)) out.push(d);
     d = addDias(d, 1);
   }
   return out;
@@ -1184,6 +1194,26 @@ function renderMeuDia() {
   if (badge) {
     badge.textContent = pend.length || '';
     badge.classList.toggle('on', pend.length > 0);
+  }
+
+  // Liberado pelo gestor: nada a lançar, nada de trava.
+  // Só vale se não houver pendência de mês anterior — liberar agosto não perdoa julho.
+  const lib = liberadoNoMes(hoje.slice(0,7));
+  if (lib && !pend.length) {
+    const mesNome = new Date(Date.UTC(+hoje.slice(0,4), +hoje.slice(5,7) - 1, 1))
+      .toLocaleDateString('pt-BR', { month:'long', year:'numeric', timeZone:'UTC' });
+    el.innerHTML = `
+      <div class="md-card" style="text-align:center;padding:30px 18px">
+        <div style="font-size:2.6rem;margin-bottom:10px">🔕</div>
+        <div style="font-size:1rem;font-weight:800;margin-bottom:6px">Sem apontamento por enquanto</div>
+        <div style="font-size:.88rem;color:var(--muted);line-height:1.5">
+          ${lib === 'sempre'
+            ? 'Você não precisa lançar horas neste app.'
+            : `Você está liberado de lançar horas em <b>${mesNome}</b>.`}<br>
+          Qualquer dúvida, fale com o gestor.
+        </div>
+      </div>`;
+    return;
   }
 
   // Com atraso, o alvo é sempre o dia mais antigo em aberto — hoje fica bloqueado.
