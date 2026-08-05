@@ -822,25 +822,32 @@ async function limpCobrarUm(apto) {
   if (!previa.aEmitir || !previa.aEmitir.length) { toast('⚠️ Nada a cobrar nesse studio.'); return; }
 
   const i = previa.aEmitir[0];
-  if (!confirm('Emitir boleto da taxa de limpeza?\n\nStudio: ' + i.apto + ' — ' + i.nome +
+  const teste = !!previa.modoTeste;
+  if (!confirm((teste ? '🧪 MODO TESTE — NADA será cobrado nem enviado.\n\n' : '') +
+               'Emitir boleto da taxa de limpeza?\n\nStudio: ' + i.apto + ' — ' + i.nome +
                '\nValor: ' + _fmtBRL(i.valor) + '\nVencimento: ' + _fmtDataBR(i.dataVencimento) +
-               '\nConta: PF\n\nO Pix vai por WhatsApp automaticamente.')) return;
+               '\nConta: PF\n\n' +
+               (teste ? 'Simulação: percorre tudo, mas não cobra.'
+                      : 'O Pix vai por WhatsApp automaticamente.'))) return;
 
-  limpCobrando = true;
-  toast('💸 Emitindo…');
+  // Dispara e acompanha, em vez de esperar a resposta. O envio carrega a pausa de
+  // 45-75s do WhatsApp e o proxy corta em 60s — antes o painel mostrava erro
+  // enquanto a cobrança saía (aconteceu em 03/08 nos studios 411 e 403).
   try {
     const res  = await fetch(LIMP_API + '/api/cobranca-limpeza/emitir', {
       method: 'POST', headers: { 'Content-Type': 'application/json', ...LIMP_AUTH_HEADERS },
       body: JSON.stringify({ apto })
     });
     const data = await res.json();
-    if (data.ok) toast('✅ Boleto emitido e enviado pro studio ' + apto + '!');
-    else         toast('⚠️ ' + (data.erro || 'Falha ao emitir'));
+    if (data.ok === false) { toast('⚠️ ' + (data.erro || 'Falha ao iniciar')); return; }
   } catch(e) {
-    toast('⚠️ Erro ao emitir (a conexão caiu — confira no relatório antes de repetir)');
+    toast('⚠️ Erro ao iniciar a emissão');
+    return;
   }
-  limpCobrando = false;
-  limpCarregarStatusCobranca();   // trava o botão do apto que acabou de ser cobrado
+
+  limpCobrando = true;
+  toast(teste ? '🧪 Simulando…' : '💸 Emitindo…');
+  limpAcompanharCobranca();
 }
 
 /** Emite pra todos que confirmaram a faxina. Roda no servidor, em segundo plano. */
@@ -871,7 +878,10 @@ async function limpCobrarTodos() {
            pulados.slice(0, 8).map(p => '• ' + p.apto + ' — ' + p.motivo).join('\n') +
            (pulados.length > 8 ? '\n• …e mais ' + (pulados.length - 8) : '');
   }
-  msg += '\n\nO Pix vai por WhatsApp automaticamente.';
+  const testeLote = !!previa.modoTeste;
+  msg = (testeLote ? '🧪 MODO TESTE — NADA será cobrado nem enviado.\n\n' : '') + msg;
+  msg += testeLote ? '\n\nSimulação: percorre tudo, mas não cobra.'
+                   : '\n\nO Pix vai por WhatsApp automaticamente.';
   if (!confirm(msg)) return;
 
   try {
@@ -898,11 +908,14 @@ async function limpAcompanharCobranca() {
     } else {
       if (btn) { btn.disabled = false; btn.textContent = '💸 Emitir Boletos'; }
       if (st.total > 0 || st.pulados > 0) {
-        toast('✅ ' + st.emitidos + ' boleto(s) emitido(s)' +
+        // Em modo teste o texto TEM que deixar claro que nada saiu — senão o
+        // gestor lê "emitido" e acha que cobrou, que é o erro inverso.
+        const verbo = st.modoTeste ? 'simulado(s) — nada foi cobrado' : 'emitido(s)';
+        toast((st.modoTeste ? '🧪 ' : '✅ ') + st.emitidos + ' boleto(s) ' + verbo +
               (st.pulados ? ' · ' + st.pulados + ' pulado(s)' : '') +
               (st.erros ? ' · ' + st.erros + ' erro(s)' : ''));
         if (st.log && st.log.length) console.table(st.log);
-        limpCarregarStatusCobranca();   // trava os botões dos aptos cobrados no lote
+        limpCarregarStatusCobranca();   // trava os botões dos aptos já cobrados
       }
     }
   } catch(e) {
