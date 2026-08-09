@@ -147,6 +147,55 @@
   }
 
   main { padding: 14px 12px calc(24px + var(--safe-bottom)); }
+
+/* ═══ Padrao visual Angelica Studios — identidade unica ═══════════════════
+   Este modulo ja tinha a receita certa de botao (contorno + fundo suave); o
+   que muda aqui e o matiz roxo virar dourado e o cabecalho seguir o padrao. */
+:root{
+  --acento:#8a5f22; --acento-claro:#D9A85C; --acento-d:#6e4b18;
+  --acento-bg:#faf4e8; --acento-bg-h:#f2e5cd;
+  --azul-info:#2563eb; --azul-esc:#1e293b;
+  --largura:1600px; --h-cabecalho:62px;
+  /* a familia --roxo continua existindo como apelido: evita reescrever as 13
+     regras que a usam, e quem criar regra nova usa --acento */
+  --roxo:var(--acento); --roxo-d:var(--acento-d); --roxo-l:var(--acento-bg);
+  --bg:#e4e8ee;
+  --radius:10px;
+}
+
+/* Cabecalho: escuro, texto na coluna do conteudo, nome do modulo abaixo */
+header{ background:var(--azul-esc); padding:0; display:block; }
+.cabecalho-int{ max-width:var(--largura); margin:0 auto; padding:14px 24px 12px;
+  display:flex; align-items:center; justify-content:space-between; gap:14px;
+  flex-wrap:wrap; }
+header .titulo{ display:flex; flex-direction:column; gap:1px; min-width:0; }
+header h1{ font-size:1.05rem; font-weight:700; line-height:1.2;
+  color:var(--acento-claro); letter-spacing:.01em; }
+header .sub{ font-size:.72rem; color:#94a3b8; opacity:1; }
+.hdr-acoes{ display:flex; align-items:center; gap:10px; flex:0 0 auto; }
+
+.btn-painel{ flex-shrink:0; text-decoration:none; padding:7px 14px; border-radius:8px;
+  border:1.5px solid var(--acento-claro); background:rgba(217,168,92,.14);
+  color:var(--acento-claro); font-size:.82rem; font-weight:600; white-space:nowrap;
+  transition:all .12s; }
+.btn-painel:hover{ background:rgba(217,168,92,.26); border-color:#f1c98c; color:#f1c98c; }
+
+/* O nav grudava num 57px chumbado, que desalinha quando o cabecalho muda de
+   altura (fonte, zoom, quebra de linha). Agora usa a altura medida. */
+nav{ top:var(--h-cabecalho); }
+
+/* Texto do botao roxo tambem passa pro dourado */
+.btn-roxo{ color:var(--acento); }
+.btn-roxo:hover{ color:var(--acento-d); }
+
+#btn-instalar{ background:var(--azul-esc); }
+
+@media (max-width:640px){
+  .cabecalho-int{ padding:11px 16px 9px; gap:10px; }
+  header h1{ font-size:.95rem; }
+  header .sub{ font-size:.66rem; }
+  .btn-painel{ padding:6px 11px; font-size:.75rem; }
+}
   section { display: none; }
   section.active { display: block; }
 
@@ -557,22 +606,28 @@
 <body>
 
 <header>
-  <div class="hdr-left">
-    <h1>🕐 Apontamento</h1>
-    <span id="hdr-sub">Horas e rateio de custo</span>
+  <div class="cabecalho-int">
+    <div class="titulo">
+      <h1>Angelica Studios</h1>
+      <span class="sub" id="hdr-sub">Apontamento</span>
+    </div>
+    <div class="hdr-acoes">
+      <input type="month" class="mes-picker" id="mes-picker" onchange="trocarMes(this.value)">
+      <a class="btn-painel" href="https://angelicastudios.github.io/"
+         onclick="return voltarAoMenu(event)">&#8592; Menu</a>
+    </div>
   </div>
-  <input type="month" class="mes-picker" id="mes-picker" onchange="trocarMes(this.value)">
 </header>
 
 <button id="btn-instalar" onclick="instalarApp()">
-  <span>📲</span><span>Instalar app na tela inicial</span>
+  <span>Instalar app na tela inicial</span>
 </button>
 
 <nav>
   <div class="abas">
-    <button class="active" data-sec="mes"    onclick="showSec(this)">📅 Mês</button>
-    <button              data-sec="custos" onclick="showSec(this)">💰 Custos</button>
-    <button              data-sec="rateio" onclick="showSec(this)">📊 Rateio</button>
+    <button class="active" data-sec="mes"    onclick="showSec(this)">Mês</button>
+    <button              data-sec="custos" onclick="showSec(this)">Custos</button>
+    <button              data-sec="rateio" onclick="showSec(this)">Rateio</button>
   </div>
 </nav>
 
@@ -604,10 +659,10 @@
       <h2>Custo do mês por colaborador</h2>
       <table class="dados" id="tb-custos"></table>
       <div class="btn-row" style="margin-top:14px">
-        <button class="btn btn-roxo btn-full" onclick="salvarCustos()">💾 Salvar valores</button>
+        <button class="btn btn-roxo btn-full" onclick="salvarCustos()">Salvar valores</button>
       </div>
       <div class="btn-row" style="margin-top:8px">
-        <button class="btn btn-green btn-full" id="btn-fechar" onclick="fecharMes()">🔒 Fechar mês (usar valores reais)</button>
+        <button class="btn btn-green btn-full" id="btn-fechar" onclick="fecharMes()">Fechar mês (usar valores reais)</button>
       </div>
     </div>
   </section>
@@ -627,7 +682,7 @@
       <h2>Horas externas</h2>
       <table class="dados" id="tb-externo"></table>
     </div>
-    <button class="btn btn-ghost btn-full" onclick="exportarCSV()">⬇️ Exportar CSV</button>
+    <button class="btn btn-ghost btn-full" onclick="exportarCSV()">⬇Exportar CSV</button>
   </section>
 </main>
 
@@ -640,7 +695,7 @@
     </div>
     <div id="modal-body"></div>
     <div class="btn-row" style="margin-top:4px">
-      <button class="btn btn-roxo" style="flex:1" onclick="salvarDia()">💾 Salvar</button>
+      <button class="btn btn-roxo" style="flex:1" onclick="salvarDia()">Salvar</button>
       <button class="btn btn-red" onclick="apagarDia()">🗑️</button>
     </div>
   </div>
@@ -828,8 +883,8 @@ async function setLiberacao(nome, valor) {
   if (valor === 'sempre') semLista.push(nome);
   const novo = { ...bloqueios, [mesAtual]: mesLista, sempre: semLista };
   await db.collection('config').doc('apontamento').set({ bloqueios: novo }, { merge: true });
-  toast(valor ? `🔕 ${nome.split(' ')[0]} liberado do apontamento.`
-              : `🔔 ${nome.split(' ')[0]} volta a apontar.`);
+  toast(valor ? `${nome.split(' ')[0]} liberado do apontamento.`
+              : `${nome.split(' ')[0]} volta a apontar.`);
 }
 
 function ouvirMes(mes) {
@@ -902,7 +957,7 @@ function renderGrade() {
   const atrasados = funcs.map(f => ({ nome:f.nome, dias:pendenciasFunc(f.nome) }))
                          .filter(x => x.dias.length);
   alertas.innerHTML = atrasados.length
-    ? `<div class="alerta">⚠️ <b>Apontamento em atraso:</b><br>${atrasados.map(a =>
+    ? `<div class="alerta"><b>Apontamento em atraso:</b><br>${atrasados.map(a =>
         `${esc(a.nome)} — ${a.dias.length} dia(s): ${a.dias.map(fmtBR).join(', ')}`).join('<br>')}</div>`
     : '';
 
@@ -996,7 +1051,7 @@ function renderCustos() {
     const lib = liberado(f.nome, mesAtual);
     if (lib) {
       rows += `<tr class="linha-liberada">
-          <td colspan="3"><b>${esc(f.nome)}</b> — 🔕 ${lib === 'sempre'
+          <td colspan="3"><b>${esc(f.nome)}</b> — ${lib === 'sempre'
             ? 'não aponta (nunca cobrar)' : 'liberado neste mês'}; fora do rateio</td>
         </tr>`;
       return;
@@ -1029,8 +1084,8 @@ function renderCustos() {
 
   const btn = document.getElementById('btn-fechar');
   btn.textContent = (custos && custos.status === 'fechado')
-    ? '🔓 Reabrir mês (voltar ao estimado)'
-    : '🔒 Fechar mês (usar valores reais)';
+    ? 'Reabrir mês (voltar ao estimado)'
+    : 'Fechar mês (usar valores reais)';
 }
 
 async function salvarCustos() {
@@ -1051,7 +1106,7 @@ async function salvarCustos() {
     valores,
     atualizadoEm: new Date().toISOString(),
   }, { merge: true });
-  toast('💾 Valores salvos!');
+  toast('Valores salvos!');
 }
 
 async function fecharMes() {
@@ -1069,7 +1124,7 @@ async function fecharMes() {
     status: fechado ? 'estimado' : 'fechado',
     fechadoEm: fechado ? null : new Date().toISOString(),
   }, { merge: true });
-  toast(fechado ? '🔓 Mês reaberto.' : '🔒 Mês fechado com valores reais!');
+  toast(fechado ? 'Mês reaberto.' : 'Mês fechado com valores reais!');
 }
 
 // ══════════════════════════════════════════════
@@ -1112,7 +1167,7 @@ function renderRateio() {
   const avisos = document.getElementById('rateio-avisos');
   const msgs = [];
   if (r.horasSemCusto > 0)
-    msgs.push(`Tem ${h(r.horasSemCusto)} lançadas sem custo cadastrado — preencha os valores na aba 💰 Custos.`);
+    msgs.push(`Tem ${h(r.horasSemCusto)} lançadas sem custo cadastrado — preencha os valores na aba Custos.`);
   const libs = funcs.filter(f => liberado(f.nome, mesAtual)).map(f => f.nome);
   if (libs.length)
     msgs.push(`Fora do rateio neste mês (liberados do apontamento): ${libs.join(', ')}.`);
@@ -1123,7 +1178,7 @@ function renderRateio() {
   const atrasoTotal = funcs.reduce((s,f) => s + pendenciasFunc(f.nome).length, 0);
   if (atrasoTotal > 0)
     msgs.push(`${atrasoTotal} dia(s) útil(eis) sem apontamento — o rateio está incompleto até regularizar.`);
-  avisos.innerHTML = msgs.length ? `<div class="aviso">⚠️ ${msgs.join('<br>')}</div>` : '';
+  avisos.innerHTML = msgs.length ? `<div class="aviso">${msgs.join('<br>')}</div>` : '';
 
   // Cards por unidade
   document.getElementById('un-grid').innerHTML = UNIDADES.map(u => {
@@ -1207,7 +1262,7 @@ function exportarCSV() {
   a.download = `rateio-mao-de-obra-${mesAtual}.csv`;
   a.click();
   URL.revokeObjectURL(a.href);
-  toast('⬇️ CSV gerado!');
+  toast('⬇CSV gerado!');
 }
 
 // ══════════════════════════════════════════════
@@ -1320,7 +1375,7 @@ async function salvarDia() {
     atualizadoEm: new Date().toISOString(),
   }, { merge: true });
   fecharModal();
-  toast('💾 Dia salvo!');
+  toast('Dia salvo!');
 }
 
 async function apagarDia() {
@@ -1328,7 +1383,7 @@ async function apagarDia() {
   if (!confirm(`Apagar o apontamento de ${editando.func} em ${fmtBR(editando.data)}?`)) return;
   await db.collection('apontamentos').doc(docId(editando.data, editando.func)).delete();
   fecharModal();
-  toast('🗑️ Apontamento apagado.');
+  toast('Apontamento apagado.');
 }
 
 // ══════════════════════════════════════════════
@@ -1377,6 +1432,31 @@ const EQUIPE_SENHA = 'euPOTdTorZqheKP1aHHi';
     document.getElementById('grade-wrap').innerHTML =
       `<div class="vazio" style="color:var(--red)">Erro de conexão. Verifique a internet.</div>`;
   });
+})();
+
+// O painel abre cada modulo numa aba nova. Se esta aba veio de la, fechar
+// devolve o foco pro painel ja aberto, em vez de abrir um segundo. Se o
+// navegador nao permitir fechar, o setTimeout assume e navega.
+function voltarAoMenu(e) {
+  e.preventDefault();
+  var destino = 'https://angelicastudios.github.io/';
+  window.close();
+  setTimeout(function () { location.href = destino; }, 150);
+  return false;
+}
+
+// Altura real do cabecalho: as abas grudam logo abaixo dele, e antes isso
+// dependia de um 57px chumbado que desalinhava quando o cabecalho mudava.
+(function medirCabecalho() {
+  var alvo = document.querySelector('header');
+  if (!alvo) return;
+  var aplicar = function () {
+    document.documentElement.style.setProperty(
+      '--h-cabecalho', alvo.getBoundingClientRect().height + 'px');
+  };
+  aplicar();
+  window.addEventListener('resize', aplicar);
+  if (window.ResizeObserver) new ResizeObserver(aplicar).observe(alvo);
 })();
 </script>
 </body>
