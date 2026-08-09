@@ -183,6 +183,33 @@
     body { background: #dbe2ea; }
     #app.visible { max-width: 900px; margin: 0 auto; box-shadow: 0 0 50px rgba(0,0,0,.18); }
   }
+
+/* ═══ Padrao visual Angelica Studios — identidade unica ═══════════════════
+   Aqui entra so a IDENTIDADE (cor, cabecalho, botao Menu). O layout continua
+   sendo o do app de celular — no desktop ele apenas centraliza em 900px. Virar
+   painel de 1600 seria redesenhar, e isso ficou pra revisao do celular. */
+:root{
+  --acento:#8a5f22; --acento-claro:#D9A85C; --acento-d:#6e4b18;
+  --acento-bg:#faf4e8; --acento-bg-h:#f2e5cd;
+  --azul-info:#2563eb; --azul-esc:#1e293b;
+  /* --teal continua existindo como apelido: evita reescrever os 9 usos */
+  --teal:var(--acento); --teal-d:var(--acento-d);
+  --bg:#e4e8ee; --radius:10px;
+}
+@media (min-width:640px){ body{ background:#e4e8ee; } }
+
+header{ background:var(--azul-esc); padding:0; display:block; }
+.cabecalho-int{ padding:13px 16px 11px; display:flex; align-items:center;
+  justify-content:space-between; gap:12px; }
+header .titulo{ display:flex; flex-direction:column; gap:1px; min-width:0; }
+header h1{ font-size:1rem; font-weight:700; line-height:1.2;
+  color:var(--acento-claro); letter-spacing:.01em; }
+header .sub{ font-size:.7rem; color:#94a3b8; }
+
+.btn-painel{ flex-shrink:0; text-decoration:none; padding:6px 12px; border-radius:8px;
+  border:1.5px solid var(--acento-claro); background:rgba(217,168,92,.14);
+  color:var(--acento-claro); font-size:.78rem; font-weight:600; white-space:nowrap; }
+.btn-painel:hover{ background:rgba(217,168,92,.26); border-color:#f1c98c; color:#f1c98c; }
 </style>
 <!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
@@ -198,20 +225,25 @@
 <div id="app" class="visible">
 
   <header>
-    <div class="hdr-left">
-      <h1>🧹 Gestão Limpeza</h1>
-      <span id="hdr-date"></span>
+    <div class="cabecalho-int">
+      <div class="titulo">
+        <h1>Angelica Studios</h1>
+        <span class="sub">Limpeza</span>
+      </div>
+      <a class="btn-painel" href="https://angelicastudios.github.io/"
+         onclick="return voltarAoMenu(event)">&#8592; Menu</a>
     </div>
+    <span id="hdr-date" hidden></span>
   </header>
 
   <div id="content">
     <div id="sec-limpeza">
       <div class="limp-header">
       <div class="limp-actions">
-        <button class="btn-sm btn-ghost" onclick="limpSync()">🔁 Sincronizar</button>
-        <button class="btn-sm" style="background:#e0f2fe;color:#075985;border:1.5px solid #bae6fd;border-radius:10px;font-weight:700;padding:10px 14px;cursor:pointer;" onclick="limpCriarTarefas()">📋 Criar Tarefas</button>
-        <button class="btn-sm" style="background:#ede9fe;color:#5b21b6;border:1.5px solid #ddd6fe;border-radius:10px;font-weight:700;padding:10px 14px;cursor:pointer;" onclick="limpToggleNovaSemana()">📅 Criar Semana</button>
-        <button class="btn-sm" id="limp-btn-cobrar" style="background:#f3e8ff;color:#6d28d9;border:1.5px solid #d8b4fe;border-radius:10px;font-weight:700;padding:10px 14px;cursor:pointer;" onclick="limpCobrarTodos()">💸 Emitir Boletos</button>
+        <button class="btn-sm btn-ghost" onclick="limpSync()">Sincronizar</button>
+        <button class="btn-sm" style="background:#e0f2fe;color:#075985;border:1.5px solid #bae6fd;border-radius:10px;font-weight:700;padding:10px 14px;cursor:pointer;" onclick="limpCriarTarefas()">Criar Tarefas</button>
+        <button class="btn-sm" style="background:#ede9fe;color:#5b21b6;border:1.5px solid #ddd6fe;border-radius:10px;font-weight:700;padding:10px 14px;cursor:pointer;" onclick="limpToggleNovaSemana()">Criar Semana</button>
+        <button class="btn-sm" id="limp-btn-cobrar" style="background:#f3e8ff;color:#6d28d9;border:1.5px solid #d8b4fe;border-radius:10px;font-weight:700;padding:10px 14px;cursor:pointer;" onclick="limpCobrarTodos()">Emitir Boletos</button>
       </div>
       <div id="limp-semana-info" style="display:none;padding:8px 12px;background:#faf5ff;border-bottom:1.5px solid var(--border);font-size:.78rem;color:#6b21a8;font-weight:600"></div>
       <div id="limp-semana-form" style="display:none;padding:10px 12px;background:#faf5ff;border-bottom:1.5px solid var(--border);gap:8px;flex-wrap:wrap;align-items:center;">
@@ -224,7 +256,7 @@
           <input type="date" class="field-input" id="ns-fim" />
         </div>
         <div style="display:flex;gap:8px">
-          <button class="btn-sm btn-blue" style="flex:1" onclick="limpConfirmarNovaSemana()">✅ Confirmar</button>
+          <button class="btn-sm btn-blue" style="flex:1" onclick="limpConfirmarNovaSemana()">Confirmar</button>
           <button class="btn-sm btn-ghost" style="flex:1" onclick="limpToggleNovaSemana()">Cancelar</button>
         </div>
       </div>
@@ -235,7 +267,7 @@
       <div id="limp-list" class="limp-list"></div>
       <div class="limp-footer">
         <button class="btn-full btn-green" onclick="limpDisparar()" id="limp-btn-disp" style="display:none">
-          📲 Disparar WhatsApp para Aguardando
+          Disparar WhatsApp para Aguardando
         </button>
       </div>
     </div>
@@ -321,7 +353,7 @@ function limpRenderSemanaInfo() {
   if (!el) return;
   if (!limpSemana) { el.style.display = 'none'; return; }
   el.style.display = 'block';
-  el.textContent = '📅 Semana atual: ' + fmtDate(limpSemana.data_inicio) + ' a ' + fmtDate(limpSemana.data_fim) +
+  el.textContent = 'Semana atual: ' + fmtDate(limpSemana.data_inicio) + ' a ' + fmtDate(limpSemana.data_fim) +
     (limpSemana.terca ? '  ·  Terça ' + fmtDate(limpSemana.terca) : '') +
     (limpSemana.sexta ? '  ·  Sexta ' + fmtDate(limpSemana.sexta) : '');
 }
@@ -349,8 +381,8 @@ function limpToggleNovaSemana() {
 async function limpConfirmarNovaSemana() {
   const inicio = document.getElementById('ns-inicio').value;
   const fim    = document.getElementById('ns-fim').value;
-  if (!inicio || !fim) { toast('⚠️ Informe início e fim!'); return; }
-  if (fim < inicio) { toast('⚠️ Fim não pode ser antes do início!'); return; }
+  if (!inicio || !fim) { toast('Informe início e fim!'); return; }
+  if (fim < inicio) { toast('Fim não pode ser antes do início!'); return; }
   if (!confirm('Criar semana de ' + fmtDate(inicio) + ' a ' + fmtDate(fim) + '?\n\nIsso reseta o status de TODOS os apartamentos para "Aguardando".')) return;
   try {
     const res  = await fetch(LIMP_API + '/api/nova-semana', {
@@ -359,13 +391,13 @@ async function limpConfirmarNovaSemana() {
       body: JSON.stringify({ data_inicio: inicio, data_fim: fim })
     });
     const data = await res.json();
-    if (data.ok === false) { toast('⚠️ ' + (data.erro || 'Erro ao criar semana')); return; }
+    if (data.ok === false) { toast('' + (data.erro || 'Erro ao criar semana')); return; }
     limpSemana = { data_inicio: inicio, data_fim: fim, terca: data.terca, sexta: data.sexta };
     limpRenderSemanaInfo();
     limpToggleNovaSemana();
-    toast('✅ Semana criada!');
+    toast('Semana criada!');
     await initLimpeza();
-  } catch(e) { toast('⚠️ Erro ao criar semana (offline?)'); }
+  } catch(e) { toast('Erro ao criar semana (offline?)'); }
 }
 
 async function limpSync() {
@@ -374,9 +406,9 @@ async function limpSync() {
   try {
     const res  = await fetch(LIMP_API + '/api/sync', { method: 'POST', headers: LIMP_AUTH_HEADERS });
     const data = await res.json();
-    if (data.ok === false) { toast('⚠️ Erro ao sincronizar: ' + (data.erro || '')); }
-    else toast('🔁 Sincronizado!');
-  } catch(e) { toast('⚠️ Erro ao sincronizar (offline?)'); }
+    if (data.ok === false) { toast('Erro ao sincronizar: ' + (data.erro || '')); }
+    else toast('Sincronizado!');
+  } catch(e) { toast('Erro ao sincronizar (offline?)'); }
   await initLimpeza();
 }
 
@@ -416,7 +448,7 @@ async function initLimpeza() {
     limpRender();
     limpCarregarStatusCobranca();   // pinta os botões de boleto (já emitido / bloqueado)
   } catch(e) {
-    if (prog) prog.textContent = '⚠️ Erro ao carregar. Verifique a conexão.';
+    if (prog) prog.textContent = 'Erro ao carregar. Verifique a conexão.';
   }
 }
 
@@ -464,18 +496,18 @@ const LIMP_DAY_UPPER = {
 function limpStatusInfo(status, dia) {
   const s = (status || '').toLowerCase();
   const d = (dia || '').toLowerCase();
-  if (s === 'nao' || s === 'não' || s === 'recusou') return { label:'❌ Não', cls:'lb-nao', cardCls:'lc-nao', filterKey:'nao' };
-  if (s === 'nao_respondeu' || s === 'sem_resposta') return { label:'🔇 Sem resp.', cls:'lb-nr', cardCls:'lc-nr', filterKey:'nao_respondeu' };
+  if (s === 'nao' || s === 'não' || s === 'recusou') return { label:'Não', cls:'lb-nao', cardCls:'lc-nao', filterKey:'nao' };
+  if (s === 'nao_respondeu' || s === 'sem_resposta') return { label:'Sem resp.', cls:'lb-nr', cardCls:'lc-nr', filterKey:'nao_respondeu' };
   if (LIMP_DAY_LABEL[s]) {
     const cardCls = s === 'terca' ? 'lc-ter' : (s === 'sexta' ? 'lc-sex' : 'lc-outro');
     const cls     = s === 'terca' ? 'lb-ter' : (s === 'sexta' ? 'lb-sex' : 'lb-outro');
-    return { label: '✅ ' + LIMP_DAY_LABEL[s], cls, cardCls, filterKey: s };
+    return { label: '' + LIMP_DAY_LABEL[s], cls, cardCls, filterKey: s };
   }
   // compat com respostas antigas do bot de WhatsApp
   if (s === 'sim' || s === 'confirmado') {
     const isSex = d.includes('sex') || d.includes('fri') || d === '5';
-    if (isSex) return { label:'✅ Sexta', cls:'lb-sex', cardCls:'lc-sex', filterKey:'sexta' };
-    return { label:'✅ Terça', cls:'lb-ter', cardCls:'lc-ter', filterKey:'terca' };
+    if (isSex) return { label:'Sexta', cls:'lb-sex', cardCls:'lc-sex', filterKey:'sexta' };
+    return { label:'Terça', cls:'lb-ter', cardCls:'lc-ter', filterKey:'terca' };
   }
   return { label:'⏳ Aguardando', cls:'lb-agu', cardCls:'lc-agu', filterKey:'aguardando' };
 }
@@ -565,7 +597,7 @@ function limpRender() {
       ['SEXTA',      'Sexta-feira'],
       ['SABADO',     'Sábado'],
       ['DOMINGO',    'Domingo'],
-      ['NAO',        '❌ Não quer']
+      ['NAO',        'Não quer']
     ].map(([val, label]) => '<option value="' + val + '"' + (statusVal===val?' selected':'') + '>' + label + '</option>').join('');
     const statusSelHtml =
       '<select class="limp-status-sel" onchange="limpSaveStatus(\'' + esc(aptoKey) + '\',this.value)">' + statusOptsHtml + '</select>';
@@ -607,8 +639,8 @@ async function limpSaveStatus(apto, status) {
       headers: { 'Content-Type': 'application/json', ...LIMP_AUTH_HEADERS },
       body: JSON.stringify({ status, dia: diaDate })
     });
-    toast('✅ Status atualizado!');
-  } catch(e) { toast('⚠️ Erro ao salvar status (offline?)'); }
+    toast('Status atualizado!');
+  } catch(e) { toast('Erro ao salvar status (offline?)'); }
 }
 
 async function limpSaveDia(apto, dia) {
@@ -620,8 +652,8 @@ async function limpSaveDia(apto, dia) {
       headers: { 'Content-Type': 'application/json', ...LIMP_AUTH_HEADERS },
       body: JSON.stringify({ dia })
     });
-    toast('📅 Data salva!');
-  } catch(e) { toast('⚠️ Erro ao salvar data (offline?)'); }
+    toast('Data salva!');
+  } catch(e) { toast('Erro ao salvar data (offline?)'); }
 }
 
 async function limpSaveExec(apto, executor) {
@@ -633,8 +665,8 @@ async function limpSaveExec(apto, executor) {
       headers: { 'Content-Type': 'application/json', ...LIMP_AUTH_HEADERS },
       body: JSON.stringify({ executor })
     });
-    toast('👤 Executor salvo: ' + (executor || '—'));
-  } catch(e) { toast('⚠️ Erro ao salvar executor (offline?)'); }
+    toast('Executor salvo: ' + (executor || '—'));
+  } catch(e) { toast('Erro ao salvar executor (offline?)'); }
 }
 
 async function limpSaveObs(apto, observacao) {
@@ -646,8 +678,8 @@ async function limpSaveObs(apto, observacao) {
       headers: { 'Content-Type': 'application/json', ...LIMP_AUTH_HEADERS },
       body: JSON.stringify({ observacao })
     });
-    toast('📝 Observação salva!');
-  } catch(e) { toast('⚠️ Erro ao salvar observação (offline?)'); }
+    toast('Observação salva!');
+  } catch(e) { toast('Erro ao salvar observação (offline?)'); }
 }
 
 async function limpDispararUm(numero, apto, nome) {
@@ -657,23 +689,23 @@ async function limpDispararUm(numero, apto, nome) {
       headers: { 'Content-Type': 'application/json', ...LIMP_AUTH_HEADERS },
       body: JSON.stringify({ apto, numero, nome: nome || '' })
     });
-    toast('📲 Mensagem enviada para ' + apto + '!');
-  } catch(e) { toast('⚠️ Erro ao enviar para ' + apto); }
+    toast('Mensagem enviada para ' + apto + '!');
+  } catch(e) { toast('Erro ao enviar para ' + apto); }
 }
 
 async function limpDisparar() {
   if (limpSending) { toast('⏳ Envio em andamento…'); return; }
   const aguardando = limpData.filter(r => limpStatusInfo(r.status, r.dia).filterKey === 'aguardando' && r.numero && !r.numero.startsWith('vago_'));
-  if (!aguardando.length) { toast('⚠️ Nenhum aguardando com número.'); return; }
+  if (!aguardando.length) { toast('Nenhum aguardando com número.'); return; }
   if (!confirm('Disparar WhatsApp para ' + aguardando.length + ' apartamento(s)?\n\nAgora roda no servidor — pode fechar o app/celular que o envio continua.')) return;
 
   try {
     const res  = await fetch(LIMP_API + '/api/disparar-massa', { method: 'POST', headers: LIMP_AUTH_HEADERS });
     const data = await res.json();
-    if (data.ok === false) { toast('⚠️ ' + (data.erro || 'Erro ao iniciar disparo')); return; }
-  } catch(e) { toast('⚠️ Erro ao iniciar disparo (offline?)'); return; }
+    if (data.ok === false) { toast('' + (data.erro || 'Erro ao iniciar disparo')); return; }
+  } catch(e) { toast('Erro ao iniciar disparo (offline?)'); return; }
 
-  toast('📲 Disparo iniciado no servidor!');
+  toast('Disparo iniciado no servidor!');
   limpAcompanharMassa();
 }
 
@@ -686,13 +718,13 @@ async function limpAcompanharMassa() {
     if (st.rodando) {
       if (btnDisp) {
         btnDisp.disabled = true;
-        btnDisp.textContent = '📲 Enviando ' + (st.enviados + st.erros) + '/' + st.total + (st.atual ? ' — ' + st.atual : '') + '…';
+        btnDisp.textContent = 'Enviando ' + (st.enviados + st.erros) + '/' + st.total + (st.atual ? ' — ' + st.atual : '') + '…';
       }
       setTimeout(limpAcompanharMassa, 4000);
     } else {
-      if (btnDisp) { btnDisp.disabled = false; btnDisp.textContent = '📲 Disparar WhatsApp para Aguardando'; }
+      if (btnDisp) { btnDisp.disabled = false; btnDisp.textContent = 'Disparar WhatsApp para Aguardando'; }
       if (st.total > 0) {
-        toast('✅ ' + st.enviados + '/' + st.total + ' mensagens enviadas!');
+        toast('' + st.enviados + '/' + st.total + ' mensagens enviadas!');
         await initLimpeza();
       }
     }
@@ -721,7 +753,7 @@ function limpProxData(dia) {
 
 async function limpCriarTarefas() {
   const comExec = limpData.filter(r => r.executor && r.executor.trim());
-  if (!comExec.length) { toast('⚠️ Nenhum executor atribuído!'); return; }
+  if (!comExec.length) { toast('Nenhum executor atribuído!'); return; }
 
   const grupos = {};
   comExec.forEach(r => {
@@ -753,7 +785,7 @@ async function limpCriarTarefas() {
     await dbSet('tarefas', tarefa.id, tarefa);
     ok++;
   }
-  toast('✅ ' + ok + ' tarefa(s) criada(s) no painel de Manutenção!');
+  toast('' + ok + ' tarefa(s) criada(s) no painel de Manutenção!');
 }
 
 const LIMP_DIA_LABEL_TAREFA = {
@@ -764,11 +796,11 @@ const LIMP_DIA_LABEL_TAREFA = {
 async function limpCriarTarefaUnica(apto) {
   const r = limpData.find(x => x.apto === apto);
   if (!r) return;
-  if (!r.executor || !r.executor.trim()) { toast('⚠️ Selecione um executor pra esse studio antes de criar a tarefa.'); return; }
+  if (!r.executor || !r.executor.trim()) { toast('Selecione um executor pra esse studio antes de criar a tarefa.'); return; }
 
   const info   = limpStatusInfo(r.status, r.dia);
   const dayKey = LIMP_DAY_UPPER[info.filterKey] || null;
-  if (!dayKey) { toast('⚠️ Studio sem dia de limpeza agendado (defina Terça/Sexta/etc).'); return; }
+  if (!dayKey) { toast('Studio sem dia de limpeza agendado (defina Terça/Sexta/etc).'); return; }
 
   const dataISO   = r.diaISO || limpProximaData(dayKey);
   const dataBR    = dataISO.split('-').reverse().join('/');
@@ -787,9 +819,9 @@ async function limpCriarTarefaUnica(apto) {
   await dbSet('tarefas', tarefa.id, tarefa);
 
   const wppOk = await limpNotificarExecutor(executor, apto, diaLabel, dataISO, obs);
-  if (wppOk === null)  toast('✅ Tarefa criada pro studio ' + apto + '! (⚠️ ' + executor + ' sem telefone cadastrado — avise manualmente)');
-  else if (wppOk)      toast('✅ Tarefa criada e WhatsApp enviado pra ' + executor + '!');
-  else                  toast('✅ Tarefa criada, mas o WhatsApp pra ' + executor + ' falhou — avise manualmente.');
+  if (wppOk === null)  toast('Tarefa criada pro studio ' + apto + '! (' + executor + ' sem telefone cadastrado — avise manualmente)');
+  else if (wppOk)      toast('Tarefa criada e WhatsApp enviado pra ' + executor + '!');
+  else                  toast('Tarefa criada, mas o WhatsApp pra ' + executor + ' falhou — avise manualmente.');
 }
 
 // ════════════════════════
@@ -813,17 +845,17 @@ async function limpCobrarUm(apto) {
   try {
     const res = await fetch(LIMP_API + '/api/cobranca-limpeza/previa?apto=' + encodeURIComponent(apto), { headers: LIMP_AUTH_HEADERS });
     previa = await res.json();
-  } catch(e) { toast('⚠️ Não consegui consultar a cobrança (offline?)'); return; }
+  } catch(e) { toast('Não consegui consultar a cobrança (offline?)'); return; }
 
   if (previa.pulados && previa.pulados.length) {
-    toast('⚠️ Studio ' + apto + ': ' + previa.pulados[0].motivo);
+    toast('Studio ' + apto + ': ' + previa.pulados[0].motivo);
     return;
   }
-  if (!previa.aEmitir || !previa.aEmitir.length) { toast('⚠️ Nada a cobrar nesse studio.'); return; }
+  if (!previa.aEmitir || !previa.aEmitir.length) { toast('Nada a cobrar nesse studio.'); return; }
 
   const i = previa.aEmitir[0];
   const teste = !!previa.modoTeste;
-  if (!confirm((teste ? '🧪 MODO TESTE — NADA será cobrado nem enviado.\n\n' : '') +
+  if (!confirm((teste ? 'MODO TESTE — NADA será cobrado nem enviado.\n\n' : '') +
                'Emitir boleto da taxa de limpeza?\n\nStudio: ' + i.apto + ' — ' + i.nome +
                '\nValor: ' + _fmtBRL(i.valor) + '\nVencimento: ' + _fmtDataBR(i.dataVencimento) +
                '\nConta: PF\n\n' +
@@ -839,14 +871,14 @@ async function limpCobrarUm(apto) {
       body: JSON.stringify({ apto })
     });
     const data = await res.json();
-    if (data.ok === false) { toast('⚠️ ' + (data.erro || 'Falha ao iniciar')); return; }
+    if (data.ok === false) { toast('' + (data.erro || 'Falha ao iniciar')); return; }
   } catch(e) {
-    toast('⚠️ Erro ao iniciar a emissão');
+    toast('Erro ao iniciar a emissão');
     return;
   }
 
   limpCobrando = true;
-  toast(teste ? '🧪 Simulando…' : '💸 Emitindo…');
+  toast(teste ? 'Simulando…' : 'Emitindo…');
   limpAcompanharCobranca();
 }
 
@@ -858,13 +890,13 @@ async function limpCobrarTodos() {
   try {
     const res = await fetch(LIMP_API + '/api/cobranca-limpeza/previa', { headers: LIMP_AUTH_HEADERS });
     previa = await res.json();
-  } catch(e) { toast('⚠️ Não consegui consultar as cobranças (offline?)'); return; }
+  } catch(e) { toast('Não consegui consultar as cobranças (offline?)'); return; }
 
   const aEmitir = previa.aEmitir || [];
   const pulados = previa.pulados || [];
 
   if (!aEmitir.length) {
-    toast(pulados.length ? '⚠️ Ninguém elegível — ' + pulados.length + ' pulado(s). Veja o console.' : '⚠️ Ninguém confirmou a limpeza ainda.');
+    toast(pulados.length ? 'Ninguém elegível — ' + pulados.length + ' pulado(s). Veja o console.' : 'Ninguém confirmou a limpeza ainda.');
     if (pulados.length) console.table(pulados);
     return;
   }
@@ -874,12 +906,12 @@ async function limpCobrarTodos() {
             aEmitir.slice(0, 12).map(i => '• ' + i.apto + ' — ' + i.nome + ' — ' + _fmtDataBR(i.dataVencimento)).join('\n') +
             (aEmitir.length > 12 ? '\n• …e mais ' + (aEmitir.length - 12) : '');
   if (pulados.length) {
-    msg += '\n\n⚠️ ' + pulados.length + ' fora da lista:\n' +
+    msg += '\n\n' + pulados.length + ' fora da lista:\n' +
            pulados.slice(0, 8).map(p => '• ' + p.apto + ' — ' + p.motivo).join('\n') +
            (pulados.length > 8 ? '\n• …e mais ' + (pulados.length - 8) : '');
   }
   const testeLote = !!previa.modoTeste;
-  msg = (testeLote ? '🧪 MODO TESTE — NADA será cobrado nem enviado.\n\n' : '') + msg;
+  msg = (testeLote ? 'MODO TESTE — NADA será cobrado nem enviado.\n\n' : '') + msg;
   msg += testeLote ? '\n\nSimulação: percorre tudo, mas não cobra.'
                    : '\n\nO Pix vai por WhatsApp automaticamente.';
   if (!confirm(msg)) return;
@@ -887,10 +919,10 @@ async function limpCobrarTodos() {
   try {
     const res  = await fetch(LIMP_API + '/api/cobranca-limpeza/emitir-lote', { method: 'POST', headers: LIMP_AUTH_HEADERS });
     const data = await res.json();
-    if (data.ok === false) { toast('⚠️ ' + (data.erro || 'Erro ao iniciar')); return; }
-  } catch(e) { toast('⚠️ Erro ao iniciar a emissão'); return; }
+    if (data.ok === false) { toast('' + (data.erro || 'Erro ao iniciar')); return; }
+  } catch(e) { toast('Erro ao iniciar a emissão'); return; }
 
-  toast('💸 Emissão iniciada no servidor!');
+  toast('Emissão iniciada no servidor!');
   limpAcompanharCobranca();
 }
 
@@ -903,15 +935,15 @@ async function limpAcompanharCobranca() {
     limpCobrando = !!st.rodando;
 
     if (st.rodando) {
-      if (btn) { btn.disabled = true; btn.textContent = '💸 ' + (st.emitidos + st.erros) + '/' + st.total + (st.atual ? ' — ' + st.atual : '') + '…'; }
+      if (btn) { btn.disabled = true; btn.textContent = '' + (st.emitidos + st.erros) + '/' + st.total + (st.atual ? ' — ' + st.atual : '') + '…'; }
       setTimeout(limpAcompanharCobranca, 4000);
     } else {
-      if (btn) { btn.disabled = false; btn.textContent = '💸 Emitir Boletos'; }
+      if (btn) { btn.disabled = false; btn.textContent = 'Emitir Boletos'; }
       if (st.total > 0 || st.pulados > 0) {
         // Em modo teste o texto TEM que deixar claro que nada saiu — senão o
         // gestor lê "emitido" e acha que cobrou, que é o erro inverso.
         const verbo = st.modoTeste ? 'simulado(s) — nada foi cobrado' : 'emitido(s)';
-        toast((st.modoTeste ? '🧪 ' : '✅ ') + st.emitidos + ' boleto(s) ' + verbo +
+        toast((st.modoTeste ? '' : '') + st.emitidos + ' boleto(s) ' + verbo +
               (st.pulados ? ' · ' + st.pulados + ' pulado(s)' : '') +
               (st.erros ? ' · ' + st.erros + ' erro(s)' : ''));
         if (st.log && st.log.length) console.table(st.log);
@@ -932,7 +964,7 @@ async function limpNotificarExecutor(nomeExecutor, apto, diaLabel, dataISO, obs)
   const primeiroNome = nomeExecutor.split(' ')[0];
   // Só a vassoura, no cumprimento. O corpo vai sem emoji de propósito (pedido do
   // Silvio em 03/08): ícone em cada linha polui a mensagem pro colaborador.
-  const msg = 'Oi, *' + primeiroNome + '*! 🧹\n\n' +
+  const msg = 'Oi, *' + primeiroNome + '*! \n\n' +
     'Nova tarefa de limpeza:\n' +
     '*Studio - ' + apto + '*\n' +
     diaLabel + ' (' + dataBR + ')' +
@@ -973,6 +1005,17 @@ const EQUIPE_SENHA = 'euPOTdTorZqheKP1aHHi';
     initLimpeza();
   }).catch(e => console.error('Falha no acesso ao servidor:', e));
 })();
+
+// O painel abre cada modulo numa aba nova. Se esta aba veio de la, fechar
+// devolve o foco pro painel ja aberto, em vez de abrir um segundo. Se o
+// navegador nao permitir fechar, o setTimeout assume e navega.
+function voltarAoMenu(e) {
+  e.preventDefault();
+  var destino = 'https://angelicastudios.github.io/';
+  window.close();
+  setTimeout(function () { location.href = destino; }, 150);
+  return false;
+}
 </script>
 </body>
 </html>
