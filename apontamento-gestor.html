@@ -190,6 +190,21 @@ nav{ top:var(--h-cabecalho); }
 
 #btn-instalar{ background:var(--azul-esc); }
 
+/* Seletor de mes desceu do cabecalho pra barra de abas: encostado a direita e
+   com as cores do fundo claro (no cabecalho escuro ele era branco translucido). */
+nav .abas{ align-items:center; }
+.mes-picker{
+  margin-left:auto; flex:0 0 auto;
+  background:#f1f5f9; border:1.5px solid #cbd5e1; color:var(--text);
+  border-radius:8px; padding:7px 10px; font-size:.82rem; font-weight:700;
+}
+.mes-picker:hover{ background:#e2e8f0; border-color:var(--muted); }
+.mes-picker::-webkit-calendar-picker-indicator{ filter:none; opacity:.6; }
+
+/* Texto que estava no tom escuro do corpo vai pro cinza dos rotulos */
+.un-card .un-nome{ color:var(--muted); }
+.un-card .un-val { color:var(--muted); }
+
 @media (max-width:640px){
   .cabecalho-int{ padding:11px 16px 9px; gap:10px; }
   header h1{ font-size:.95rem; }
@@ -612,7 +627,6 @@ nav{ top:var(--h-cabecalho); }
       <span class="sub" id="hdr-sub">Apontamento</span>
     </div>
     <div class="hdr-acoes">
-      <input type="month" class="mes-picker" id="mes-picker" onchange="trocarMes(this.value)">
       <a class="btn-painel" href="https://angelicastudios.github.io/"
          onclick="return voltarAoMenu(event)">&#8592; Menu</a>
     </div>
@@ -628,6 +642,7 @@ nav{ top:var(--h-cabecalho); }
     <button class="active" data-sec="mes"    onclick="showSec(this)">Mês</button>
     <button              data-sec="custos" onclick="showSec(this)">Custos</button>
     <button              data-sec="rateio" onclick="showSec(this)">Rateio</button>
+    <input type="month" class="mes-picker" id="mes-picker" onchange="trocarMes(this.value)">
   </div>
 </nav>
 
