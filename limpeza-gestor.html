@@ -220,17 +220,19 @@ header .sub{ font-size:.7rem; color:#94a3b8; }
 @media (min-width:900px){
   #app.visible{ max-width:none; box-shadow:none; }
 
-  .cabecalho-int{ max-width:1600px; margin:0 auto; padding:14px 24px 12px; }
+  /* Sem teto de 1600 aqui: e grade de cards, entao quanto mais largo, mais
+     apartamentos aparecem por linha. Os outros modulos seguem em 1600. */
+  .cabecalho-int{ max-width:none; padding:14px 28px 12px; }
 
   .limp-actions,
-  .limp-stats-bar{ max-width:1600px; margin:0 auto; padding-left:24px; padding-right:24px; }
+  .limp-stats-bar{ max-width:none; padding-left:28px; padding-right:28px; }
   .limp-progress,
-  .limp-footer{ max-width:1600px; margin:0 auto; padding-left:24px; padding-right:24px; }
+  .limp-footer{ max-width:none; padding-left:28px; padding-right:28px; }
 
   /* Fila unica de cards desperdicava a tela larga */
   .limp-list{
-    max-width:1600px; margin:0 auto; padding:14px 24px 30px;
-    display:grid; grid-template-columns:repeat(auto-fill,minmax(430px,1fr));
+    max-width:none; padding:14px 28px 30px;
+    display:grid; grid-template-columns:repeat(auto-fill,minmax(400px,1fr));
     gap:12px; align-items:start;
   }
   .limp-footer .btn-full{ max-width:380px; }
