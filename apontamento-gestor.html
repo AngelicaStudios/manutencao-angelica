@@ -605,8 +605,10 @@ nav .abas{ align-items:center; }
 .mes-picker::-webkit-calendar-picker-indicator{ filter:none; opacity:.6; }
 
 /* Texto que estava no tom escuro do corpo vai pro cinza dos rotulos */
+/* Mesma divisao do Recebimentos e do Boletos: rotulo no cinza, valor no azul
+   (numero neutro, sem status proprio). Uniformizado a pedido do Silvio. */
 .un-card .un-nome{ color:var(--muted); }
-.un-card .un-val { color:var(--muted); }
+.un-card .un-val { color:var(--azul-info); }
 
 @media (max-width:640px){
   .cabecalho-int{ padding:11px 16px 9px; gap:10px; }
