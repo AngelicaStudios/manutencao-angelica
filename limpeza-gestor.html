@@ -210,6 +210,31 @@ header .sub{ font-size:.7rem; color:#94a3b8; }
   border:1.5px solid var(--acento-claro); background:rgba(217,168,92,.14);
   color:var(--acento-claro); font-size:.78rem; font-weight:600; white-space:nowrap; }
 .btn-painel:hover{ background:rgba(217,168,92,.26); border-color:#f1c98c; color:#f1c98c; }
+
+/* ═══ Layout desktop ═══════════════════════════════════════════════════════
+   Ate aqui o modulo era so um app de celular centralizado em 900px numa tela
+   grande. A partir de 900px ele vira painel de verdade: ocupa a largura toda,
+   conteudo na coluna de 1600 e os cards em grade em vez de fila unica.
+   A rolagem interna do #content foi mantida de proposito — e ela que ja deixa
+   cabecalho e filtros congelados, sem precisar de sticky novo. */
+@media (min-width:900px){
+  #app.visible{ max-width:none; box-shadow:none; }
+
+  .cabecalho-int{ max-width:1600px; margin:0 auto; padding:14px 24px 12px; }
+
+  .limp-actions,
+  .limp-stats-bar{ max-width:1600px; margin:0 auto; padding-left:24px; padding-right:24px; }
+  .limp-progress,
+  .limp-footer{ max-width:1600px; margin:0 auto; padding-left:24px; padding-right:24px; }
+
+  /* Fila unica de cards desperdicava a tela larga */
+  .limp-list{
+    max-width:1600px; margin:0 auto; padding:14px 24px 30px;
+    display:grid; grid-template-columns:repeat(auto-fill,minmax(430px,1fr));
+    gap:12px; align-items:start;
+  }
+  .limp-footer .btn-full{ max-width:380px; }
+}
 </style>
 <!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
