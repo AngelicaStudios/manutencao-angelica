@@ -608,6 +608,54 @@
     white-space: nowrap;
   }
   #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+/* ═══ Padrao visual Angelica Studios — identidade unica ═══════════════════
+   Bloco no FIM da folha, senao as regras originais vencem por cascata.
+
+   ATENCAO ao verde deste modulo: diferente dos outros, aqui --green tem DOIS
+   papeis — marca (cabecalho, botoes) e STATUS (concluida, prioridade baixa).
+   Por isso ele NAO vira apelido do dourado: trocaria a cor de status junto e
+   destruiria a leitura. So os usos de marca sao trocados, um a um. */
+:root{
+  --acento:#8a5f22; --acento-claro:#D9A85C; --acento-d:#6e4b18;
+  --acento-bg:#faf4e8; --acento-bg-h:#f2e5cd;
+  --azul-info:#2563eb; --azul-esc:#1e293b;
+  --bg:#e4e8ee; --radius:10px;
+}
+body{ background:var(--bg); }
+
+header{ background:var(--azul-esc); padding:0; display:block; }
+.cabecalho-int{ padding:13px 16px 11px; display:flex; align-items:center;
+  justify-content:space-between; gap:12px; }
+header .titulo{ display:flex; flex-direction:column; gap:1px; min-width:0; }
+header h1{ font-size:1rem; font-weight:700; line-height:1.2;
+  color:var(--acento-claro); letter-spacing:.01em; }
+header .sub{ font-size:.7rem; color:#94a3b8; }
+.hdr-acoes{ display:flex; align-items:center; gap:10px; flex:0 0 auto; }
+#header-user{ font-size:.75rem; font-weight:700; color:#cbd5e1; }
+.logout-btn{ border-radius:8px; border:1.5px solid rgba(255,255,255,.4);
+  background:rgba(255,255,255,.10); font-size:.78rem; font-weight:600; padding:6px 12px; }
+
+/* Marca: entrar e aba ativa passam pro dourado. Salvar fica verde — e a acao
+   que confirma, mesmo criterio do "Enviar" da Cobranca Avulsa. Todos ganham a
+   receita de contorno + fundo suave no lugar do solido com texto branco. */
+.btn-enter{ background:var(--acento-bg); border:1.5px solid var(--acento);
+  color:var(--acento); }
+.btn-save{ background:#dcfce7; border:1.5px solid var(--green); color:#166534; }
+nav.tabs button.active{ background:var(--acento-bg); border-color:var(--acento);
+  color:var(--acento); }
+
+/* ═══ Desktop ══════════════════════════════════════════════════════════════
+   Este modulo nao tinha ponto de quebra nenhum: o layout do celular era servido
+   igual no monitor, esticando cada card de ponta a ponta. Acima de 900px o
+   conteudo passa a viver na coluna de 1600, como nos demais. */
+@media (min-width:900px){
+  .cabecalho-int{ max-width:1600px; margin:0 auto; padding:14px 24px 12px; }
+  .counters-bar{ max-width:1600px; margin:0 auto; padding-left:24px; padding-right:24px; }
+  #task-list{ max-width:1600px; margin:0 auto; padding:14px 24px 30px; }
+  .view{ max-width:1600px; margin:0 auto; }
+  nav.tabs{ max-width:1600px; margin:0 auto; }
+}
 </style>
 <!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
@@ -641,14 +689,17 @@
 <div id="app">
 
   <header>
-    <div class="header-left">
-      <h1>🔧 Manutenção</h1>
-      <span id="header-date"></span>
+    <div class="cabecalho-int">
+      <div class="titulo">
+        <h1>Angelica Studios</h1>
+        <span class="sub">Manutenção · Equipe</span>
+      </div>
+      <div class="hdr-acoes">
+        <span id="header-user"></span>
+        <button class="logout-btn" onclick="logout()">Sair</button>
+      </div>
     </div>
-    <div style="display:flex;align-items:center;gap:10px">
-      <span id="header-user" style="font-size:.75rem;color:rgba(255,255,255,.85);font-weight:700"></span>
-      <button class="logout-btn" onclick="logout()">Sair</button>
-    </div>
+    <span id="header-date" hidden></span>
   </header>
 
   <!-- Instalar na tela inicial (só aparece se o celular oferecer) -->
@@ -658,8 +709,8 @@
 
   <!-- Abas -->
   <nav class="tabs">
-    <button class="active" data-view="tarefas" onclick="showView(this)">📋 Tarefas</button>
-    <button data-view="meudia" onclick="showView(this)">🕐 Meu Dia<span class="nav-badge" id="badge-md"></span></button>
+    <button class="active" data-view="tarefas" onclick="showView(this)">Tarefas</button>
+    <button data-view="meudia" onclick="showView(this)">Meu Dia<span class="nav-badge" id="badge-md"></span></button>
   </nav>
 
   <!-- ─── VIEW: TAREFAS ─── -->
@@ -681,7 +732,7 @@
 <!-- Lightbox -->
 <div id="lightbox" onclick="closeLightbox()">
   <img id="lb-img" src="" alt="" onclick="event.stopPropagation()" />
-  <button onclick="closeLightbox()">✕ Fechar</button>
+  <button onclick="closeLightbox()">Fechar</button>
 </div>
 
 <div id="toast"></div>
@@ -733,14 +784,14 @@ function carregarFuncs() {
 function pedirPin(nome) {
   const container = document.getElementById('func-btns');
   container.innerHTML = `
-    <div style="text-align:center;font-size:.9rem;font-weight:600;color:var(--text);margin-bottom:4px">👷 ${nome}</div>
+    <div style="text-align:center;font-size:.9rem;font-weight:600;color:var(--text);margin-bottom:4px">${nome}</div>
     <p style="font-size:.78rem;color:var(--muted);text-align:center;margin:0 0 10px">Digite seu PIN de acesso</p>
     <input type="password" id="pin-input" maxlength="8" placeholder="••••"
       style="width:100%;text-align:center;letter-spacing:6px;font-size:1.3rem;padding:12px;
              border:2px solid var(--blue);border-radius:12px;background:#fff;font-family:monospace"
       onkeydown="if(event.key==='Enter')confirmarPin('${nome.replace(/'/g,"\\'")}')" />
     <button class="btn-enter" style="margin-top:10px"
-      onclick="confirmarPin('${nome.replace(/'/g,"\\'")}')">✅ Entrar</button>
+      onclick="confirmarPin('${nome.replace(/'/g,"\\'")}')">Entrar</button>
     <button class="btn-enter"
       style="background:transparent;color:var(--muted);border:1px solid var(--border);margin-top:6px"
       onclick="carregarFuncs()">← Voltar</button>
@@ -750,7 +801,7 @@ function pedirPin(nome) {
 
 function confirmarPin(nome) {
   const pin = (document.getElementById('pin-input')?.value || '').trim();
-  if (!pin) { toast('⚠️ Digite o PIN!'); return; }
+  if (!pin) { toast('Digite o PIN!'); return; }
   db.collection('config').doc('funcionarios').get().then(snap => {
     let lista = [];
     if (snap.exists) {
@@ -761,11 +812,11 @@ function confirmarPin(nome) {
     if (func && (func.pin === pin || func.pin === '')) {
       entrar(nome);
     } else {
-      toast('❌ PIN incorreto!');
+      toast('PIN incorreto!');
       const inp = document.getElementById('pin-input');
       if (inp) { inp.value = ''; inp.focus(); }
     }
-  }).catch(() => toast('❌ Erro de conexão!'));
+  }).catch(() => toast('Erro de conexão!'));
 }
 
 // ════════════════════════════════
@@ -891,16 +942,16 @@ function prioOrder(p)   { return { alta:0, media:1, baixa:2 }[p] ?? 1; }
 function cardHTML(t) {
   const d = today();
   // Sem ícone de calendário: a cor do texto já diz se é hoje, futura ou atrasada.
-  // O ⚠️ da atrasada fica, porque é o único aviso de verdade no card.
+  // O da atrasada fica, porque é o único aviso de verdade no card.
   let dateCls = 'date-futura', dateLabel = fmtDate(t.data);
   if (t.data === d)  { dateCls = 'date-hoje';     dateLabel = 'Hoje'; }
-  else if (t.data<d) { dateCls = 'date-atrasada'; dateLabel = '⚠️ ' + fmtDate(t.data); }
+  else if (t.data<d) { dateCls = 'date-atrasada'; dateLabel = '' + fmtDate(t.data); }
 
   const statusTagCls = { pendente:'tag-pend', andamento:'tag-and', concluida:'tag-conc' }[t.status] || '';
-  const statusLabel  = { pendente:'⏳ Pendente', andamento:'🔄 Andamento', concluida:'✅ Concluída' }[t.status] || '';
+  const statusLabel  = { pendente:'Pendente', andamento:'Andamento', concluida:'Concluída' }[t.status] || '';
 
-  const obsHtml      = t.obs     ? `<div class="card-obs-saved"><strong>📝 Obs:</strong> ${esc(t.obs)}</div>` : '';
-  const dataExecHtml = t.dataExec? `<div class="card-exec-date">✅ Executado em: ${fmtDate(t.dataExec)}</div>` : '';
+  const obsHtml      = t.obs     ? `<div class="card-obs-saved"><strong>Obs:</strong> ${esc(t.obs)}</div>` : '';
+  const dataExecHtml = t.dataExec? `<div class="card-exec-date">Executado em: ${fmtDate(t.dataExec)}</div>` : '';
 
   const fotosHtml = (t.fotos && t.fotos.length)
     ? `<div class="card-fotos">${t.fotos.map((f,i) =>
@@ -935,16 +986,16 @@ function cardHTML(t) {
       </div>
       ${obsHtml}${dataExecHtml}${fotosHtml}
       <button class="action-toggle" id="toggle-${t.id}" onclick="togglePanel('${t.id}')">
-        <span>✏️ Atualizar tarefa</span>
+        <span>Atualizar tarefa</span>
         <span class="arrow">▼</span>
       </button>
       <div class="action-panel" id="panel-${t.id}">
         <div>
           <div class="field-label">Status da tarefa</div>
           <div class="status-btns">
-            ${sBtn('pendente',  '⏳', 'Pendente')}
-            ${sBtn('andamento', '🔄', 'Em andamento')}
-            ${sBtn('concluida', '✅', 'Concluída')}
+            ${sBtn('pendente',  '', 'Pendente')}
+            ${sBtn('andamento', '', 'Em andamento')}
+            ${sBtn('concluida', '', 'Concluída')}
           </div>
         </div>
         <div>
@@ -967,7 +1018,7 @@ function cardHTML(t) {
             id="foto-${t.id}" onchange="previewFotos('${t.id}', this)" />
           ${pendPrev}
         </div>
-        <button class="btn-save" onclick="salvar('${t.id}')">💾 Salvar</button>
+        <button class="btn-save" onclick="salvar('${t.id}')">Salvar</button>
       </div>
     </div>
   `;
@@ -1038,7 +1089,7 @@ async function salvar(id) {
   const fotos = [...(t.fotos || []), ...novFot];
   await dbUpdate(id, { obs, fotos });
   delete fotosPendentes[id];
-  toast('💾 Salvo com sucesso!');
+  toast('Salvo com sucesso!');
 }
 
 // ════════════════════════════════
@@ -1229,15 +1280,15 @@ function renderMeuDia() {
   let topo = '';
   if (pend.length) {
     topo = `<div class="md-trava">
-        🔒 Você tem <b>${pend.length} dia(s)</b> sem apontamento.
+        Você tem <b>${pend.length} dia(s)</b> sem apontamento.
         <div class="lista">${pend.map(fmtDiaSem).join(' · ')}</div>
         <div style="font-weight:600;margin-top:8px;font-size:.8rem">
           Preencha o mais antigo abaixo para liberar o lançamento de hoje.</div>
         ${pend.length > 1 ? `<button class="btn-save" style="background:#64748b;margin-top:10px"
-            onclick="mdFolgaLote()">🌴 Foram todos folga/férias — marcar tudo</button>` : ''}
+            onclick="mdFolgaLote()">Foram todos folga/férias — marcar tudo</button>` : ''}
       </div>`;
   } else {
-    topo = `<div class="md-ok">✅ Apontamento em dia</div>`;
+    topo = `<div class="md-ok">Apontamento em dia</div>`;
   }
 
   const hist = meusApts.slice().sort((a,b) => b.data.localeCompare(a.data)).slice(0,7);
@@ -1274,7 +1325,7 @@ function renderMeuDia() {
       ${mdTurnoHTML('manha', 'Manhã', '08:00 – 12:00')}
       <div style="height:12px"></div>
       ${mdTurnoHTML('tarde', 'Tarde', '13:00 – 17:00')}
-      <button class="btn-save" style="margin-top:14px" onclick="mdSalvar()">💾 Salvar o dia</button>
+      <button class="btn-save" style="margin-top:14px" onclick="mdSalvar()">Salvar o dia</button>
     </div>
     ${histHTML}`;
 }
@@ -1385,7 +1436,7 @@ async function mdSalvar() {
   if (!diaEdit) return;
   const e1 = validarTurno(diaEdit.manha, 'Manhã');
   const e2 = validarTurno(diaEdit.tarde, 'Tarde');
-  if (e1 || e2) { toast('⚠️ ' + (e1 || e2)); return; }
+  if (e1 || e2) { toast('' + (e1 || e2)); return; }
 
   await db.collection('apontamentos').doc(docIdApont(diaEdit.data, currentUser)).set({
     data: diaEdit.data,
@@ -1398,7 +1449,7 @@ async function mdSalvar() {
   }, { merge: true });
 
   diaEdit = null;
-  toast('💾 Dia lançado!');
+  toast('Dia lançado!');
 }
 
 async function mdFolgaLote() {
@@ -1416,7 +1467,7 @@ async function mdFolgaLote() {
   });
   await lote.commit();
   diaEdit = null;
-  toast('🌴 Dias marcados como folga.');
+  toast('Dias marcados como folga.');
 }
 
 // ════════════════════════════════
@@ -1451,7 +1502,7 @@ async function instalarApp() {
   const { outcome } = await promptInstalar.userChoice;
   promptInstalar = null;
   document.getElementById('btn-instalar').style.display = 'none';
-  if (outcome === 'accepted') toast('📲 App instalado!');
+  if (outcome === 'accepted') toast('App instalado!');
 }
 
 // ════════════════════════════════
