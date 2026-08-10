@@ -220,19 +220,19 @@ header .sub{ font-size:.7rem; color:#94a3b8; }
 @media (min-width:900px){
   #app.visible{ max-width:none; box-shadow:none; }
 
-  /* Sem teto de 1600 aqui: e grade de cards, entao quanto mais largo, mais
-     apartamentos aparecem por linha. Os outros modulos seguem em 1600. */
-  .cabecalho-int{ max-width:none; padding:14px 28px 12px; }
+  /* 1600 como em todos os modulos. Chegou a ficar sem teto quando os cards eram
+     uma grade; com o card em linha unica a largura total so alonga a observacao. */
+  .cabecalho-int{ max-width:1600px; margin:0 auto; padding:14px 24px 12px; }
 
   .limp-actions,
-  .limp-stats-bar{ max-width:none; padding-left:28px; padding-right:28px; }
+  .limp-stats-bar{ max-width:1600px; margin:0 auto; padding-left:24px; padding-right:24px; }
   .limp-progress,
-  .limp-footer{ max-width:none; padding-left:28px; padding-right:28px; }
+  .limp-footer{ max-width:1600px; margin:0 auto; padding-left:24px; padding-right:24px; }
 
   /* Um studio por linha. O card deixa de ser empilhado (nome em cima, campos
      embaixo) e passa a distribuir tudo na horizontal — a altura cai de ~3
      linhas para 1, e a tela larga e usada pelo conteudo, nao por espaco vazio. */
-  .limp-list{ max-width:none; padding:12px 28px 30px; display:block; }
+  .limp-list{ max-width:1600px; margin:0 auto; padding:12px 24px 30px; display:block; }
   .limp-card{
     flex-direction:row; align-items:center; gap:10px;
     margin-bottom:8px; padding-right:14px;
