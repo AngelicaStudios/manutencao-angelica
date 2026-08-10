@@ -229,13 +229,28 @@ header .sub{ font-size:.7rem; color:#94a3b8; }
   .limp-progress,
   .limp-footer{ max-width:none; padding-left:28px; padding-right:28px; }
 
-  /* Fila unica de cards desperdicava a tela larga */
-  .limp-list{
-    max-width:none; padding:14px 28px 30px;
-    display:grid; grid-template-columns:repeat(auto-fill,minmax(400px,1fr));
-    gap:12px; align-items:start;
+  /* Um studio por linha. O card deixa de ser empilhado (nome em cima, campos
+     embaixo) e passa a distribuir tudo na horizontal — a altura cai de ~3
+     linhas para 1, e a tela larga e usada pelo conteudo, nao por espaco vazio. */
+  .limp-list{ max-width:none; padding:12px 28px 30px; display:block; }
+  .limp-card{
+    flex-direction:row; align-items:center; gap:10px;
+    margin-bottom:8px; padding-right:14px;
   }
+  .limp-card-top{ flex:0 0 auto; padding:8px 13px; gap:12px; }
+  .limp-card-info{ flex:0 0 250px; }
+  .limp-card-edit{
+    flex:1; border-top:none; background:none; padding:8px 0; flex-wrap:nowrap;
+  }
+  .limp-obs-input{ flex:1; min-width:140px; }
+
   .limp-footer .btn-full{ max-width:380px; }
+}
+
+/* Faixa da semana agora vive na linha dos botoes, encostada a direita */
+#limp-semana-info{
+  margin-left:auto; font-size:.78rem; font-weight:600; color:var(--muted);
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
 }
 </style>
 <!-- Firebase -->
@@ -271,8 +286,10 @@ header .sub{ font-size:.7rem; color:#94a3b8; }
         <button class="btn-sm" style="background:#e0f2fe;color:#075985;border:1.5px solid #bae6fd;border-radius:10px;font-weight:700;padding:10px 14px;cursor:pointer;" onclick="limpCriarTarefas()">Criar Tarefas</button>
         <button class="btn-sm" style="background:#ede9fe;color:#5b21b6;border:1.5px solid #ddd6fe;border-radius:10px;font-weight:700;padding:10px 14px;cursor:pointer;" onclick="limpToggleNovaSemana()">Criar Semana</button>
         <button class="btn-sm" id="limp-btn-cobrar" style="background:#f3e8ff;color:#6d28d9;border:1.5px solid #d8b4fe;border-radius:10px;font-weight:700;padding:10px 14px;cursor:pointer;" onclick="limpCobrarTodos()">Emitir Boletos</button>
+        <!-- Faixa da semana mora DENTRO da linha dos botoes: sobra espaco a
+             direita e ela deixa de gastar uma linha inteira sozinha. -->
+        <div id="limp-semana-info" style="display:none"></div>
       </div>
-      <div id="limp-semana-info" style="display:none;padding:8px 12px;background:#faf5ff;border-bottom:1.5px solid var(--border);font-size:.78rem;color:#6b21a8;font-weight:600"></div>
       <div id="limp-semana-form" style="display:none;padding:10px 12px;background:#faf5ff;border-bottom:1.5px solid var(--border);gap:8px;flex-wrap:wrap;align-items:center;">
         <div class="field-group" style="margin-bottom:6px">
           <div class="field-label">Início da semana</div>
