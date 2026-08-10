@@ -401,6 +401,86 @@
   }
   #btn-instalar:active { background: #0f172a; }
 
+/* ═══ Padrao visual Angelica Studios — identidade unica ═══════════════════
+   Bloco no FIM da folha de proposito: colocado no meio, as regras originais
+   viriam depois e venceriam por cascata (ja mordeu em outros dois modulos). */
+:root{
+  --acento:#8a5f22; --acento-claro:#D9A85C; --acento-d:#6e4b18;
+  --acento-bg:#faf4e8; --acento-bg-h:#f2e5cd;
+  --azul-info:#2563eb; --azul-esc:#1e293b;
+  /* --blue continua como apelido: evita reescrever cada regra que o usa */
+  --blue:var(--acento); --blue-d:var(--acento-d);
+  --bg:#e4e8ee; --radius:10px;
+}
+@media (min-width:640px){ body{ background:#e4e8ee; } }
+
+header{ background:var(--azul-esc); padding:0; display:block; }
+.cabecalho-int{ padding:13px 16px 11px; display:flex; align-items:center;
+  justify-content:space-between; gap:12px; }
+header .titulo{ display:flex; flex-direction:column; gap:1px; min-width:0; }
+header h1{ font-size:1rem; font-weight:700; line-height:1.2;
+  color:var(--acento-claro); letter-spacing:.01em; }
+header .sub{ font-size:.7rem; color:#94a3b8; }
+.hdr-acoes{ display:flex; align-items:center; gap:8px; flex:0 0 auto; }
+
+.btn-painel{ flex-shrink:0; text-decoration:none; padding:6px 12px; border-radius:8px;
+  border:1.5px solid var(--acento-claro); background:rgba(217,168,92,.14);
+  color:var(--acento-claro); font-size:.78rem; font-weight:600; white-space:nowrap; }
+.btn-painel:hover{ background:rgba(217,168,92,.26); border-color:#f1c98c; color:#f1c98c; }
+.logout-btn{ border-radius:8px; border:1.5px solid rgba(255,255,255,.4);
+  background:rgba(255,255,255,.10); font-size:.78rem; font-weight:600; padding:6px 12px; }
+
+/* Botoes cheios eram solidos com texto branco — a receita pede contorno +
+   fundo suave + texto na cor. O .btn-full traz border:none, entao o contorno
+   precisa vir daqui. */
+.btn-full{ border:1.5px solid #cbd5e1; }
+.btn-blue  { background:var(--acento-bg); border-color:var(--acento); color:var(--acento); }
+.btn-blue:active { background:var(--acento-bg-h); border-color:var(--acento-d); color:var(--acento-d); }
+.btn-green { background:#dcfce7; border-color:#15803d; color:#15803d; }
+.btn-green:active{ background:#bbf7d0; border-color:#166534; color:#166534; }
+.btn-yellow{ background:#fef3c7; border-color:#b45309; color:#b45309; }
+.btn-yellow:active{ background:#fde68a; border-color:#92400e; color:#92400e; }
+.btn-red   { background:#fee2e2; border-color:#b91c1c; color:#b91c1c; }
+.btn-red:active{ background:#fecaca; border-color:#991b1b; color:#991b1b; }
+.btn-ghost { border-color:#cbd5e1; }
+.btn-enter { background:var(--acento-bg); border:1.5px solid var(--acento); color:var(--acento); }
+
+/* ═══ Layout desktop ═══════════════════════════════════════════════════════
+   Ate aqui era app de celular centralizado em 900px. A partir de 900px vira
+   painel: largura cheia e — a mudanca que mais importa — a barra de abas sai
+   do RODAPE e vira barra de topo. Aba no pe da tela e gesto de celular; num
+   monitor ela fica longe do conteudo e parece rodape. */
+@media (min-width:900px){
+  #app.visible{ max-width:none; box-shadow:none; }
+  .cabecalho-int{ max-width:1600px; margin:0 auto; padding:14px 24px 12px; }
+
+  /* ordem visual: cabecalho, abas, conteudo — no HTML a nav vem por ultimo */
+  header{ order:1; }
+  nav{ order:2; }
+  #content{ order:3; }
+  #btn-instalar{ order:4; }
+
+  nav{
+    position:static; transform:none; width:auto; max-width:none; left:auto; right:auto;
+    height:auto; padding:10px 24px; border-top:none;
+    border-bottom:1.5px solid var(--border);
+    justify-content:flex-start; gap:6px;
+  }
+  .nav-btn{
+    flex:0 0 auto; flex-direction:row; gap:0;
+    padding:8px 16px; border:1.5px solid #cbd5e1; border-radius:8px;
+    background:#f1f5f9; color:var(--muted);
+  }
+  .nav-btn:hover{ background:#e2e8f0; border-color:var(--muted); color:var(--text); }
+  .nav-btn.active{ background:var(--acento-bg); border-color:var(--acento); color:var(--acento); }
+  .nav-btn .nav-icon{ display:none; }          /* icone e coisa de celular */
+  .nav-btn .nav-lbl{ font-size:.88rem; text-transform:none; letter-spacing:0; }
+
+  /* sem barra no rodape, o conteudo nao precisa mais reservar espaco embaixo */
+  #content{ padding-bottom:24px; }
+  .section{ max-width:1600px; margin:0 auto; }
+}
+
 </style>
 <!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
@@ -425,7 +505,7 @@
       style="width:100%;box-sizing:border-box;padding:12px;margin:14px 0 8px;border-radius:10px;border:1px solid #444;background:#1a1a1a;color:#fff;font-size:1rem"
       onkeydown="if(event.key==='Enter')login()">
     <div id="login-err" class="login-err">Senha incorreta.</div>
-    <button class="btn-enter" onclick="login()">🔓 Entrar</button>
+    <button class="btn-enter" onclick="login()">Entrar</button>
   </div>
 </div>
 
@@ -435,11 +515,18 @@
 <div id="app">
 
   <header>
-    <div class="hdr-left">
-      <h1>🔧 Gestão Manutenção</h1>
-      <span id="hdr-date"></span>
+    <div class="cabecalho-int">
+      <div class="titulo">
+        <h1>Angelica Studios</h1>
+        <span class="sub">Manutenção</span>
+      </div>
+      <div class="hdr-acoes">
+        <a class="btn-painel" href="https://angelicastudios.github.io/"
+           onclick="return voltarAoMenu(event)">&#8592; Menu</a>
+        <button class="logout-btn" onclick="logout()">Sair</button>
+      </div>
     </div>
-    <button class="logout-btn" onclick="logout()">Sair</button>
+    <span id="hdr-date" hidden></span>
   </header>
 
   <div id="content">
@@ -449,7 +536,7 @@
       <div class="counters-bar" id="counters"></div>
       <div class="filter-bar">
         <input type="date" class="date-filter" id="filter-date" onchange="renderTarefas()" />
-        <button class="btn-sm btn-green" style="flex-shrink:0;white-space:nowrap" onclick="archiveCompleted()">📁 Arquivar</button>
+        <button class="btn-sm btn-green" style="flex-shrink:0;white-space:nowrap" onclick="archiveCompleted()">Arquivar</button>
       </div>
 
       <div id="task-list" class="tasks-wrap"></div>
@@ -464,7 +551,7 @@
     <!-- ══ NOVA TAREFA ══ -->
     <div id="sec-nova" class="section">
       <div class="form-card">
-        <h2>➕ Nova Tarefa</h2>
+        <h2>Nova Tarefa</h2>
 
         <div class="field-group">
           <div class="field-label">Apartamento / Unidade</div>
@@ -500,11 +587,11 @@
         </div>
 
         <div class="field-group">
-          <div class="field-label">⏰ Período</div>
+          <div class="field-label">Período</div>
           <select class="field-input" id="f-periodo">
             <option value="">Sem período</option>
-            <option value="manha">☀️ Manhã</option>
-            <option value="tarde">🌆 Tarde</option>
+            <option value="manha">Manhã</option>
+            <option value="tarde">Tarde</option>
           </select>
         </div>
 
@@ -514,14 +601,14 @@
         </div>
 
         <div class="field-group">
-          <div class="field-label">📷 Fotos (opcional)</div>
+          <div class="field-label">Fotos (opcional)</div>
           <input type="file" id="f-fotos" accept="image/*" multiple
             style="border:1.5px dashed #cbd5e1;border-radius:10px;padding:10px;font-size:.85rem;background:#f8fafc;cursor:pointer;width:100%"
             onchange="previewFotosGestor()" />
           <div id="f-fotos-preview" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px"></div>
         </div>
 
-        <button class="btn-full btn-blue" onclick="addTask()">✅ Adicionar Tarefa</button>
+        <button class="btn-full btn-blue" onclick="addTask()">Adicionar Tarefa</button>
         <button class="btn-full btn-ghost" style="margin-top:8px" onclick="clearForm()">Limpar</button>
       </div>
     </div>
@@ -530,7 +617,7 @@
     <div id="sec-arquivo" class="section">
       <div class="arq-header">
         <span id="arq-count">Carregando…</span>
-        <button class="btn-sm btn-red" onclick="clearArquivo()">🗑️ Limpar arquivo</button>
+        <button class="btn-sm btn-red" onclick="clearArquivo()">Limpar arquivo</button>
       </div>
       <div id="arq-list" class="tasks-wrap" style="padding-top:0"></div>
     </div>
@@ -540,7 +627,7 @@
 
       <!-- Funcionários -->
       <div class="config-section">
-        <h3>👷 Funcionários</h3>
+        <h3>Funcionários</h3>
         <div style="display:flex;gap:8px;margin-bottom:6px">
           <input type="text" class="field-input" id="new-func" placeholder="Nome" style="flex:1" />
           <input type="text" class="field-input" id="new-pin" placeholder="PIN" maxlength="8"
@@ -585,7 +672,7 @@
 <!-- Lightbox -->
 <div id="lightbox" onclick="closeLightbox()">
   <img id="lb-img" src="" alt="" onclick="event.stopPropagation()" />
-  <button onclick="closeLightbox()">✕ Fechar</button>
+  <button onclick="closeLightbox()">Fechar</button>
 </div>
 
 <div id="toast"></div>
@@ -766,7 +853,7 @@ function renderTarefas() {
   // Agrupar por data e depois por período
   const byDate = {};
   list.forEach(t => { (byDate[t.data] = byDate[t.data] || []).push(t); });
-  const periodoLabel = { manha:'☀️ Manhã', tarde:'🌆 Tarde', '':'Sem período' };
+  const periodoLabel = { manha:'Manhã', tarde:'Tarde', '':'Sem período' };
   const periodoCls   = { manha:'manha', tarde:'tarde', '':'sem' };
   const ordemPeriodo = ['manha','tarde',''];
 
@@ -805,21 +892,21 @@ function renderArquivo() {
 function taskCardHTML(t, isArq) {
   const d = today();
   // Sem ícone de calendário: a cor do texto já diz se é hoje, futura ou atrasada.
-  // O ⚠️ da atrasada fica, porque é o único aviso de verdade no card.
+  // O da atrasada fica, porque é o único aviso de verdade no card.
   let dateCls = 'date-futura', dateLabel = fmtDate(t.data);
   if (!isArq) {
     if (t.data === d)  { dateCls = 'date-hoje';     dateLabel = 'Hoje'; }
-    else if (t.data<d) { dateCls = 'date-atrasada'; dateLabel = '⚠️ ' + fmtDate(t.data); }
+    else if (t.data<d) { dateCls = 'date-atrasada'; dateLabel = '' + fmtDate(t.data); }
   }
 
   const sTagCls = { pendente:'tag-pend', andamento:'tag-and', concluida:'tag-conc' }[t.status] || '';
-  const sLabel  = { pendente:'⏳ Pendente', andamento:'🔄 Andamento', concluida:'✅ Concluída' }[t.status] || '';
+  const sLabel  = { pendente:'Pendente', andamento:'Andamento', concluida:'Concluída' }[t.status] || '';
 
   const periodoCls  = t.periodo === 'manha' ? 'periodo-manha' : t.periodo === 'tarde' ? 'periodo-tarde' : '';
   const periodoBadge = t.periodo === 'manha'
-    ? `<span style="background:#93c5fd;color:#1e3a8a;border:1px solid #60a5fa;border-radius:99px;padding:1px 6px;font-size:.58rem;font-weight:700;margin-left:4px;vertical-align:middle">☀️ Manhã</span>`
+    ? `<span style="background:#93c5fd;color:#1e3a8a;border:1px solid #60a5fa;border-radius:99px;padding:1px 6px;font-size:.58rem;font-weight:700;margin-left:4px;vertical-align:middle">Manhã</span>`
     : t.periodo === 'tarde'
-    ? `<span style="background:#e9d5ff;color:#6b21a8;border:1px solid #d8b4fe;border-radius:99px;padding:1px 6px;font-size:.58rem;font-weight:700;margin-left:4px;vertical-align:middle">🌆 Tarde</span>`
+    ? `<span style="background:#e9d5ff;color:#6b21a8;border:1px solid #d8b4fe;border-radius:99px;padding:1px 6px;font-size:.58rem;font-weight:700;margin-left:4px;vertical-align:middle">Tarde</span>`
     : '';
 
   const fotosHtml = (t.fotos && t.fotos.length)
@@ -828,7 +915,7 @@ function taskCardHTML(t, isArq) {
       ).join('')}</div>` : '';
 
   const obsHtml  = t.obs     ? `<div class="card-obs"><strong>📝</strong> ${esc(t.obs)}</div>` : '';
-  const execHtml = t.dataExec? `<div class="card-exec">✅ Executado: ${fmtDate(t.dataExec)}</div>` : '';
+  const execHtml = t.dataExec? `<div class="card-exec">Executado: ${fmtDate(t.dataExec)}</div>` : '';
 
   const actions = isArq ? '' : `
     <div class="card-actions">
@@ -857,7 +944,7 @@ function taskCardHTML(t, isArq) {
           <span class="tag tag-apto">${esc(t.apto)}</span>
           ${t.resp ? `<span class="tag tag-resp">${esc(t.resp)}</span>` : ''}
           ${isArq
-            ? `<span class="tag tag-arq">📁 ${fmtDate(t.data)}</span>`
+            ? `<span class="tag tag-arq">${fmtDate(t.data)}</span>`
             : `<span class="tag ${sTagCls}">${sLabel}</span>`}
         </div>
         ${t.desc ? `<div class="card-desc">${esc(t.desc)}</div>` : ''}
@@ -908,9 +995,9 @@ async function addTask() {
   const desc   = document.getElementById('f-desc').value.trim();
   const periodo = document.getElementById('f-periodo').value;
 
-  if (!apto) { toast('⚠️ Informe o apartamento!'); return; }
-  if (!tipo) { toast('⚠️ Selecione o tipo de serviço!'); return; }
-  if (!data) { toast('⚠️ Informe a data!'); return; }
+  if (!apto) { toast('Informe o apartamento!'); return; }
+  if (!tipo) { toast('Selecione o tipo de serviço!'); return; }
+  if (!data) { toast('Informe a data!'); return; }
 
   const files = Array.from((document.getElementById('f-fotos') || {}).files || []);
 
@@ -920,14 +1007,14 @@ async function addTask() {
       status: 'pendente', obs: '', dataExec: '', fotos, criadoEm: Date.now()
     };
     dbSet('tarefas', tarefa.id, tarefa).then(() => {
-      toast('✅ Tarefa adicionada!');
+      toast('Tarefa adicionada!');
       clearForm();
       goSec('tarefas');
     });
   }
 
   if (files.length) {
-    toast('⏳ Carregando fotos…');
+    toast('Carregando fotos…');
     let loaded = 0;
     const base64s = [];
     files.forEach((file, i) => {
@@ -954,12 +1041,12 @@ async function quickStatus(id, status) {
 async function deleteTask(id) {
   if (!confirm('Excluir esta tarefa?')) return;
   await dbDelete('tarefas', id);
-  toast('🗑️ Tarefa excluída.');
+  toast('Tarefa excluída.');
 }
 
 async function archiveCompleted() {
   const done = tasks.filter(t => t.status === 'concluida');
-  if (!done.length) { toast('⚠️ Nenhuma tarefa concluída.'); return; }
+  if (!done.length) { toast('Nenhuma tarefa concluída.'); return; }
   if (!confirm(`Arquivar ${done.length} tarefa(s) concluída(s)?`)) return;
   const now   = Date.now();
   const batch = db.batch();
@@ -969,7 +1056,7 @@ async function archiveCompleted() {
     batch.delete(db.collection('tarefas').doc(t.id));
   });
   await batch.commit();
-  toast(`📁 ${done.length} arquivada(s)!`);
+  toast(`${done.length} arquivada(s)!`);
 }
 
 async function clearArquivo() {
@@ -977,7 +1064,7 @@ async function clearArquivo() {
   const batch = db.batch();
   arqTasks.forEach(t => batch.delete(db.collection('arquivo').doc(t.id)));
   await batch.commit();
-  toast('🗑️ Arquivo limpo.');
+  toast('Arquivo limpo.');
 }
 
 function exportPDF() {
@@ -1002,14 +1089,14 @@ function exportPDF() {
 async function addFunc() {
   const nome = document.getElementById('new-func').value.trim();
   const pin  = document.getElementById('new-pin').value.trim();
-  if (!nome) { toast('⚠️ Digite o nome!'); return; }
-  if (!pin || pin.length < 4) { toast('⚠️ PIN precisa ter ao menos 4 dígitos!'); return; }
-  if (funcs.find(f => f.nome === nome)) { toast('⚠️ Já existe!'); return; }
+  if (!nome) { toast('Digite o nome!'); return; }
+  if (!pin || pin.length < 4) { toast('PIN precisa ter ao menos 4 dígitos!'); return; }
+  if (funcs.find(f => f.nome === nome)) { toast('Já existe!'); return; }
   const list = [...funcs, {nome, pin}].sort((a,b) => a.nome.localeCompare(b.nome));
   await dbSaveFuncs(list);
   document.getElementById('new-func').value = '';
   document.getElementById('new-pin').value  = '';
-  toast('👷 Funcionário adicionado!');
+  toast('Funcionário adicionado!');
 }
 
 async function removeFunc(nome) {
@@ -1025,12 +1112,12 @@ function abrirEditFunc(nome) {
   if (novoNome === null) return;
   const novoPin  = prompt(`Novo PIN (atual: ${f.pin||'—'}):`, f.pin || '');
   if (novoPin === null) return;
-  if (!novoNome.trim()) { toast('⚠️ Nome não pode ser vazio!'); return; }
-  if (!novoPin.trim() || novoPin.trim().length < 4) { toast('⚠️ PIN precisa ter ao menos 4 dígitos!'); return; }
+  if (!novoNome.trim()) { toast('Nome não pode ser vazio!'); return; }
+  if (!novoPin.trim() || novoPin.trim().length < 4) { toast('PIN precisa ter ao menos 4 dígitos!'); return; }
   const list = funcs.map(f2 => f2.nome === nome
     ? {nome: novoNome.trim(), pin: novoPin.trim()} : f2
   ).sort((a,b) => a.nome.localeCompare(b.nome));
-  dbSaveFuncs(list).then(() => toast('✅ Funcionário atualizado!'));
+  dbSaveFuncs(list).then(() => toast('Funcionário atualizado!'));
 }
 
 function renderFuncs() {
@@ -1038,7 +1125,7 @@ function renderFuncs() {
   if (el) {
     el.innerHTML = funcs.length
       ? funcs.map(f => `
-          <span class="func-chip">👷 ${esc(f.nome)}
+          <span class="func-chip">${esc(f.nome)}
             <span style="font-size:.68rem;color:var(--muted);margin-left:3px;font-family:monospace">PIN:${esc(f.pin||'—')}</span>
             <button onclick="abrirEditFunc('${esc(f.nome)}')" title="Editar" style="color:#93c5fd">✏️</button>
             <button onclick="removeFunc('${esc(f.nome)}')">✕</button>
@@ -1079,6 +1166,17 @@ function closeLightbox() {
     }
   });
 })();
+
+// O painel abre cada modulo numa aba nova. Se esta aba veio de la, fechar
+// devolve o foco pro painel ja aberto, em vez de abrir um segundo. Se o
+// navegador nao permitir fechar, o setTimeout assume e navega.
+function voltarAoMenu(e) {
+  e.preventDefault();
+  var destino = 'https://angelicastudios.github.io/';
+  window.close();
+  setTimeout(function () { location.href = destino; }, 150);
+  return false;
+}
 </script>
 </body>
 </html>
