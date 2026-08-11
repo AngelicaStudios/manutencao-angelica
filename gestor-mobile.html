@@ -679,7 +679,7 @@ header .sub{ font-size:.7rem; color:#94a3b8; }
 
   <!-- NAVEGAÇÃO INFERIOR -->
   <button id="btn-instalar" onclick="instalarApp()">
-  <span>📲</span><span>Instalar app na tela inicial</span>
+  <span>Instalar app na tela inicial</span>
 </button>
 
 <nav>
@@ -948,7 +948,7 @@ function taskCardHTML(t, isArq) {
         `<img class="foto-thumb" src="${f}" onclick="openLightbox('${t.id}',${i},'${isArq?'arq':'task'}')">`
       ).join('')}</div>` : '';
 
-  const obsHtml  = t.obs     ? `<div class="card-obs"><strong>📝</strong> ${esc(t.obs)}</div>` : '';
+  const obsHtml  = t.obs     ? `<div class="card-obs"><strong>Obs</strong> ${esc(t.obs)}</div>` : '';
   const execHtml = t.dataExec? `<div class="card-exec">Executado: ${fmtDate(t.dataExec)}</div>` : '';
 
   const actions = isArq ? '' : `
@@ -957,13 +957,13 @@ function taskCardHTML(t, isArq) {
         <span class="act-icon">⏳</span>Pendente
       </button>
       <button class="card-act-btn" onclick="quickStatus('${t.id}','andamento')">
-        <span class="act-icon">🔄</span>Andamento
+        Andamento
       </button>
       <button class="card-act-btn" onclick="quickStatus('${t.id}','concluida')">
-        <span class="act-icon">✅</span>Concluída
+        Concluída
       </button>
       <button class="card-act-btn del" onclick="deleteTask('${t.id}')">
-        <span class="act-icon">🗑️</span>Excluir
+        Excluir
       </button>
     </div>`;
 
