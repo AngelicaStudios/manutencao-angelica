@@ -4,7 +4,7 @@
   "short_name": "Limpeza",
   "description": "Painel do gestor da agenda semanal de limpeza",
   "start_url": "./limpeza-gestor.html",
-  "scope": "./",
+  "scope": "./limpeza-gestor",
   "display": "standalone",
   "background_color": "#0d9488",
   "theme_color": "#0d9488",
