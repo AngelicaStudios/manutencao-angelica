@@ -160,6 +160,10 @@
   .limp-status-sel { flex: 0 0 auto; padding: 6px 8px; border: 1.5px solid var(--border); border-radius: 8px; font-size: .75rem; min-width: 120px; appearance: none; background: #fff; font-family: inherit; font-weight: 600; }
   .limp-exec-sel { flex: 0 0 auto; padding: 6px 8px; border: 1.5px solid var(--border); border-radius: 8px; font-size: .75rem; min-width: 100px; max-width: 140px; appearance: none; background: #fff; font-family: inherit; }
   .limp-date-input { flex: 0 0 auto; padding: 6px 8px; border: 1.5px solid var(--border); border-radius: 8px; font-size: .75rem; font-family: inherit; background: #fff; color: var(--text); }
+  /* Espacador da coluna de data. No celular os campos quebram em varias linhas,
+     entao um vazio de 132px so desperdicaria espaco — ele so aparece no desktop,
+     onde a linha e unica e o alinhamento entre cards depende disso. */
+  .limp-date-vazio { display: none; }
   .limp-obs-input { flex: 1; padding: 6px 8px; border: 1.5px solid var(--border); border-radius: 8px; font-size: .75rem; font-family: inherit; }
   .limp-progress { padding: 10px 12px; font-size: .8rem; color: var(--muted); text-align: center; }
   .limp-footer { padding: 10px 12px 6px; }
@@ -237,11 +241,26 @@ header .sub{ font-size:.7rem; color:#94a3b8; }
     flex-direction:row; align-items:center; gap:10px;
     margin-bottom:8px; padding-right:14px;
   }
-  .limp-card-top{ flex:0 0 auto; padding:8px 13px; gap:12px; }
-  .limp-card-info{ flex:0 0 250px; }
+  /* Cada pedaco vira COLUNA DE LARGURA FIXA. Sem isso nada alinha entre uma
+     linha e outra: o selo muda de largura conforme a palavra ("Aguardando" e
+     33px mais largo que "Nao") e empurra os tres botoes; e o campo de data so
+     existe em quem tem dia marcado, entao nessas linhas o executor e a
+     observacao comecam mais a direita que em todas as outras. */
+  .limp-card-top{ flex:0 0 auto; padding:8px 13px; gap:10px; }
+  .limp-card-info{ flex:0 0 230px; }
+  .limp-badge{ flex:0 0 84px; text-align:center; padding:4px 0; }
+  .limp-act{ flex:0 0 34px; }
+
   .limp-card-edit{
-    flex:1; border-top:none; background:none; padding:8px 0; flex-wrap:nowrap;
+    flex:1; border-top:none; background:none; padding:8px 0;
+    flex-wrap:nowrap; gap:8px;
   }
+  .limp-status-sel{ flex:0 0 130px; min-width:0; }
+  /* A coluna da data existe sempre; quando a linha nao tem dia marcado, entra
+     um espacador invisivel no lugar pra nao desalinhar o resto. */
+  .limp-date-input, .limp-date-vazio{ flex:0 0 132px; }
+  .limp-date-vazio{ display:block; }
+  .limp-exec-sel{ flex:0 0 120px; min-width:0; max-width:none; }
   .limp-obs-input{ flex:1; min-width:140px; }
 
   .limp-footer .btn-full{ max-width:380px; }
@@ -288,16 +307,21 @@ header .sub{ font-size:.7rem; color:#94a3b8; }
     overflow:visible; text-overflow:clip; min-height:40px;
   }
 
-  /* --- 2. Alvo de toque: 40px de piso ------------------------------------ */
+  /* --- 2. Alvo de toque: 40px de piso ------------------------------------
+     Os tres botoes de acao do card (WhatsApp, tarefa, boleto) tinham 34px.
+     Nao apareceram na varredura da padronizacao porque so existem quando a
+     lista tem dado carregado, e o servidor local nao responde. */
   .btn-sm, .btn, .btn-painel, .limp-stat-m{
     min-height:40px; display:inline-flex; align-items:center; justify-content:center;
   }
+  .limp-act{ width:40px; height:40px; }
   .limp-stat-m{ flex-direction:column; }
   input, select, textarea{ min-height:40px; }
 
   /* --- 3. Piso de 11px --------------------------------------------------- */
   .limp-stat-m .sl{ font-size:.7rem; letter-spacing:0; }
   .limp-stat-m .sn{ font-size:1rem; }
+  .limp-badge{ font-size:.7rem; }   /* selo do card, estava em 10,9px */
   header .sub{ font-size:.7rem; }
 
   /* Degrade na borda direita de faixa que rola de lado — sem ele o dedo nao
@@ -701,10 +725,13 @@ function limpRender() {
     ].map(([val, label]) => '<option value="' + val + '"' + (statusVal===val?' selected':'') + '>' + label + '</option>').join('');
     const statusSelHtml =
       '<select class="limp-status-sel" onchange="limpSaveStatus(\'' + esc(aptoKey) + '\',this.value)">' + statusOptsHtml + '</select>';
+    // Sem dia marcado vai um espacador no lugar do campo, nao string vazia: no
+    // desktop a linha e unica, e sem ele o executor e a observacao dessas
+    // linhas comecariam mais a esquerda que os das linhas com data.
     const dateHtml = dayKey
       ? '<input class="limp-date-input" type="date" value="' + esc(r.diaISO || limpProximaData(dayKey) || '') + '"' +
         ' onchange="limpSaveDia(\'' + esc(aptoKey) + '\',this.value)" />'
-      : '';
+      : '<span class="limp-date-vazio" aria-hidden="true"></span>';
     return '<div class="limp-card ' + info.cardCls + '">' +
       '<div class="limp-card-top">' +
         '<div class="limp-card-info">' +
