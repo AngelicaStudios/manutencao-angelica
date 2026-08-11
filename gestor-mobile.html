@@ -269,23 +269,44 @@
   .card-fotos { display: flex; gap: 7px; flex-wrap: wrap; padding: 0 13px 10px; }
   .foto-thumb { width: 64px; height: 64px; object-fit: cover; border-radius: 8px; border: 2px solid var(--border); }
 
+  /* Linha de ação do card.
+     Era uma fileira de 4 colunas iguais separadas por risquinho, montada pra
+     ícone em cima e texto embaixo. Sem os ícones (saíram na limpeza de emoji)
+     sobrou uma coluna vazia por cima de cada texto e a linha desalinhou.
+     Agora: os três status viram pílulas na receita padrão (contorno + fundo
+     suave, a acionada escurece) e o Excluir sai da fileira — não é status, é
+     ação destrutiva, e dividir em 4 colunas iguais fazia ele parecer só mais
+     uma opção de estado. */
   .card-actions {
     border-top: 1.5px solid var(--border);
-    display: flex;
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 10px; padding: 10px 13px;
   }
-  .card-act-btn {
-    flex: 1; padding: 12px 6px;
-    border: none; background: none;
-    font-size: .75rem; font-weight: 700;
-    cursor: pointer; color: var(--muted);
-    display: flex; flex-direction: column; align-items: center; gap: 3px;
-    border-right: 1px solid var(--border);
-    transition: background .15s;
+  .card-status-pills { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; }
+  .pill-status {
+    padding: 7px 15px; border-radius: 20px;
+    border: 1.5px solid #cbd5e1; background: #f1f5f9; color: var(--muted);
+    font-size: .76rem; font-weight: 700; font-family: inherit; cursor: pointer;
+    white-space: nowrap; transition: all .12s;
   }
-  .card-act-btn:last-child { border-right: none; }
-  .card-act-btn:active { background: var(--bg); }
-  .card-act-btn .act-icon { font-size: 1.1rem; }
-  .card-act-btn.del  { color: var(--red); }
+  .pill-status:hover { border-color: var(--muted); color: var(--text); }
+  /* Cor só na que está valendo. Com as três coloridas o cartão vira semáforo e
+     some a informação de qual é o estado atual. */
+  .pill-status.ativa.p-pendente  { background:#fff7ed; border-color:var(--yellow); color:#9a3412; }
+  /* Azul de var(--azul-info), NÃO de var(--blue): o bloco do padrão visual
+     apelida --blue para o dourado da marca, então usar --blue aqui deixaria a
+     pílula com fundo azul e borda dourada. "Em andamento" é status, e cor que
+     informa não vira acento. */
+  .pill-status.ativa.p-andamento { background:#eff6ff; border-color:var(--azul-info); color:#1d4ed8; }
+  .pill-status.ativa.p-concluida { background:#f0fdf4; border-color:var(--green);  color:#14532d; }
+
+  .btn-excluir-tarefa {
+    flex-shrink: 0; padding: 7px 14px; border-radius: 8px;
+    border: 1.5px solid #fecaca; background: #fef2f2; color: var(--red);
+    font-size: .76rem; font-weight: 700; font-family: inherit; cursor: pointer;
+    transition: all .12s;
+  }
+  .btn-excluir-tarefa:hover { border-color: var(--red); background: #fee2e2; }
 
   /* ══════════════════════
      SEÇÃO NOVA TAREFA
@@ -513,6 +534,17 @@ header .sub{ font-size:.7rem; color:#94a3b8; }
   .badge-periodo-manha, .badge-periodo-tarde{ font-size:.7rem; }
   .selo-periodo{ font-size:.7rem; }
   .chip-pin{ font-size:.72rem; }
+
+  /* --- Linha de ação do card ---------------------------------------------
+     Em 375px as três pílulas não cabem na mesma linha do Excluir: quebravam
+     em duas fileiras e o Excluir ficava boiando no meio delas. Aqui as três
+     dividem a largura em partes iguais numa linha só, e o Excluir desce pra
+     linha de baixo, encostado à direita — longe do dedo que está marcando
+     status, que é onde ele deve ficar mesmo. */
+  .card-actions{ flex-direction:column; align-items:stretch; gap:8px; }
+  .card-status-pills{ flex-wrap:nowrap; gap:6px; }
+  .pill-status{ flex:1 1 0; min-width:0; padding:7px 4px; font-size:.72rem; }
+  .btn-excluir-tarefa{ align-self:flex-end; }
 }
 
 </style>
@@ -951,20 +983,18 @@ function taskCardHTML(t, isArq) {
   const obsHtml  = t.obs     ? `<div class="card-obs"><strong>Obs</strong> ${esc(t.obs)}</div>` : '';
   const execHtml = t.dataExec? `<div class="card-exec">Executado: ${fmtDate(t.dataExec)}</div>` : '';
 
+  // A pílula do estado atual fica marcada: sem isso as três ficam iguais e não
+  // dá pra saber, olhando a linha, em qual delas a tarefa está.
+  const pills = [['pendente','Pendente'], ['andamento','Andamento'], ['concluida','Concluída']]
+    .map(([valor, rotulo]) =>
+      `<button class="pill-status p-${valor}${t.status === valor ? ' ativa' : ''}"` +
+      `${t.status === valor ? ' aria-current="true"' : ''}` +
+      ` onclick="quickStatus('${t.id}','${valor}')">${rotulo}</button>`).join('');
+
   const actions = isArq ? '' : `
     <div class="card-actions">
-      <button class="card-act-btn" onclick="quickStatus('${t.id}','pendente')">
-        Pendente
-      </button>
-      <button class="card-act-btn" onclick="quickStatus('${t.id}','andamento')">
-        Andamento
-      </button>
-      <button class="card-act-btn" onclick="quickStatus('${t.id}','concluida')">
-        Concluída
-      </button>
-      <button class="card-act-btn del" onclick="deleteTask('${t.id}')">
-        Excluir
-      </button>
+      <div class="card-status-pills">${pills}</div>
+      <button class="btn-excluir-tarefa" onclick="deleteTask('${t.id}')">Excluir</button>
     </div>`;
 
   return `
