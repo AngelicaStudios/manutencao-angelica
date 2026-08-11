@@ -616,6 +616,53 @@ nav .abas{ align-items:center; }
   header .sub{ font-size:.66rem; }
   .btn-painel{ padding:6px 11px; font-size:.75rem; }
 }
+
+/* ═══ Padrao CELULAR Angelica Studios — identidade unica ═══════════════
+   Ultimo bloco da folha de proposito. Piloto aprovado: Recebimentos.
+     1. faixa congelada curta — e, aqui, PARAR de vazar: as 3 abas com
+        `flex:1` mais o seletor de mes nao cabiam em 375px e empurravam a
+        pagina inteira pra 454px de largura (rolagem lateral no corpo)
+     2. dedo alcanca tudo     — piso de 40px em tudo que se toca
+     3. nada ilegivel         — a grade do mes chegava a 8px                */
+@media (max-width:640px){
+
+  /* --- 1. A barra de abas vira uma linha que rola de lado ----------------
+     Sem `flex:1` os botoes param de esticar, e sem o `margin-left:auto` o
+     seletor de mes encosta neles em vez de ser empurrado pra fora da tela. */
+  nav .abas{
+    flex-wrap:nowrap; overflow-x:auto; overflow-y:hidden;
+    scrollbar-width:none; -webkit-overflow-scrolling:touch; padding:8px 12px;
+  }
+  nav .abas::-webkit-scrollbar{ display:none; }
+  nav button{ flex:0 0 auto; }
+  .mes-picker{ margin-left:0; flex:0 0 auto; }
+
+  /* --- 2. Alvo de toque: 40px de piso ------------------------------------ */
+  nav button, .btn, .btn-painel, .sel-lib{
+    min-height:40px; display:inline-flex; align-items:center; justify-content:center;
+  }
+  .mes-picker, input, select{ min-height:40px; }
+
+  /* --- 3. Piso de 11px ---------------------------------------------------
+     A grade ja rola dentro do proprio quadro, entao aumentar a fonte so
+     alarga a tabela — nao empurra a pagina. */
+  header .sub{ font-size:.7rem; }
+  table.grade{ font-size:.8rem; }
+  table.grade th.dia{ width:34px; font-size:.72rem; padding:7px 0; }
+  table.grade th.nome, table.grade td.nome{ min-width:140px; font-size:.86rem; padding:9px 10px; }
+  .cel .t{ font-size:.7rem; }
+  #tb-resumo td::before{ font-size:.7rem; }
+  .un-card .un-sub{ font-size:.7rem; }
+  table.dados th, table.dados td.num{ font-size:.72rem; }
+
+  /* Degrade na borda direita de faixa que rola de lado — sem ele o dedo nao
+     descobre que tem aba fora da tela. A classe e posta por JS so quando
+     sobra conteudo, e so no elemento que realmente rola. */
+  .rola-lateral{
+    -webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 26px),transparent);
+            mask-image:linear-gradient(90deg,#000 calc(100% - 26px),transparent);
+  }
+}
 </style>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
@@ -1476,6 +1523,43 @@ function voltarAoMenu(e) {
   aplicar();
   window.addEventListener('resize', aplicar);
   if (window.ResizeObserver) new ResizeObserver(aplicar).observe(alvo);
+})();
+</script>
+
+<script>
+// No celular as faixas de filtro rolam de lado em vez de quebrar em varias
+// linhas. Sem sinal nenhum o dedo nao descobre que tem mais coisa fora da tela,
+// entao marca com .rola-lateral (degrade na borda direita) so quando sobra
+// conteudo — se coubesse tudo, o degrade apareceria por nada.
+(function marcarRolagemLateral() {
+  var faixas = document.querySelectorAll(
+    'nav, .abas, .top-row, .linha-filtros, .resumo, .contas, .filtros, .filtros-conta,' +
+    '.risco, .stats, .limp-actions, .limp-stats-bar, .tabs, nav.tabs');
+  if (!faixas.length) return;
+  var aplicar = function () {
+    faixas.forEach(function (f) {
+      // So marca quem REALMENTE rola. No Contratos quem rola e o <nav>, e o
+      // .abas de dentro so e largo: com o degrade no .abas ele andaria junto
+      // com o conteudo em vez de ficar parado na borda da tela.
+      var ovx = getComputedStyle(f).overflowX;
+      var rolavel = (ovx === 'auto' || ovx === 'scroll') && f.scrollWidth > f.clientWidth + 2;
+      f.classList.toggle('rola-lateral', rolavel);
+    });
+  };
+  aplicar();
+  window.addEventListener('resize', aplicar);
+  window.addEventListener('orientationchange', aplicar);
+  window.addEventListener('load', aplicar);
+  if (window.ResizeObserver) faixas.forEach(function (f) { new ResizeObserver(aplicar).observe(f); });
+  // A lista chega por fetch: sem reavaliar depois, um filtro criado por JS
+  // nao ganharia o degrade. MutationObserver cobre qualquer modulo, sem
+  // precisar achar o ponto exato onde cada um monta a barra.
+  if (window.MutationObserver) {
+    var t = null;
+    new MutationObserver(function () {
+      clearTimeout(t); t = setTimeout(aplicar, 60);
+    }).observe(document.body, { childList: true, subtree: true });
+  }
 })();
 </script>
 </body>
