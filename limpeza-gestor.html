@@ -266,6 +266,48 @@ header .sub{ font-size:.7rem; color:#94a3b8; }
 .limp-actions .btn-acento:hover{ background:var(--acento-bg-h); border-color:var(--acento-d); color:var(--acento-d); }
 .limp-actions .btn-sucesso{ background:#dcfce7; border-color:#15803d; color:#15803d; }
 .limp-actions .btn-sucesso:hover{ background:#bbf7d0; border-color:#166534; color:#166534; }
+
+/* ═══ Padrao CELULAR Angelica Studios — identidade unica ═══════════════
+   Ultimo bloco da folha de proposito. Piloto aprovado: Recebimentos.
+     1. faixa congelada — os 4 botoes de acao viram linha que rola de lado
+     2. dedo alcanca tudo — piso de 40px em tudo que se toca
+     3. nada ilegivel     — o rotulo dos contadores estava em 8px            */
+@media (max-width:640px){
+
+  /* --- 1. Acoes: linha que rola em vez de 4 botoes espremidos ------------
+     Com `flex:1 1 0` os quatro dividiam 375px e o texto era cortado com
+     reticencia ("Emitir Bole..."). Rolando de lado cada um mostra o nome
+     inteiro e ainda ganha altura de toque. */
+  .limp-actions{
+    overflow-x:auto; overflow-y:hidden; flex-wrap:nowrap;
+    scrollbar-width:none; -webkit-overflow-scrolling:touch;
+  }
+  .limp-actions::-webkit-scrollbar{ display:none; }
+  .limp-actions button.btn-sm{
+    flex:0 0 auto; padding:9px 14px !important; font-size:.78rem;
+    overflow:visible; text-overflow:clip; min-height:40px;
+  }
+
+  /* --- 2. Alvo de toque: 40px de piso ------------------------------------ */
+  .btn-sm, .btn, .btn-painel, .limp-stat-m{
+    min-height:40px; display:inline-flex; align-items:center; justify-content:center;
+  }
+  .limp-stat-m{ flex-direction:column; }
+  input, select, textarea{ min-height:40px; }
+
+  /* --- 3. Piso de 11px --------------------------------------------------- */
+  .limp-stat-m .sl{ font-size:.7rem; letter-spacing:0; }
+  .limp-stat-m .sn{ font-size:1rem; }
+  header .sub{ font-size:.7rem; }
+
+  /* Degrade na borda direita de faixa que rola de lado — sem ele o dedo nao
+     descobre que tem botao fora da tela. A classe e posta por JS so quando
+     sobra conteudo, e so no elemento que realmente rola. */
+  .rola-lateral{
+    -webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 26px),transparent);
+            mask-image:linear-gradient(90deg,#000 calc(100% - 26px),transparent);
+  }
+}
 </style>
 <!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
@@ -1074,6 +1116,43 @@ function voltarAoMenu(e) {
   setTimeout(function () { location.href = destino; }, 150);
   return false;
 }
+</script>
+
+<script>
+// No celular as faixas de filtro rolam de lado em vez de quebrar em varias
+// linhas. Sem sinal nenhum o dedo nao descobre que tem mais coisa fora da tela,
+// entao marca com .rola-lateral (degrade na borda direita) so quando sobra
+// conteudo — se coubesse tudo, o degrade apareceria por nada.
+(function marcarRolagemLateral() {
+  var faixas = document.querySelectorAll(
+    'nav, .abas, .top-row, .linha-filtros, .resumo, .contas, .filtros, .filtros-conta,' +
+    '.risco, .stats, .limp-actions, .limp-stats-bar, .tabs, nav.tabs');
+  if (!faixas.length) return;
+  var aplicar = function () {
+    faixas.forEach(function (f) {
+      // So marca quem REALMENTE rola. No Contratos quem rola e o <nav>, e o
+      // .abas de dentro so e largo: com o degrade no .abas ele andaria junto
+      // com o conteudo em vez de ficar parado na borda da tela.
+      var ovx = getComputedStyle(f).overflowX;
+      var rolavel = (ovx === 'auto' || ovx === 'scroll') && f.scrollWidth > f.clientWidth + 2;
+      f.classList.toggle('rola-lateral', rolavel);
+    });
+  };
+  aplicar();
+  window.addEventListener('resize', aplicar);
+  window.addEventListener('orientationchange', aplicar);
+  window.addEventListener('load', aplicar);
+  if (window.ResizeObserver) faixas.forEach(function (f) { new ResizeObserver(aplicar).observe(f); });
+  // A lista chega por fetch: sem reavaliar depois, um filtro criado por JS
+  // nao ganharia o degrade. MutationObserver cobre qualquer modulo, sem
+  // precisar achar o ponto exato onde cada um monta a barra.
+  if (window.MutationObserver) {
+    var t = null;
+    new MutationObserver(function () {
+      clearTimeout(t); t = setTimeout(aplicar, 60);
+    }).observe(document.body, { childList: true, subtree: true });
+  }
+})();
 </script>
 </body>
 </html>
