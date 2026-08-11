@@ -656,6 +656,25 @@ nav.tabs button.active{ background:var(--acento-bg); border-color:var(--acento);
   .view{ max-width:1600px; margin:0 auto; }
   nav.tabs{ max-width:1600px; margin:0 auto; }
 }
+
+/* ═══ Padrao CELULAR Angelica Studios — identidade unica ═══════════════
+   Ultimo bloco da folha de proposito. Piloto aprovado: Recebimentos.
+   Este modulo ja nasceu de celular e e a tela da equipe em campo, entao a
+   altura de toque importa mais aqui do que em qualquer outro: quem usa esta
+   de pe, com luva ou com o telefone numa mao so.                          */
+@media (max-width:640px){
+
+  /* --- Alvo de toque: 40px de piso ---------------------------------------
+     `.tag` fica de fora: e etiqueta de leitura no card, nao controle. */
+  .btn, .btn-enter, .btn-save, nav.tabs button, button{ min-height:40px; }
+  input, select, textarea{ min-height:40px; }
+
+  /* --- Piso de 11px ------------------------------------------------------ */
+  .cnt .lbl{ font-size:.7rem; }
+  .tag{ font-size:.7rem; }
+  .badge{ font-size:.7rem; }
+  header .sub{ font-size:.7rem; }
+}
 </style>
 <!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
@@ -1520,6 +1539,43 @@ const EQUIPE_SENHA = 'euPOTdTorZqheKP1aHHi';
       carregarFuncs();
     }
   }).catch(e => console.error('Falha no acesso ao servidor:', e));
+})();
+</script>
+
+<script>
+// No celular as faixas de filtro rolam de lado em vez de quebrar em varias
+// linhas. Sem sinal nenhum o dedo nao descobre que tem mais coisa fora da tela,
+// entao marca com .rola-lateral (degrade na borda direita) so quando sobra
+// conteudo — se coubesse tudo, o degrade apareceria por nada.
+(function marcarRolagemLateral() {
+  var faixas = document.querySelectorAll(
+    'nav, .abas, .top-row, .linha-filtros, .resumo, .contas, .filtros, .filtros-conta,' +
+    '.risco, .stats, .limp-actions, .limp-stats-bar, .tabs, nav.tabs');
+  if (!faixas.length) return;
+  var aplicar = function () {
+    faixas.forEach(function (f) {
+      // So marca quem REALMENTE rola. No Contratos quem rola e o <nav>, e o
+      // .abas de dentro so e largo: com o degrade no .abas ele andaria junto
+      // com o conteudo em vez de ficar parado na borda da tela.
+      var ovx = getComputedStyle(f).overflowX;
+      var rolavel = (ovx === 'auto' || ovx === 'scroll') && f.scrollWidth > f.clientWidth + 2;
+      f.classList.toggle('rola-lateral', rolavel);
+    });
+  };
+  aplicar();
+  window.addEventListener('resize', aplicar);
+  window.addEventListener('orientationchange', aplicar);
+  window.addEventListener('load', aplicar);
+  if (window.ResizeObserver) faixas.forEach(function (f) { new ResizeObserver(aplicar).observe(f); });
+  // A lista chega por fetch: sem reavaliar depois, um filtro criado por JS
+  // nao ganharia o degrade. MutationObserver cobre qualquer modulo, sem
+  // precisar achar o ponto exato onde cada um monta a barra.
+  if (window.MutationObserver) {
+    var t = null;
+    new MutationObserver(function () {
+      clearTimeout(t); t = setTimeout(aplicar, 60);
+    }).observe(document.body, { childList: true, subtree: true });
+  }
 })();
 </script>
 </body>
