@@ -748,7 +748,7 @@ nav .abas{ align-items:center; }
       <h2>Horas externas</h2>
       <table class="dados" id="tb-externo"></table>
     </div>
-    <button class="btn btn-ghost btn-full" onclick="exportarCSV()">⬇Exportar CSV</button>
+    <button class="btn btn-ghost btn-full" onclick="exportarCSV()">Exportar CSV</button>
   </section>
 </main>
 
@@ -1328,7 +1328,7 @@ function exportarCSV() {
   a.download = `rateio-mao-de-obra-${mesAtual}.csv`;
   a.click();
   URL.revokeObjectURL(a.href);
-  toast('⬇CSV gerado!');
+  toast('CSV gerado!');
 }
 
 // ══════════════════════════════════════════════
