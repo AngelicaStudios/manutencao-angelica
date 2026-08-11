@@ -4,7 +4,7 @@
   "short_name": "Teste PWA",
   "description": "Página de diagnóstico: mostra se o painel abriu como app instalado ou dentro do navegador",
   "start_url": "./pwa-check.html",
-  "scope": "./",
+  "scope": "./pwa-check",
   "display": "standalone",
   "background_color": "#0f172a",
   "theme_color": "#0f172a",
