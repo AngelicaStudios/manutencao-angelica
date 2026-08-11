@@ -502,7 +502,7 @@ async function limpConfirmarNovaSemana() {
 
 async function limpSync() {
   const prog = document.getElementById('limp-progress');
-  if (prog) prog.textContent = '⏳ Sincronizando…';
+  if (prog) prog.textContent = 'Sincronizando…';
   try {
     const res  = await fetch(LIMP_API + '/api/sync', { method: 'POST', headers: LIMP_AUTH_HEADERS });
     const data = await res.json();
@@ -528,7 +528,7 @@ function limpNormalize(r) {
 
 async function initLimpeza() {
   const prog = document.getElementById('limp-progress');
-  if (prog) prog.textContent = '⏳ Carregando…';
+  if (prog) prog.textContent = 'Carregando…';
   await limpCarregarSemanaAtual();
   try {
     const res  = await fetch(LIMP_API + '/api/agenda', { headers: LIMP_AUTH_HEADERS });
@@ -609,7 +609,7 @@ function limpStatusInfo(status, dia) {
     if (isSex) return { label:'Sexta', cls:'lb-sex', cardCls:'lc-sex', filterKey:'sexta' };
     return { label:'Terça', cls:'lb-ter', cardCls:'lc-ter', filterKey:'terca' };
   }
-  return { label:'⏳ Aguardando', cls:'lb-agu', cardCls:'lc-agu', filterKey:'aguardando' };
+  return { label:'Aguardando', cls:'lb-agu', cardCls:'lc-agu', filterKey:'aguardando' };
 }
 
 function limpRender() {
@@ -689,7 +689,7 @@ function limpRender() {
     const dayKey = LIMP_DAY_UPPER[info.filterKey] || null;
     const statusVal = dayKey || (info.filterKey === 'nao' ? 'NAO' : 'AGUARDANDO');
     const statusOptsHtml = [
-      ['AGUARDANDO', '⏳ Aguardando'],
+      ['AGUARDANDO', 'Aguardando'],
       ['SEGUNDA',    'Segunda-feira'],
       ['TERCA',      'Terça-feira'],
       ['QUARTA',     'Quarta-feira'],
@@ -794,7 +794,7 @@ async function limpDispararUm(numero, apto, nome) {
 }
 
 async function limpDisparar() {
-  if (limpSending) { toast('⏳ Envio em andamento…'); return; }
+  if (limpSending) { toast('Envio em andamento…'); return; }
   const aguardando = limpData.filter(r => limpStatusInfo(r.status, r.dia).filterKey === 'aguardando' && r.numero && !r.numero.startsWith('vago_'));
   if (!aguardando.length) { toast('Nenhum aguardando com número.'); return; }
   if (!confirm('Disparar WhatsApp para ' + aguardando.length + ' apartamento(s)?\n\nAgora roda no servidor — pode fechar o app/celular que o envio continua.')) return;
@@ -939,7 +939,7 @@ const _fmtDataBR = iso => (iso || '').split('-').reverse().join('/');
 
 /** Emite o boleto da taxa de limpeza de um apartamento só. */
 async function limpCobrarUm(apto) {
-  if (limpCobrando) { toast('⏳ Já tem uma emissão em andamento…'); return; }
+  if (limpCobrando) { toast('Já tem uma emissão em andamento…'); return; }
 
   let previa;
   try {
@@ -984,7 +984,7 @@ async function limpCobrarUm(apto) {
 
 /** Emite pra todos que confirmaram a faxina. Roda no servidor, em segundo plano. */
 async function limpCobrarTodos() {
-  if (limpCobrando) { toast('⏳ Já tem uma emissão em andamento…'); return; }
+  if (limpCobrando) { toast('Já tem uma emissão em andamento…'); return; }
 
   let previa;
   try {
