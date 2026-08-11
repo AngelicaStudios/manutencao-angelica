@@ -4,7 +4,7 @@
   "short_name": "Apontamento",
   "description": "Painel do gestor: horas dos colaboradores e rateio de custo por unidade",
   "start_url": "./apontamento-gestor.html",
-  "scope": "./",
+  "scope": "./apontamento-gestor",
   "display": "standalone",
   "background_color": "#7c3aed",
   "theme_color": "#7c3aed",
