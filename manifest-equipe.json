@@ -4,7 +4,7 @@
   "short_name": "Equipe",
   "description": "Painel da equipe de manutenção de apartamentos",
   "start_url": "./equipe-mobile.html",
-  "scope": "./",
+  "scope": "./equipe-mobile",
   "display": "standalone",
   "background_color": "#16a34a",
   "theme_color": "#16a34a",
