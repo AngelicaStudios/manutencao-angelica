@@ -481,6 +481,40 @@ header .sub{ font-size:.7rem; color:#94a3b8; }
   .section{ max-width:1600px; margin:0 auto; }
 }
 
+/* Selos que estavam como estilo embutido no JS (nao davam pra corrigir por CSS,
+   estilo embutido ganha de tudo). Mesmas cores de antes, agora com nome. */
+.selo-periodo{
+  border-radius:99px; padding:1px 7px; font-size:.7rem; font-weight:700;
+  margin-left:4px; vertical-align:middle; display:inline-block;
+}
+.selo-periodo.manha{ background:#93c5fd; color:#1e3a8a; border:1px solid #60a5fa; }
+.selo-periodo.tarde{ background:#e9d5ff; color:#6b21a8; border:1px solid #d8b4fe; }
+.chip-pin{ font-size:.72rem; color:var(--muted); margin-left:3px; font-family:monospace; }
+
+/* ═══ Padrao CELULAR Angelica Studios — identidade unica ═══════════════
+   Ultimo bloco da folha de proposito. Piloto aprovado: Recebimentos.
+   Aqui o modulo ja nasceu de celular: o que faltava era o piso de 11px
+   (varios rotulos em 9px) e a altura de toque em alguns controles.        */
+@media (max-width:640px){
+
+  /* --- Alvo de toque: 40px de piso ---------------------------------------
+     `.tag` fica de fora de proposito: e etiqueta de leitura dentro do card,
+     nao controle — esticar pra 40px so engordaria o cartao. */
+  .btn, .btn-sm, .nav-btn, button{ min-height:40px; }
+  .btn-painel, .logout-btn{
+    min-height:40px; display:inline-flex; align-items:center; justify-content:center;
+  }
+  input, select, textarea{ min-height:40px; }
+
+  /* --- Piso de 11px ------------------------------------------------------ */
+  .nav-btn .nav-lbl{ font-size:.7rem; }
+  .cnt .lbl{ font-size:.7rem; }
+  .tag{ font-size:.7rem; }
+  .badge-periodo-manha, .badge-periodo-tarde{ font-size:.7rem; }
+  .selo-periodo{ font-size:.7rem; }
+  .chip-pin{ font-size:.72rem; }
+}
+
 </style>
 <!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
@@ -904,9 +938,9 @@ function taskCardHTML(t, isArq) {
 
   const periodoCls  = t.periodo === 'manha' ? 'periodo-manha' : t.periodo === 'tarde' ? 'periodo-tarde' : '';
   const periodoBadge = t.periodo === 'manha'
-    ? `<span style="background:#93c5fd;color:#1e3a8a;border:1px solid #60a5fa;border-radius:99px;padding:1px 6px;font-size:.58rem;font-weight:700;margin-left:4px;vertical-align:middle">Manhã</span>`
+    ? `<span class="selo-periodo manha">Manhã</span>`
     : t.periodo === 'tarde'
-    ? `<span style="background:#e9d5ff;color:#6b21a8;border:1px solid #d8b4fe;border-radius:99px;padding:1px 6px;font-size:.58rem;font-weight:700;margin-left:4px;vertical-align:middle">Tarde</span>`
+    ? `<span class="selo-periodo tarde">Tarde</span>`
     : '';
 
   const fotosHtml = (t.fotos && t.fotos.length)
@@ -1126,7 +1160,7 @@ function renderFuncs() {
     el.innerHTML = funcs.length
       ? funcs.map(f => `
           <span class="func-chip">${esc(f.nome)}
-            <span style="font-size:.68rem;color:var(--muted);margin-left:3px;font-family:monospace">PIN:${esc(f.pin||'—')}</span>
+            <span class="chip-pin">PIN:${esc(f.pin||'—')}</span>
             <button onclick="abrirEditFunc('${esc(f.nome)}')" title="Editar" style="color:#93c5fd">✏️</button>
             <button onclick="removeFunc('${esc(f.nome)}')">✕</button>
           </span>`).join('')
@@ -1177,6 +1211,43 @@ function voltarAoMenu(e) {
   setTimeout(function () { location.href = destino; }, 150);
   return false;
 }
+</script>
+
+<script>
+// No celular as faixas de filtro rolam de lado em vez de quebrar em varias
+// linhas. Sem sinal nenhum o dedo nao descobre que tem mais coisa fora da tela,
+// entao marca com .rola-lateral (degrade na borda direita) so quando sobra
+// conteudo — se coubesse tudo, o degrade apareceria por nada.
+(function marcarRolagemLateral() {
+  var faixas = document.querySelectorAll(
+    'nav, .abas, .top-row, .linha-filtros, .resumo, .contas, .filtros, .filtros-conta,' +
+    '.risco, .stats, .limp-actions, .limp-stats-bar, .tabs, nav.tabs');
+  if (!faixas.length) return;
+  var aplicar = function () {
+    faixas.forEach(function (f) {
+      // So marca quem REALMENTE rola. No Contratos quem rola e o <nav>, e o
+      // .abas de dentro so e largo: com o degrade no .abas ele andaria junto
+      // com o conteudo em vez de ficar parado na borda da tela.
+      var ovx = getComputedStyle(f).overflowX;
+      var rolavel = (ovx === 'auto' || ovx === 'scroll') && f.scrollWidth > f.clientWidth + 2;
+      f.classList.toggle('rola-lateral', rolavel);
+    });
+  };
+  aplicar();
+  window.addEventListener('resize', aplicar);
+  window.addEventListener('orientationchange', aplicar);
+  window.addEventListener('load', aplicar);
+  if (window.ResizeObserver) faixas.forEach(function (f) { new ResizeObserver(aplicar).observe(f); });
+  // A lista chega por fetch: sem reavaliar depois, um filtro criado por JS
+  // nao ganharia o degrade. MutationObserver cobre qualquer modulo, sem
+  // precisar achar o ponto exato onde cada um monta a barra.
+  if (window.MutationObserver) {
+    var t = null;
+    new MutationObserver(function () {
+      clearTimeout(t); t = setTimeout(aplicar, 60);
+    }).observe(document.body, { childList: true, subtree: true });
+  }
+})();
 </script>
 </body>
 </html>
