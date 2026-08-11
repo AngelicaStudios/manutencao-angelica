@@ -472,8 +472,13 @@ header .sub{ font-size:.7rem; color:#94a3b8; }
    do RODAPE e vira barra de topo. Aba no pe da tela e gesto de celular; num
    monitor ela fica longe do conteudo e parece rodape. */
 @media (min-width:900px){
+  /* Largura da coluna num lugar só. Estava escrita duas vezes (cabeçalho e
+     seção) e a nav não usava nenhuma das duas — por isso as abas colavam na
+     borda da tela enquanto o título ficava lá dentro. */
+  #app{ --col:1280px; --gutter:24px; }
+
   #app.visible{ max-width:none; box-shadow:none; }
-  .cabecalho-int{ max-width:1600px; margin:0 auto; padding:14px 24px 12px; }
+  .cabecalho-int{ max-width:var(--col); margin:0 auto; padding:14px var(--gutter) 12px; }
 
   /* ordem visual: cabecalho, abas, conteudo — no HTML a nav vem por ultimo */
   header{ order:1; }
@@ -481,11 +486,18 @@ header .sub{ font-size:.7rem; color:#94a3b8; }
   #content{ order:3; }
   #btn-instalar{ order:4; }
 
+  /* A faixa branca e a borda de baixo continuam de ponta a ponta; só as abas
+     entram na coluna. Como os botões são filhos diretos da nav (não há div
+     interna pra limitar), a coluna vem do padding calculado: o `max()` segura
+     o recuo mínimo quando a tela é menor que a coluna. */
   nav{
     position:static; transform:none; width:auto; max-width:none; left:auto; right:auto;
-    height:auto; padding:10px 24px; border-top:none;
+    height:auto; border-top:none;
     border-bottom:1.5px solid var(--border);
     justify-content:flex-start; gap:6px;
+    padding-top:10px; padding-bottom:10px;
+    padding-left:  max(var(--gutter), calc((100% - var(--col)) / 2 + var(--gutter)));
+    padding-right: max(var(--gutter), calc((100% - var(--col)) / 2 + var(--gutter)));
   }
   .nav-btn{
     flex:0 0 auto; flex-direction:row; gap:0;
@@ -499,7 +511,16 @@ header .sub{ font-size:.7rem; color:#94a3b8; }
 
   /* sem barra no rodape, o conteudo nao precisa mais reservar espaco embaixo */
   #content{ padding-bottom:24px; }
-  .section{ max-width:1600px; margin:0 auto; }
+  .section{ max-width:var(--col); margin:0 auto; padding-left:var(--gutter); padding-right:var(--gutter); }
+
+  /* As três faixas do conteúdo (contadores, data, lista) começavam em pontos
+     diferentes: a lista somava 12px de recuo próprio, as outras duas não —
+     por isso as faixas brancas do topo apareciam mais largas que os cartões.
+     Agora as três têm a mesma borda externa, e o padding esquerdo das faixas
+     leva +5px pra compensar a tarja colorida do cartão: sem isso o texto
+     delas fica 5px à esquerda do texto do cartão. */
+  .tasks-wrap{ padding-left:0; padding-right:0; }
+  .counters-bar, .filter-bar{ padding-left:18px; padding-right:13px; }
 }
 
 /* Selos que estavam como estilo embutido no JS (nao davam pra corrigir por CSS,
