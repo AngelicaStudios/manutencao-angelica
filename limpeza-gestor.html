@@ -150,12 +150,18 @@
   .limp-act:hover:not(:disabled) { filter: brightness(.94); }
   .limp-act:disabled { opacity: .38; cursor: not-allowed; }
   .limp-act svg { width: 17px; height: 17px; }
-  .limp-act-wa   { background: #dcfce7; border-color: #86efac; color: #15803d; }
-  .limp-act-task { background: #e0f2fe; border-color: #bae6fd; color: #0369a1; }
-  .limp-act-cob  { background: #ede9fe; border-color: #ddd6fe; color: #6d28d9; }
-  /* Já cobrado: verde e apagado — dá pra ver de longe quem já tem boleto. */
-  .limp-act-cob-ok { background: #dcfce7; border-color: #86efac; color: #15803d; }
-  .limp-act-cob-ok:disabled { opacity: .8; }
+  /* A FAZER: cada ação tem sua cor, pra distinguir as três de relance.
+     A mensagem saiu do verde de propósito — o verde agora significa "já feito"
+     nas três, e ela sendo verde em repouso colidia com isso. */
+  .limp-act-wa   { background: #faf4e8; border-color: #d9a85c; color: #8a5f22; }
+  .limp-act-task { background: #e0f2fe; border-color: #7dd3fc; color: #0369a1; }
+  .limp-act-cob  { background: #ede9fe; border-color: #c4b5fd; color: #6d28d9; }
+  /* JÁ FEITO: verde com tique nas três — dá pra varrer a lista e ver o que falta. */
+  .limp-act-ok   { background: #dcfce7; border-color: #4ade80; color: #15803d; }
+  .limp-act-ok:disabled { opacity: .8; }
+  /* Sem coluna pra rotular no celular — o card empilha e os botoes não formam
+     coluna. Lá o nome da ação vive no title/toque longo. */
+  .limp-list-head { display: none; }
   .limp-card-edit { border-top: 1px solid var(--border); padding: 8px 13px; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; background: #fafbfc; }
   .limp-status-sel { flex: 0 0 auto; padding: 6px 8px; border: 1.5px solid var(--border); border-radius: 8px; font-size: .75rem; min-width: 120px; appearance: none; background: #fff; font-family: inherit; font-weight: 600; }
   .limp-exec-sel { flex: 0 0 auto; padding: 6px 8px; border: 1.5px solid var(--border); border-radius: 8px; font-size: .75rem; min-width: 100px; max-width: 140px; appearance: none; background: #fff; font-family: inherit; }
@@ -249,7 +255,28 @@ header .sub{ font-size:.7rem; color:#94a3b8; }
   .limp-card-top{ flex:0 0 auto; padding:8px 13px; gap:10px; }
   .limp-card-info{ flex:0 0 230px; }
   .limp-badge{ flex:0 0 84px; text-align:center; padding:4px 0; }
-  .limp-act{ flex:0 0 34px; }
+  /* 46px e nao 34: e a menor largura em que "Inquilino" cabe no rotulo da coluna
+     sem encostar no vizinho. O icone continua do mesmo tamanho. */
+  .limp-act{ flex:0 0 46px; }
+
+  /* Rotulo das colunas de acao. As larguras repetem as do card acima, entao os
+     tres rotulos caem exatamente sobre os tres botoes de cada linha. */
+  .limp-list-head{
+    display:flex; gap:10px; align-items:flex-end;
+    max-width:1600px; margin:0 auto; padding:0 24px 4px;
+  }
+  /* 4px da borda esquerda do card + 13px do padding + info + gap + selo */
+  .limp-list-head .lh-vazio{ flex:0 0 341px; }
+  /* min-width:0 e overflow visivel: sem isso o item flex nao encolhe abaixo do
+     proprio texto ("Inquilino" da 60px), estoura a coluna de 46 e empurra os
+     rotulos seguintes pra fora do lugar. Assim o slot fica exatamente 46 e o
+     texto transborda centrado — o centro do rotulo cai no centro do botao. */
+  .limp-list-head .lh-rot{
+    flex:0 0 46px; min-width:0; overflow:visible; white-space:nowrap;
+    text-align:center;
+    font-size:.68rem; font-weight:700; color:var(--muted);
+    text-transform:uppercase; letter-spacing:.3px;
+  }
 
   .limp-card-edit{
     flex:1; border-top:none; background:none; padding:8px 0;
@@ -388,6 +415,15 @@ header .sub{ font-size:.7rem; color:#94a3b8; }
       </div>
 
       <div class="limp-progress" id="limp-progress">Toque em Atualizar para carregar.</div>
+      <!-- Rotulos das tres colunas de acao. Só no desktop: lá as colunas têm
+           largura fixa e ficam alinhadas com os botoes de cada linha; no celular
+           o card empilha e nao existe coluna pra rotular. -->
+      <div class="limp-list-head" id="limp-list-head" aria-hidden="true">
+        <span class="lh-vazio"></span>
+        <span class="lh-rot">Inquilino</span>
+        <span class="lh-rot">Tarefa</span>
+        <span class="lh-rot">Boleto</span>
+      </div>
       <div id="limp-list" class="limp-list"></div>
       <div class="limp-footer">
         <button class="btn-full btn-green" onclick="limpDisparar()" id="limp-btn-disp" style="display:none">
@@ -546,7 +582,10 @@ function limpNormalize(r) {
     numero:    String(r.numero || r.celular || '').trim(),
     status, dia: diaRaw.toLowerCase(), diaISO,
     executor:  String(r.executor || '').trim(),
-    observacao: String(r.observacao || '').trim()
+    observacao: String(r.observacao || '').trim(),
+    // Carimbo de quando a oferta saiu. Só o envio grava isso — `updated` não
+    // serve, porque também muda ao editar dia/status na tela.
+    msgEnviadaEm: String(r.msg_enviada_em || '').trim()
   };
 }
 
@@ -571,6 +610,7 @@ async function initLimpeza() {
     if (prog) prog.textContent = '';
     limpRender();
     limpCarregarStatusCobranca();   // pinta os botões de boleto (já emitido / bloqueado)
+    limpCarregarTarefas();          // pinta os botões de tarefa (já criada)
   } catch(e) {
     if (prog) prog.textContent = 'Erro ao carregar. Verifique a conexão.';
   }
@@ -594,6 +634,36 @@ async function limpCarregarStatusCobranca() {
   } catch(e) { /* offline — botão fica no estado neutro */ }
 }
 
+/**
+ * Quais studios já têm tarefa de limpeza criada, e pra que dia. Chave apto|data,
+ * então uma tarefa da semana passada não marca o botão desta semana como feito.
+ * Consulta só as de limpeza — o quadro de manutenção tem muito mais coisa.
+ */
+async function limpCarregarTarefas() {
+  try {
+    const snap = await db.collection('tarefas').where('tipo', '==', 'Limpeza Semanal').get();
+    limpTarefas = {};
+    snap.forEach(doc => {
+      const t = doc.data() || {};
+      if (t.apto && t.data) limpTarefas[String(t.apto).trim() + '|' + t.data] = true;
+    });
+    limpRender();
+  } catch(e) { /* sem acesso ao Firebase — botão fica no estado neutro */ }
+}
+
+/** '2026-08-14' → '14/08'. Vazio continua vazio. */
+function limpDataBR(iso) {
+  const p = String(iso || '').split('-');
+  return p.length === 3 ? p[2] + '/' + p[1] : '';
+}
+
+/** '2026-08-12 08:48' → '12/08 às 08:48'. */
+function limpDataHoraBR(txt) {
+  const [d, h] = String(txt || '').split(' ');
+  const dia = limpDataBR(d);
+  return dia ? (h ? dia + ' às ' + h : dia) : String(txt || '');
+}
+
 function limpStatFilter(el) {
   const key = el.dataset.lf;
   limpFilter = (limpFilter === key) ? 'todos' : key;
@@ -606,8 +676,12 @@ const LIMP_DAY_LABEL = {
 };
 // Ícones dos botões de ação (traço, herdam a cor do botão via currentColor).
 const _svg = (p) => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + p + '</svg>';
+// Cada ação tem duas caras: a de "a fazer" e a de "já feito", com um tique.
+// O desenho diz QUAL ação é; a cor diz se já saiu (dourado = a fazer, verde = feito).
 const ICO_WA     = _svg('<path d="M21 11.5a8.4 8.4 0 0 1-8.5 8.4 8.5 8.5 0 0 1-4-1L3 21l2.1-5.4A8.4 8.4 0 0 1 12.5 3 8.4 8.4 0 0 1 21 11.5z"/>');
-const ICO_TAREFA = _svg('<path d="M9 3h6v3H9z"/><path d="M15 4.5h2A2 2 0 0 1 19 6.5v13a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-13a2 2 0 0 1 2-2h2"/><path d="m9 14 2 2 4-4"/>');
+const ICO_WA_OK  = _svg('<path d="M20.5 10.6a8.4 8.4 0 0 1-8 9.3 8.5 8.5 0 0 1-4-1L3 21l2.1-5.4A8.4 8.4 0 0 1 12.5 3c.6 0 1.2.06 1.8.18"/><path d="m9.2 11.4 2.4 2.4 5-5"/>');
+const ICO_TAREFA = _svg('<path d="M9 3h6v3H9z"/><path d="M15 4.5h2A2 2 0 0 1 19 6.5v13a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-13a2 2 0 0 1 2-2h2"/><path d="M8.5 12h7M8.5 16h4.5"/>');
+const ICO_TAREFA_OK = _svg('<path d="M9 3h6v3H9z"/><path d="M15 4.5h2A2 2 0 0 1 19 6.5v13a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-13a2 2 0 0 1 2-2h2"/><path d="m8.5 13.5 2.2 2.2 4.8-4.8"/>');
 const ICO_BOLETO = _svg('<path d="M4 6v12M7.5 6v12M11 6v8M14.5 6v12M18 6v12M20.5 6v12"/>');
 // Já cobrado: código de barras com um "check" — deixa claro que o boleto saiu.
 const ICO_BOLETO_OK = _svg('<path d="M4 6v12M7.5 6v12M11 6v6M14.5 6v4"/><path d="m14 17 2.5 2.5L21 15"/>');
@@ -693,18 +767,37 @@ function limpRender() {
     const optsHtml = execOpts.map(f =>
       '<option value="' + esc(f) + '"' + (r.executor === f ? ' selected' : '') + '>' + (f || 'Executor…') + '</option>'
     ).join('');
+    const dataDoDia = r.diaISO || limpProximaData(LIMP_DAY_UPPER[info.filterKey] || '') || '';
+
+    // INQUILINO — verde com tique depois que a oferta saiu de fato. Continua
+    // clicável: reenviar mensagem é inofensivo e às vezes é o que se quer.
+    const jaEnviou = !!r.msgEnviadaEm;
     const waBtnHtml = r.numero
-      ? '<button class="limp-act limp-act-wa" title="Enviar mensagem no WhatsApp" onclick="limpDispararUm(\'' + esc(r.numero) + '\',\'' + esc(aptoKey) + '\',\'' + esc(r.nome) + '\')">' + ICO_WA + '</button>'
+      ? '<button class="limp-act ' + (jaEnviou ? 'limp-act-ok' : 'limp-act-wa') + '"' +
+        ' title="' + esc(jaEnviou ? 'Mensagem enviada em ' + limpDataHoraBR(r.msgEnviadaEm) + ' — clique para reenviar'
+                                  : 'Enviar mensagem para o inquilino') + '"' +
+        ' onclick="limpDispararUm(\'' + esc(r.numero) + '\',\'' + esc(aptoKey) + '\',\'' + esc(r.nome) + '\')">' +
+        (jaEnviou ? ICO_WA_OK : ICO_WA) + '</button>'
       : '';
-    const taskBtnHtml = '<button class="limp-act limp-act-task" title="Criar tarefa de limpeza pra este studio" onclick="limpCriarTarefaUnica(\'' + esc(aptoKey) + '\')">' + ICO_TAREFA + '</button>';
-    // Boleto: só pra quem confirmou um dia (sem dia não há vencimento) e ainda não foi
-    // cobrado. O estado vem do servidor — a trava real é lá, aqui é só o reflexo dela.
+
+    // TAREFA — verde com tique quando já existe tarefa desse studio pra esse dia.
+    // Também segue clicável (o confirm avisa da duplicata antes de criar).
+    const jaTemTarefa = !!(dataDoDia && limpTarefas[aptoKey + '|' + dataDoDia]);
+    const taskBtnHtml = '<button class="limp-act ' + (jaTemTarefa ? 'limp-act-ok' : 'limp-act-task') + '"' +
+      ' title="' + esc(jaTemTarefa ? 'Tarefa já criada para ' + limpDataBR(dataDoDia) + ' — clique para criar outra'
+                                   : 'Criar tarefa e avisar o executor') + '"' +
+      ' onclick="limpCriarTarefaUnica(\'' + esc(aptoKey) + '\')">' +
+      (jaTemTarefa ? ICO_TAREFA_OK : ICO_TAREFA) + '</button>';
+
+    // BOLETO — só pra quem confirmou um dia (sem dia não há vencimento) e ainda não
+    // foi cobrado. O estado vem do servidor — a trava real é lá, aqui é só o reflexo.
+    // Este fica DESABILITADO depois de emitido: cobrar duas vezes mexe com dinheiro.
     const confirmou = !!LIMP_DAY_UPPER[info.filterKey];
     const cob = limpCobStatus[aptoKey];
     let cobCls = 'limp-act-cob', cobOff = !confirmou, cobIco = ICO_BOLETO;
     let cobTit = confirmou ? 'Emitir boleto da taxa de limpeza (R$ 90)' : 'Só depois que o inquilino confirmar o dia';
     if (confirmou && cob) {
-      if (cob.emitido)      { cobOff = true; cobCls = 'limp-act-cob-ok';  cobIco = ICO_BOLETO_OK; cobTit = 'Boleto já emitido — ' + (cob.motivo || ''); }
+      if (cob.emitido)      { cobOff = true; cobCls = 'limp-act-ok';  cobIco = ICO_BOLETO_OK; cobTit = 'Boleto já emitido — ' + (cob.motivo || ''); }
       else if (!cob.pode)   { cobOff = true; cobTit = 'Não dá pra cobrar: ' + (cob.motivo || ''); }
     }
     const cobBtnHtml = '<button class="limp-act ' + cobCls + '"' + (cobOff ? ' disabled' : '') +
@@ -817,7 +910,16 @@ async function limpDispararUm(numero, apto, nome) {
       body: JSON.stringify({ apto, numero, nome: nome || '' })
     });
     toast('Mensagem enviada para ' + apto + '!');
+    const row = limpData.find(x => x.apto === apto);
+    if (row) { row.msgEnviadaEm = limpAgoraTexto(); limpRender(); }  // pinta o botão na hora
   } catch(e) { toast('Erro ao enviar para ' + apto); }
+}
+
+/** 'AAAA-MM-DD HH:MM' de agora, no mesmo formato que o servidor grava. */
+function limpAgoraTexto() {
+  const d = new Date();
+  const p = n => String(n).padStart(2, '0');
+  return d.toLocaleDateString('sv-SE') + ' ' + p(d.getHours()) + ':' + p(d.getMinutes());
 }
 
 async function limpDisparar() {
@@ -935,7 +1037,12 @@ async function limpCriarTarefaUnica(apto) {
   const executor  = r.executor.trim();
   const obs       = (r.observacao || '').trim();
 
-  if (!confirm('Criar tarefa de limpeza?\n\nStudio: ' + apto + '\nExecutor: ' + executor + '\nData: ' + diaLabel + ' (' + dataBR + ')')) return;
+  // Duplicata não é bloqueio (pode ser proposital: trocou de executor, refazer o
+  // serviço), mas tem que ser dita — senão a equipe recebe a mesma tarefa 2x sem
+  // ninguém perceber.
+  const repetida = !!limpTarefas[apto + '|' + dataISO];
+  const aviso = repetida ? 'Este studio JÁ TEM tarefa criada para ' + dataBR + '.\nCriar outra?\n\n' : '';
+  if (!confirm(aviso + 'Criar tarefa de limpeza?\n\nStudio: ' + apto + '\nExecutor: ' + executor + '\nData: ' + diaLabel + ' (' + dataBR + ')')) return;
 
   const tarefa = {
     id: uid(), apto: apto, tipo: 'Limpeza Semanal',
@@ -944,6 +1051,8 @@ async function limpCriarTarefaUnica(apto) {
     status: 'pendente', obs: '', dataExec: '', fotos: [], criadoEm: Date.now()
   };
   await dbSet('tarefas', tarefa.id, tarefa);
+  limpTarefas[apto + '|' + dataISO] = true;   // pinta o botão na hora
+  limpRender();
 
   const wppOk = await limpNotificarExecutor(executor, apto, diaLabel, dataISO, obs);
   if (wppOk === null)  toast('Tarefa criada pro studio ' + apto + '! (' + executor + ' sem telefone cadastrado — avise manualmente)');
@@ -960,6 +1069,8 @@ const LIMP_TAXA = 90;
 let limpCobrando = false;
 // apto -> {pode, motivo, emitido} — quem já tem boleto e quem não pode ser cobrado.
 let limpCobStatus = {};
+// 'apto|AAAA-MM-DD' -> true — quais studios já têm tarefa criada pra aquele dia.
+let limpTarefas = {};
 
 const _fmtBRL = v => 'R$ ' + Number(v || 0).toFixed(2).replace('.', ',');
 const _fmtDataBR = iso => (iso || '').split('-').reverse().join('/');
