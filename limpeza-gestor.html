@@ -255,9 +255,10 @@ header .sub{ font-size:.7rem; color:#94a3b8; }
   .limp-card-top{ flex:0 0 auto; padding:8px 13px; gap:10px; }
   .limp-card-info{ flex:0 0 230px; }
   .limp-badge{ flex:0 0 84px; text-align:center; padding:4px 0; }
-  /* 46px e nao 34: e a menor largura em que "Inquilino" cabe no rotulo da coluna
-     sem encostar no vizinho. O icone continua do mesmo tamanho. */
-  .limp-act{ flex:0 0 46px; }
+  /* 54px e nao 34: a coluna tem que caber o rotulo "Inquilino" (o mais largo)
+     com folga do vizinho. Com 46 sobrava 6px entre um rotulo e outro e os dois
+     liam como uma palavra so ("InquilinoTarefa"). O icone nao muda de tamanho. */
+  .limp-act{ flex:0 0 54px; }
 
   /* Rotulo das colunas de acao. As larguras repetem as do card acima, entao os
      tres rotulos caem exatamente sobre os tres botoes de cada linha. */
@@ -271,11 +272,12 @@ header .sub{ font-size:.7rem; color:#94a3b8; }
      proprio texto ("Inquilino" da 60px), estoura a coluna de 46 e empurra os
      rotulos seguintes pra fora do lugar. Assim o slot fica exatamente 46 e o
      texto transborda centrado — o centro do rotulo cai no centro do botao. */
+  /* Sem caixa-alta e sem letter-spacing: os dois engordam o texto e foi o que
+     fez "Inquilino" encostar em "Tarefa". Em caixa normal sobra folga. */
   .limp-list-head .lh-rot{
-    flex:0 0 46px; min-width:0; overflow:visible; white-space:nowrap;
+    flex:0 0 54px; min-width:0; overflow:visible; white-space:nowrap;
     text-align:center;
-    font-size:.68rem; font-weight:700; color:var(--muted);
-    text-transform:uppercase; letter-spacing:.3px;
+    font-size:.68rem; font-weight:600; color:var(--muted);
   }
 
   .limp-card-edit{
