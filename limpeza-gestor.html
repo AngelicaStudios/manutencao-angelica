@@ -315,6 +315,17 @@ header .sub{ font-size:.7rem; color:#94a3b8; }
 .limp-actions .btn-sucesso{ background:#dcfce7; border-color:#15803d; color:#15803d; }
 .limp-actions .btn-sucesso:hover{ background:#bbf7d0; border-color:#166534; color:#166534; }
 
+/* Seletor de unidade — mesma altura e contorno dos botoes ao lado, pra ler como
+   parte da barra. Borda #cbd5e1 (nao a --borda, que some no branco do card). */
+.limp-unidade-sel{
+  flex:0 0 auto; padding:9px 12px; border:1.5px solid #cbd5e1; border-radius:8px;
+  background:#fff; color:var(--text); font-family:inherit; font-size:.85rem;
+  font-weight:600; cursor:pointer;
+}
+.limp-unidade-sel:hover{ border-color:var(--muted); }
+/* Filtro ligado precisa se anunciar: sem isso da pra achar que sumiu studio. */
+.limp-unidade-sel.ativo{ background:var(--acento-bg); border-color:var(--acento); color:var(--acento); }
+
 /* ═══ Padrao CELULAR Angelica Studios — identidade unica ═══════════════
    Ultimo bloco da folha de proposito. Piloto aprovado: Recebimentos.
      1. faixa congelada — os 4 botoes de acao viram linha que rola de lado
@@ -334,6 +345,10 @@ header .sub{ font-size:.7rem; color:#94a3b8; }
   .limp-actions button.btn-sm{
     flex:0 0 auto; padding:9px 14px !important; font-size:.78rem;
     overflow:visible; text-overflow:clip; min-height:40px;
+  }
+  /* O seletor de unidade viaja junto na faixa que rola, com o mesmo alvo de toque. */
+  .limp-actions .limp-unidade-sel{
+    flex:0 0 auto; font-size:.78rem; padding:9px 12px; min-height:40px;
   }
 
   /* --- 2. Alvo de toque: 40px de piso ------------------------------------
@@ -395,6 +410,11 @@ header .sub{ font-size:.7rem; color:#94a3b8; }
         <button class="btn-sm btn-acento" onclick="limpCriarTarefas()">Criar Tarefas</button>
         <button class="btn-sm btn-acento" onclick="limpToggleNovaSemana()">Criar Semana</button>
         <button class="btn-sm btn-sucesso" id="limp-btn-cobrar" onclick="limpCobrarTodos()">Emitir Boletos</button>
+        <!-- Filtra a lista E os contadores. Fica na barra congelada junto com o
+             resto do que filtra, senao some ao rolar. -->
+        <select class="limp-unidade-sel" id="limp-unidade" onchange="limpSetUnidade(this.value)">
+          <option value="">Todas as unidades</option>
+        </select>
         <!-- Faixa da semana mora DENTRO da linha dos botoes: sobra espaco a
              direita e ela deixa de gastar uma linha inteira sozinha. -->
         <div id="limp-semana-info" style="display:none"></div>
@@ -672,6 +692,45 @@ function limpStatFilter(el) {
   limpRender();
 }
 
+// ── Filtro por unidade ────────────────────────────────────────────────────────
+// A unidade é o 1º dígito do número do studio (101→1, 313→3). O 900 é o studio
+// do proprietário e não pertence a nenhuma Angelica — entra como "Outros" pra
+// continuar alcançável, em vez de sumir do filtro.
+let limpUnidade = '';   // '' = todas
+
+const limpUnidadeDe = apto => String(apto || '').trim().charAt(0);
+
+function limpSetUnidade(valor) {
+  limpUnidade = valor || '';
+  limpRender();
+}
+
+/** Só as unidades que existem na lista carregada — nada de opção que não filtra nada. */
+function limpMontarOpcoesUnidade() {
+  const sel = document.getElementById('limp-unidade');
+  if (!sel) return;
+  const presentes = [...new Set(limpData.map(r => limpUnidadeDe(r.apto)).filter(Boolean))];
+  const angelicas = presentes.filter(d => d >= '1' && d <= '5').sort();
+  const outros    = presentes.filter(d => d < '1' || d > '5');
+
+  let html = '<option value="">Todas as unidades</option>';
+  angelicas.forEach(d => { html += '<option value="' + d + '">Angelica-' + d + '</option>'; });
+  if (outros.length) html += '<option value="outros">Outros</option>';
+
+  if (sel.innerHTML !== html) sel.innerHTML = html;
+  sel.value = limpUnidade;
+  sel.classList.toggle('ativo', !!limpUnidade);
+}
+
+/** limpData recortado pela unidade escolhida. Base da lista E dos contadores. */
+function limpDadosDaUnidade() {
+  if (!limpUnidade) return limpData;
+  if (limpUnidade === 'outros') {
+    return limpData.filter(r => { const d = limpUnidadeDe(r.apto); return d < '1' || d > '5'; });
+  }
+  return limpData.filter(r => limpUnidadeDe(r.apto) === limpUnidade);
+}
+
 const LIMP_DAY_LABEL = {
   segunda:'Segunda', terca:'Terça', quarta:'Quarta', quinta:'Quinta',
   sexta:'Sexta', sabado:'Sábado', domingo:'Domingo'
@@ -716,9 +775,14 @@ function limpRender() {
   const el = document.getElementById('limp-list');
   if (!el) return;
 
-  let filtered = limpData;
+  limpMontarOpcoesUnidade();
+  // Tudo abaixo trabalha em cima da unidade escolhida: escolher "Angelica-3" e
+  // ver contador de todas as unidades diria uma coisa e mostrar outra.
+  const base = limpDadosDaUnidade();
+
+  let filtered = base;
   if (limpFilter !== 'todos') {
-    filtered = limpData.filter(r => {
+    filtered = base.filter(r => {
       const info = limpStatusInfo(r.status, r.dia);
       return info.filterKey === limpFilter;
     });
@@ -730,10 +794,10 @@ function limpRender() {
   const DAY_ABBR  = { segunda:'Segunda', terca:'Terça', quarta:'Quarta', quinta:'Quinta', sexta:'Sexta', sabado:'Sábado', domingo:'Domingo' };
   const dayCounts = {};
   DAY_ORDER.forEach(d => {
-    dayCounts[d] = limpData.filter(r => limpStatusInfo(r.status, r.dia).filterKey === d).length;
+    dayCounts[d] = base.filter(r => limpStatusInfo(r.status, r.dia).filterKey === d).length;
   });
-  const agu = limpData.filter(r => limpStatusInfo(r.status, r.dia).filterKey === 'aguardando').length;
-  const nao = limpData.filter(r => limpStatusInfo(r.status, r.dia).filterKey === 'nao').length;
+  const agu = base.filter(r => limpStatusInfo(r.status, r.dia).filterKey === 'aguardando').length;
+  const nao = base.filter(r => limpStatusInfo(r.status, r.dia).filterKey === 'nao').length;
 
   let statsHtml = '';
   DAY_ORDER.forEach(d => {
@@ -752,12 +816,27 @@ function limpRender() {
   const statsBarEl = document.getElementById('limp-stats-bar');
   if (statsBarEl) statsBarEl.innerHTML = statsHtml;
 
-  // Botão disparar
+  // Botão disparar. Atenção: o disparo em massa roda no SERVIDOR e varre a
+  // agenda inteira — ele não conhece o filtro de unidade da tela. Por isso a
+  // visibilidade e o texto usam o total GERAL, não o da unidade escolhida:
+  // senão o botão apareceria embaixo de uma lista de 3 studios e mandaria 31.
+  const aguGeral = limpData.filter(r => limpStatusInfo(r.status, r.dia).filterKey === 'aguardando').length;
   const btnDisp = document.getElementById('limp-btn-disp');
-  if (btnDisp) btnDisp.style.display = agu > 0 ? '' : 'none';
+  if (btnDisp) {
+    btnDisp.style.display = aguGeral > 0 ? '' : 'none';
+    btnDisp.textContent = limpUnidade
+      ? 'Disparar WhatsApp para Aguardando (' + aguGeral + ' — todas as unidades)'
+      : 'Disparar WhatsApp para Aguardando';
+  }
 
   if (!filtered.length) {
-    el.innerHTML = '<div class="empty"><div class="icon">🧹</div><p>Nenhum apartamento neste filtro.</p></div>';
+    // Diz QUAL filtro esvaziou a lista — com dois filtros ligados (unidade e
+    // status) "nenhum resultado" sozinho deixa a pessoa procurando o motivo.
+    const ondeVazio = limpUnidade
+      ? (limpUnidade === 'outros' ? 'em Outros' : 'na Angelica-' + limpUnidade)
+      : '';
+    el.innerHTML = '<div class="empty"><div class="icon">🧹</div><p>Nenhum studio ' +
+      (ondeVazio ? ondeVazio + ' ' : '') + 'neste filtro.</p></div>';
     return;
   }
 
