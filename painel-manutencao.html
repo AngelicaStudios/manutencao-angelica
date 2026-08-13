@@ -2434,6 +2434,16 @@ async function limpCriarTarefaUnica(apto) {
   await dbSet('tarefas', tarefa.id, tarefa);
 
   const wppOk = await limpNotificarExecutor(executor, apto, diaLabel, dataISO, obs);
+
+  // Executor já foi avisado agora → carimba na tarefa. O aviso automático da
+  // manhã (notif_manutencao.py) pula tarefa carimbada, pra ele não receber a
+  // mesma tarefa duas vezes. Só carimba se o envio deu certo: telefone faltando
+  // ou WhatsApp fora do ar têm que continuar caindo no aviso da manhã.
+  if (wppOk === true) {
+    try { await dbUpdate('tarefas', tarefa.id, { avisadoEm: Date.now() }); }
+    catch(e) { /* não deu pra carimbar: pior caso, ele recebe de novo de manhã */ }
+  }
+
   if (wppOk === null)  toast(`✅ Tarefa criada pro studio ${apto}! (⚠️ ${executor} sem telefone cadastrado — avise manualmente)`, 'warn');
   else if (wppOk)      toast(`✅ Tarefa criada e WhatsApp enviado pra ${executor}!`, 'success');
   else                  toast(`✅ Tarefa criada, mas o WhatsApp pra ${executor} falhou — avise manualmente.`, 'warn');
