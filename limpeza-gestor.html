@@ -476,6 +476,8 @@ function initListeners() {
 }
 
 async function dbSet(col, id, data) { await db.collection(col).doc(id).set(data); }
+/** Mexe só nos campos passados, sem reescrever o resto do documento. */
+async function dbUpdate(col, id, data) { await db.collection(col).doc(id).update(data); }
 
 // ════════════════════════
 // UTILS
@@ -1136,6 +1138,16 @@ async function limpCriarTarefaUnica(apto) {
   limpRender();
 
   const wppOk = await limpNotificarExecutor(executor, apto, diaLabel, dataISO, obs);
+
+  // Executor já foi avisado agora → carimba na tarefa. O aviso automático da
+  // manhã (notif_manutencao.py) pula tarefa carimbada, pra ele não receber a
+  // mesma tarefa duas vezes. Só carimba se o envio deu certo: telefone faltando
+  // ou WhatsApp fora do ar têm que continuar caindo no aviso da manhã.
+  if (wppOk === true) {
+    try { await dbUpdate('tarefas', tarefa.id, { avisadoEm: Date.now() }); }
+    catch(e) { /* não deu pra carimbar: pior caso, ele recebe de novo de manhã */ }
+  }
+
   if (wppOk === null)  toast('Tarefa criada pro studio ' + apto + '! (' + executor + ' sem telefone cadastrado — avise manualmente)');
   else if (wppOk)      toast('Tarefa criada e WhatsApp enviado pra ' + executor + '!');
   else                  toast('Tarefa criada, mas o WhatsApp pra ' + executor + ' falhou — avise manualmente.');
