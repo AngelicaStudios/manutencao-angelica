@@ -663,6 +663,29 @@ nav .abas{ align-items:center; }
             mask-image:linear-gradient(90deg,#000 calc(100% - 26px),transparent);
   }
 }
+
+  /* Tela de senha. Ate 2026-08-16 este painel entrava sozinho com a senha da
+     equipe escrita no codigo — e e o unico painel de campo que APAGA apontamento
+     e grava custo de mao de obra. Agora a senha e digitada e fica no aparelho. */
+  #login-screen{
+    position:fixed; inset:0; z-index:900; display:none;
+    align-items:center; justify-content:center; padding:20px;
+    background:var(--bg);
+  }
+  #login-screen.visivel{ display:flex; }
+  .login-box{
+    background:var(--card); border-radius:12px; padding:26px 22px;
+    box-shadow:0 1px 3px rgba(0,0,0,.08); width:100%; max-width:340px;
+    display:flex; flex-direction:column; gap:12px;
+  }
+  .login-title{ font-size:1.05rem; font-weight:700; color:var(--acento); }
+  .login-sub{ font-size:.8rem; color:var(--muted); margin-top:-8px; }
+  #login-pass{
+    padding:11px 12px; border:1.5px solid #cbd5e1; border-radius:8px;
+    font-size:.95rem; min-height:44px; outline:none; background:var(--card);
+  }
+  #login-pass:focus{ border-color:var(--acento); }
+  .login-err{ display:none; font-size:.82rem; color:var(--red); font-weight:600; }
 </style>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
@@ -670,6 +693,18 @@ nav .abas{ align-items:center; }
 <script src="firebase-config.js"></script>
 </head>
 <body>
+
+<div id="login-screen">
+  <div class="login-box">
+    <div class="login-title">Angelica Studios</div>
+    <div class="login-sub">Apontamento de Horas</div>
+    <input id="login-pass" type="password" placeholder="Senha" autocomplete="current-password"
+           onkeydown="if (event.key === 'Enter') entrar()">
+    <button class="btn btn-full" onclick="entrar()">Entrar</button>
+    <div id="login-err" class="login-err">Senha incorreta.</div>
+  </div>
+</div>
+
 
 <header>
   <div class="cabecalho-int">
@@ -1485,18 +1520,36 @@ if ('serviceWorker' in navigator) {
 }
 
 const EQUIPE_EMAIL = 'equipe@angelicastudios.com.br';
-const EQUIPE_SENHA = 'euPOTdTorZqheKP1aHHi';
 
+function entrar() {
+  const senha = document.getElementById('login-pass').value;
+  const err   = document.getElementById('login-err');
+  err.style.display = 'none';
+  firebase.auth().signInWithEmailAndPassword(EQUIPE_EMAIL, senha)
+    .catch(() => { err.style.display = 'block'; });
+}
+
+// A sessao fica guardada no aparelho: a senha e pedida uma vez, nao a cada visita.
+// onAuthStateChanged pode disparar mais de uma vez (renovacao de token), por isso
+// a trava — sem ela, os ouvintes do mes seriam registrados em duplicata.
+let _iniciado = false;
 (function init() {
-  firebase.auth().signInWithEmailAndPassword(EQUIPE_EMAIL, EQUIPE_SENHA).then(() => {
-    mesAtual = mesDe(hojeISO());
-    document.getElementById('mes-picker').value = mesAtual;
-    initListeners();
-    ouvirMes(mesAtual);
-  }).catch(e => {
-    console.error('Falha no acesso ao servidor:', e);
-    document.getElementById('grade-wrap').innerHTML =
-      `<div class="vazio" style="color:var(--red)">Erro de conexão. Verifique a internet.</div>`;
+  firebase.auth().onAuthStateChanged(user => {
+    const tela = document.getElementById('login-screen');
+    if (!user) { tela.classList.add('visivel'); return; }
+    tela.classList.remove('visivel');
+    if (_iniciado) return;
+    _iniciado = true;
+    try {
+      mesAtual = mesDe(hojeISO());
+      document.getElementById('mes-picker').value = mesAtual;
+      initListeners();
+      ouvirMes(mesAtual);
+    } catch (e) {
+      console.error('Falha ao iniciar:', e);
+      document.getElementById('grade-wrap').innerHTML =
+        `<div class="vazio" style="color:var(--red)">Erro de conexão. Verifique a internet.</div>`;
+    }
   });
 })();
 
