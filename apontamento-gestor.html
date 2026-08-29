@@ -760,10 +760,13 @@ nav .abas{ align-items:center; }
       <h2>Custo do mês por colaborador</h2>
       <table class="dados" id="tb-custos"></table>
       <div class="btn-row" style="margin-top:14px">
-        <button class="btn btn-roxo btn-full" onclick="salvarCustos()">Salvar valores</button>
+        <!-- "Salvar valores" saiu junto com o estimado: nao ha mais campo para
+             digitar. O numero vem do Contas a Pagar; para mudar, muda-se o
+             LANCAMENTO. Um botao de salvar aqui so poderia gravar por cima de
+             algo que o proximo sync desfaria 20 minutos depois. -->
       </div>
       <div class="btn-row" style="margin-top:8px">
-        <button class="btn btn-green btn-full" id="btn-fechar" onclick="fecharMes()">Fechar mês (usar valores reais)</button>
+        <button class="btn btn-green btn-full" id="btn-fechar" onclick="fecharMes()">Fechar mês (congelar os valores)</button>
       </div>
     </div>
   </section>
@@ -930,11 +933,25 @@ function agregarFunc(nome) {
   return ag;
 }
 
+/* Desde 29/08/2026 nao ha mais valor estimado: o custo e o que esta lancado no
+   centro "Departamento Pessoal" do Contas a Pagar, e chega aqui sozinho
+   (sync_custo_pessoal.py, no VPS, de 20 em 20 minutos).
+
+   `estimado` continua sendo LIDO dos documentos antigos, so para nao fingir que
+   os meses ja gravados valiam zero — mas nada mais escreve nesse campo. */
 function valorFunc(nome) {
   const v = (custos && custos.valores && custos.valores[nome]) || {};
-  const usaReal = custos && custos.status === 'fechado';
-  const val = usaReal ? (v.real ?? v.estimado ?? 0) : (v.estimado ?? 0);
-  return { valor: Number(val) || 0, estimado: Number(v.estimado)||0, real: v.real==null?null:Number(v.real) };
+  const val = v.real ?? v.estimado ?? 0;
+  return {
+    valor: Number(val) || 0,
+    real: v.real == null ? null : Number(v.real),
+    // Mes gravado antes de 29/08: tem estimado e nunca teve real. O rateio USA
+    // esse numero, entao a tela nao pode dizer "sem lancamento" — dizer uma
+    // coisa e calcular outra e o defeito mais caro de achar depois.
+    antigo: v.real == null && v.estimado != null,
+    temValor: v.real != null || v.estimado != null,
+    atualizadoEm: v.atualizadoEm || null,
+  };
 }
 
 // Liberado de apontar: "sempre" (não aponta por definição) ou só naquele mês.
@@ -1141,7 +1158,8 @@ function renderCustos() {
   const fechado = custos && custos.status === 'fechado';
   st.innerHTML = `<div class="status-bar">
       <span>Mês ${mesAtual.split('-').reverse().join('/')}</span>
-      <span class="pill ${fechado?'pill-fech':'pill-est'}">${fechado?'Fechado · valor real':'Aberto · valor estimado'}</span>
+      <span class="pill ${fechado?'pill-fech':'pill-est'}">${fechado
+        ? 'Fechado · valor congelado' : 'Aberto · atualiza pelo Contas a Pagar'}</span>
     </div>`;
 
   const el = document.getElementById('tb-custos');
@@ -1166,17 +1184,16 @@ function renderCustos() {
         <td colspan="3"><b>${esc(f.nome)}</b></td>
       </tr>
       <tr>
-        <td style="width:34%">Estimado</td>
-        <td colspan="2"><input class="inp" type="number" step="0.01" min="0" id="est-${id}"
-            value="${v.estimado || ''}" placeholder="0,00"></td>
-      </tr>
-      <tr>
-        <td>Real</td>
-        <td colspan="2"><input class="inp" type="number" step="0.01" min="0" id="real-${id}"
-            value="${v.real ?? ''}" placeholder="preencher no fechamento"></td>
+        <td style="width:34%">Custo do mês</td>
+        <td colspan="2" class="num" style="font-size:1.15rem;font-weight:700">${
+          v.temValor
+            ? moeda(v.valor)
+            : '<span style="color:#94a3b8;font-weight:400">sem lançamento no Contas a Pagar</span>'}</td>
       </tr>
       <tr class="sub">
-        <td>Usando ${custos && custos.status==='fechado' ? 'real' : 'estimado'}</td>
+        <td>${v.antigo ? 'Valor antigo, digitado à mão'
+                       : fechado ? 'Congelado no fechamento'
+                                 : 'Vem do Contas a Pagar · Departamento Pessoal'}</td>
         <td class="num">${h(ag.horas)} · ${ag.dias} dia(s)</td>
         <td class="num">${moeda(ch)}/h · ${moeda(cd)}/dia</td>
       </tr>`;
@@ -1184,48 +1201,36 @@ function renderCustos() {
   el.innerHTML = `<tr><th colspan="3">Valores do mês</th></tr>${rows}`;
 
   const btn = document.getElementById('btn-fechar');
-  btn.textContent = (custos && custos.status === 'fechado')
-    ? 'Reabrir mês (voltar ao estimado)'
-    : 'Fechar mês (usar valores reais)';
+  btn.textContent = fechado
+    ? 'Reabrir mês (voltar a atualizar sozinho)'
+    : 'Fechar mês (congelar os valores)';
 }
 
-async function salvarCustos() {
-  const valores = (custos && custos.valores) ? { ...custos.valores } : {};
-  funcs.forEach(f => {
-    if (liberado(f.nome, mesAtual)) return;   // sem campos na tela: preserva o que já estava salvo
-    const id  = slug(f.nome);
-    const est = document.getElementById('est-'  + id);
-    const rl  = document.getElementById('real-' + id);
-    valores[f.nome] = {
-      estimado: est && est.value !== '' ? Number(est.value) : 0,
-      real:     rl  && rl.value  !== '' ? Number(rl.value)  : null,
-    };
-  });
-  await db.collection('custos_mao_obra').doc(mesAtual).set({
-    anoMes: mesAtual,
-    status: (custos && custos.status) || 'estimado',
-    valores,
-    atualizadoEm: new Date().toISOString(),
-  }, { merge: true });
-  toast('Valores salvos!');
-}
+/* `salvarCustos` foi removida junto com o estimado: nao ha mais campo digitado
+   nesta tela. Quem grava e o sync_custo_pessoal.py, a partir do Contas a Pagar. */
 
+/* Fechar CONGELA: o sync para de mexer no mes. Reabrir volta a atualizar. */
 async function fecharMes() {
   const fechado = custos && custos.status === 'fechado';
   if (!fechado) {
-    const semReal = funcs.filter(f => {
-      if (liberado(f.nome, mesAtual)) return false;   // liberado não precisa de valor real
-      const rl = document.getElementById('real-' + slug(f.nome));
-      return !rl || rl.value === '';
+    // Sem valor aqui nao e descuido de digitacao — e que nao ha lancamento no
+    // Contas a Pagar. Congelar assim deixa essa pessoa com zero no rateio.
+    const semValor = funcs.filter(f => {
+      if (liberado(f.nome, mesAtual)) return false;
+      return !valorFunc(f.nome).temValor;
     }).map(f => f.nome);
-    if (semReal.length && !confirm(`Sem valor real: ${semReal.join(', ')}.\nEsses vão continuar no estimado. Fechar assim mesmo?`)) return;
+    if (semValor.length && !confirm(
+        `Sem custo lançado no Contas a Pagar: ${semValor.join(', ')}.\n` +
+        `Esses ficam com zero no rateio. Congelar assim mesmo?`)) return;
   }
-  await salvarCustos();
   await db.collection('custos_mao_obra').doc(mesAtual).set({
-    status: fechado ? 'estimado' : 'fechado',
+    anoMes: mesAtual,
+    status: fechado ? 'aberto' : 'fechado',
     fechadoEm: fechado ? null : new Date().toISOString(),
+    atualizadoEm: new Date().toISOString(),
   }, { merge: true });
-  toast(fechado ? 'Mês reaberto.' : 'Mês fechado com valores reais!');
+  toast(fechado ? 'Mês reaberto — volta a atualizar sozinho.'
+                : 'Mês fechado: valores congelados.');
 }
 
 // ══════════════════════════════════════════════
@@ -1331,7 +1336,8 @@ function exportarCSV() {
   const sep = ';';
   const linhas = [];
   linhas.push(`Rateio de mão de obra${sep}${mesAtual}`);
-  linhas.push(`Base${sep}${custos && custos.status==='fechado' ? 'valor real (mês fechado)' : 'valor estimado'}`);
+  linhas.push(`Base${sep}${custos && custos.status==='fechado'
+    ? 'custo congelado no fechamento' : 'custo do Contas a Pagar (mês aberto)'}`);
   const fora = funcs.filter(f => liberado(f.nome, mesAtual)).map(f => f.nome);
   if (fora.length) linhas.push(`Fora do rateio (liberados do apontamento)${sep}${fora.join(', ')}`);
   linhas.push('');
