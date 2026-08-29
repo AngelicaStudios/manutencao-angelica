@@ -1554,7 +1554,11 @@ if ('serviceWorker' in navigator) {
   });
 }
 
-const EQUIPE_EMAIL = 'equipe@angelicastudios.com.br';
+// 🔴 Conta do gestor. Trocada em 29/08/2026 de equipe@angelicastudios.com.br
+// para o e-mail que ele realmente le: a redefinicao de senha caia numa caixa
+// sem acesso, e ele ficou trancado fora do proprio painel. O UID nao mudou,
+// entao as regras do Firestore continuam valendo iguais.
+const EQUIPE_EMAIL = 'silvio.sales@hotmail.com';
 
 function entrar() {
   const senha = document.getElementById('login-pass').value;
