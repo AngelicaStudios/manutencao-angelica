@@ -1180,6 +1180,34 @@ function renderResumo() {
 // ══════════════════════════════════════════════
 // ABA CUSTOS
 // ══════════════════════════════════════════════
+/* Em que pé está o rateio no Contas a Pagar.
+
+   Sem isto ele fecha o mês, olha o Contas a Pagar, não vê nada e conclui que
+   quebrou — aconteceu duas vezes em 29/08. O lançamento é feito por um job a
+   cada 5 minutos, e essa espera precisava estar na tela.
+
+   `rateioFinanceiro` é gravado pelo próprio job (rateio_pessoal.py) quando
+   lança, e limpo quando desfaz. É a fonte da verdade, não um palpite daqui. */
+function seloRateio() {
+  const fechado = custos && custos.status === 'fechado';
+  const marca   = custos && custos.rateioFinanceiro;
+  let texto, cor;
+  if (fechado && marca) {
+    const n = Object.keys(marca.porCentro || {}).length;
+    texto = `rateio lançado \u00b7 ${moeda(marca.total || 0)} em ${n} prédio(s)`;
+    cor = 'background:#dcfce7;color:#15803d';
+  } else if (fechado) {
+    texto = 'rateio: lançando, até 5 min';
+    cor = 'background:#fef3c7;color:#b45309';
+  } else if (marca) {
+    texto = 'desfazendo o rateio, até 5 min';
+    cor = 'background:#fef3c7;color:#b45309';
+  } else {
+    return '';   // mês aberto e sem rateio: não há o que dizer
+  }
+  return `<span class="pill" style="${cor}">${texto}</span>`;
+}
+
 function renderCustos() {
   const st = document.getElementById('custos-status');
   const fechado = custos && custos.status === 'fechado';
@@ -1189,6 +1217,7 @@ function renderCustos() {
         ? 'Fechado · valor congelado' : 'Aberto · atualiza pelo Contas a Pagar'}</span>
       ${custosDoCache ? '<span class="pill" style="background:#fee2e2;color:#b91c1c">'
         + 'sem conexão · valor do cache</span>' : ''}
+      ${seloRateio()}
     </div>`;
 
   const el = document.getElementById('tb-custos');
