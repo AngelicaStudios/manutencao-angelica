@@ -831,6 +831,7 @@ const INICIO_PADRAO = '2026-08-01';   // sobrescrito por config/apontamento.inic
 let funcs      = [];     // [{nome, pin, tel}]
 let apts       = [];      // apontamentos do mês selecionado
 let custos     = null;    // doc custos_mao_obra/{mes}
+let custosDoCache = false; // true = veio do cache do navegador, nao do servidor
 let inicioApont= INICIO_PADRAO;
 // { sempre: ['Fulano'], '2026-08': ['Geone'] } — quem está liberado de apontar.
 // Liberado não é cobrado, não aparece em atraso e fica fora do rateio.
@@ -1005,13 +1006,39 @@ async function setLiberacao(nome, valor) {
               : `${nome.split(' ')[0]} volta a apontar.`);
 }
 
+/* 🔴 Nenhum dos onSnapshot tratava erro. Leitura negada, sessao expirada ou
+   Firestore fora do ar caiam no vazio: a tela continuava mostrando o que estava
+   no cache do navegador, sem nada dizendo que aquele numero era velho. Foi
+   exatamente o sintoma de 29/08 — o custo ja estava certo no servidor e a tela
+   insistia no valor antigo. */
+function erroFirestore(oque) {
+  return err => {
+    console.error('Firestore [' + oque + ']', err);
+    toast('Sem resposta do Firebase (' + oque + '): ' + (err.code || err.message));
+  };
+}
+
 function ouvirMes(mes) {
   if (unsubApts) unsubApts();
   if (unsubCust) unsubCust();
   unsubApts = db.collection('apontamentos').where('anoMes', '==', mes)
-    .onSnapshot(snap => { apts = snap.docs.map(d => ({ id:d.id, ...d.data() })); renderTudo(); });
+    .onSnapshot(snap => { apts = snap.docs.map(d => ({ id:d.id, ...d.data() })); renderTudo(); },
+                erroFirestore('apontamentos'));
+
+  // includeMetadataChanges: sem isto nao da para saber se o que veio e do cache
+  // ou do servidor, e e justamente essa a diferenca que confunde.
   unsubCust = db.collection('custos_mao_obra').doc(mes)
-    .onSnapshot(snap => { custos = snap.exists ? snap.data() : null; renderTudo(); });
+    .onSnapshot({ includeMetadataChanges: true }, snap => {
+      custos = snap.exists ? snap.data() : null;
+      custosDoCache = snap.metadata.fromCache;
+      renderTudo();
+    }, erroFirestore('custos'));
+
+  // A persistencia offline entrega o CACHE primeiro. Normalmente o servidor
+  // chega logo atras — mas se a conexao nao subir, o cache fica valendo para
+  // sempre. Esta leitura forcada tira a duvida na abertura.
+  db.collection('custos_mao_obra').doc(mes).get({ source: 'server' })
+    .catch(err => erroFirestore('custos (servidor)')(err));
 }
 
 function trocarMes(mes) {
@@ -1160,6 +1187,8 @@ function renderCustos() {
       <span>Mês ${mesAtual.split('-').reverse().join('/')}</span>
       <span class="pill ${fechado?'pill-fech':'pill-est'}">${fechado
         ? 'Fechado · valor congelado' : 'Aberto · atualiza pelo Contas a Pagar'}</span>
+      ${custosDoCache ? '<span class="pill" style="background:#fee2e2;color:#b91c1c">'
+        + 'sem conexão · valor do cache</span>' : ''}
     </div>`;
 
   const el = document.getElementById('tb-custos');
