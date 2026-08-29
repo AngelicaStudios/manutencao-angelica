@@ -1569,9 +1569,23 @@ function entrar() {
 // a trava — sem ela, os ouvintes do mes seriam registrados em duplicata.
 let _iniciado = false;
 (function init() {
+/* 🔴 Nao basta `if (user)`. O Firebase Auth e por ORIGEM: Equipe e
+     Limpeza-Gestor entram com signInAnonymously, e essa sessao anonima fica valendo
+     para angelicastudios.github.io inteiro. Com o teste antigo, abrir um painel de
+     campo e depois este dava um `user` valido — a tela de senha era PULADA e o
+     painel rodava como anonimo.
+  
+     Nao virava vazamento (as regras do Firestore continuam barrando), mas o painel
+     ficava mentindo: em 29/08/2026 o custo de mao de obra aparecia com o valor
+     antigo, do cache, porque a leitura de custos_mao_obra e so do gestor e falhava
+     calada. Sintoma difícil: TODO o resto da tela funcionava, porque tarefas,
+     apontamentos e config tambem abrem para o anonimo.
+  
+     Gestor e quem entrou COM SENHA nesta conta — anonimo nunca. */
   firebase.auth().onAuthStateChanged(user => {
     const tela = document.getElementById('login-screen');
-    if (!user) { tela.classList.add('visivel'); return; }
+    const ehGestor = !!user && !user.isAnonymous && user.email === EQUIPE_EMAIL;
+    if (!ehGestor) { tela.classList.add('visivel'); return; }
     tela.classList.remove('visivel');
     if (_iniciado) return;
     _iniciado = true;
