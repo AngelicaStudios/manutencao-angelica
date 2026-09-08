@@ -703,6 +703,8 @@ nav .abas{ align-items:center; }
     font-family:inherit;
   }
   .login-aviso{ display:none; font-size:.78rem; color:var(--muted); line-height:1.35; }
+  /* Nasce escondido: so aparece onde a Credential Management API existe. */
+  .btn-digital{ margin-top:2px; }
 </style>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
@@ -720,6 +722,8 @@ nav .abas{ align-items:center; }
       <input id="login-pass" type="password" placeholder="Senha" autocomplete="current-password">
       <button class="btn btn-full" type="submit">Entrar</button>
     </form>
+    <button type="button" id="btn-digital" class="btn btn-full btn-digital"
+            style="display:none" onclick="entrarComDigital()">Entrar com a digital</button>
     <div id="login-err" class="login-err">Senha incorreta.</div>
     <button type="button" class="login-link" onclick="esqueciSenha()">Esqueci a senha</button>
     <div id="login-aviso" class="login-aviso"></div>
@@ -1618,8 +1622,49 @@ function entrar(ev) {
   const err   = document.getElementById('login-err');
   err.style.display = 'none';
   firebase.auth().signInWithEmailAndPassword(EQUIPE_EMAIL, senha)
+    .then(() => guardarNoGerenciador(senha))
     .catch(() => { err.style.display = 'block'; });
 }
+
+// O <form> faz o gerenciador RECONHECER a tela como login, mas o Chrome so oferece
+// guardar quando o submit e seguido de NAVEGACAO. Nosso login e assincrono e a
+// pagina nao sai do lugar, entao o prompt nunca aparecia (relatado em 08/09/2026).
+// Esta e a API oficial para o caso: pedir explicitamente para guardar.
+function guardarNoGerenciador(senha) {
+  // Safari/iOS nao tem PasswordCredential — la o proprio <form> resolve.
+  if (!window.PasswordCredential || !senha) return;
+  try {
+    navigator.credentials.store(new PasswordCredential({
+      id: EQUIPE_EMAIL, password: senha, name: 'Angelica Studios'
+    })).catch(function () {});
+  } catch (e) {}
+}
+
+// A "entrada por digital", feita pelo gerenciador do sistema — nao por um cofre
+// nosso. mediation:'required' forca o seletor de conta, e no Android liberar a
+// senha guardada exige a digital. A senha vem do gerenciador e vai direto pro
+// signIn: nada e gravado por nos, e funciona em aparelho novo porque o
+// gerenciador sincroniza.
+async function entrarComDigital() {
+  const err = document.getElementById('login-err');
+  err.style.display = 'none';
+  try {
+    const cred = await navigator.credentials.get({ password: true, mediation: 'required' });
+    if (!cred || !cred.password) return;   // ele cancelou o seletor
+    await firebase.auth().signInWithEmailAndPassword(cred.id || EQUIPE_EMAIL, cred.password);
+  } catch (e) {
+    // NotAllowedError = cancelou; qualquer outra coisa e senha que nao serve mais
+    if (e && e.name === 'NotAllowedError') return;
+    err.style.display = 'block';
+  }
+}
+
+// So mostra o botao onde a API existe: botao que aparece e nao funciona e pior que
+// nao ter botao.
+(function () {
+  const b = document.getElementById('btn-digital');
+  if (b && window.PasswordCredential) b.style.display = 'block';
+})();
 
 // Preenche o campo de usuario do formulario. Sem campo de usuario o Chrome e o
 // iCloud Keychain nao reconhecem a tela como login e nunca oferecem guardar a
