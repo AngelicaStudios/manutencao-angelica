@@ -465,6 +465,22 @@ header .sub{ font-size:.7rem; color:#94a3b8; }
 .btn-red:active{ background:#fecaca; border-color:#991b1b; color:#991b1b; }
 .btn-ghost { border-color:#cbd5e1; }
 .btn-enter { background:var(--acento-bg); border:1.5px solid var(--acento); color:var(--acento); }
+/* Formulario de verdade — sem <form> e sem campo de usuario o gerenciador do
+   Android/iPhone nunca oferece guardar a senha, e e ele quem desbloqueia por
+   digital. Regras aqui embaixo de proposito: o bloco de padrao visual vence a
+   folha original por cascata, e regra posta la em cima seria derrotada. */
+#login-form{ display:block; }
+#login-user{
+  width:100%; box-sizing:border-box; padding:12px; margin:0 0 8px;
+  border-radius:10px; border:1px solid #444; background:#151515; color:#9aa3ad;
+  font-size:.9rem; min-height:44px;
+}
+.login-link{
+  background:none; border:none; padding:10px 4px; min-height:40px; width:100%;
+  font-size:.82rem; color:var(--acento); font-weight:700; cursor:pointer;
+  font-family:inherit; margin-top:10px;
+}
+.login-aviso{ display:none; font-size:.78rem; color:#9aa3ad; line-height:1.35; margin-top:6px; }
 
 /* ═══ Layout desktop ═══════════════════════════════════════════════════════
    Ate aqui era app de celular centralizado em 900px. A partir de 900px vira
@@ -588,11 +604,16 @@ header .sub{ font-size:.7rem; color:#94a3b8; }
     <div style="font-size:2rem">👤</div>
     <h2>Acesso do Gestor</h2>
     <p>Digite sua senha para acessar o painel completo de gerenciamento.</p>
-    <input type="password" id="login-pass" placeholder="Senha" autocomplete="current-password"
-      style="width:100%;box-sizing:border-box;padding:12px;margin:14px 0 8px;border-radius:10px;border:1px solid #444;background:#1a1a1a;color:#fff;font-size:1rem"
-      onkeydown="if(event.key==='Enter')login()">
-    <div id="login-err" class="login-err">Senha incorreta.</div>
-    <button class="btn-enter" onclick="login()">Entrar</button>
+    <form id="login-form" onsubmit="login(event)">
+      <input type="email" id="login-user" autocomplete="username" readonly aria-label="Conta"
+        style="margin-top:14px">
+      <input type="password" id="login-pass" placeholder="Senha" autocomplete="current-password"
+        style="width:100%;box-sizing:border-box;padding:12px;margin:0 0 8px;border-radius:10px;border:1px solid #444;background:#1a1a1a;color:#fff;font-size:1rem">
+      <div id="login-err" class="login-err">Senha incorreta.</div>
+      <button class="btn-enter" type="submit">Entrar</button>
+    </form>
+    <button type="button" class="login-link" onclick="esqueciSenha()">Esqueci a senha</button>
+    <div id="login-aviso" class="login-aviso"></div>
   </div>
 </div>
 
@@ -853,7 +874,10 @@ function statusOrder(s) { return { pendente:0, andamento:1, concluida:2 }[s] ?? 
 // ════════════════════════
 // AUTH
 // ════════════════════════
-async function login() {
+async function login(ev) {
+  // preventDefault, e nao return false: o submit precisa ACONTECER para o
+  // gerenciador de senhas do sistema reconhecer o login e oferecer guardar.
+  if (ev) ev.preventDefault();
   const senha = document.getElementById('login-pass').value;
   const errEl = document.getElementById('login-err');
   errEl.style.display = 'none';
@@ -863,6 +887,45 @@ async function login() {
   } catch (e) {
     errEl.style.display = 'block';
   }
+}
+
+// Preenche o campo de usuario do formulario. Sem campo de usuario o Chrome e o
+// iCloud Keychain nao reconhecem a tela como login e nunca oferecem guardar a
+// senha — foi por isso que ele ficou sem ela no aparelho.
+(function () {
+  const u = document.getElementById('login-user');
+  if (u) u.value = EQUIPE_EMAIL;
+})();
+
+// "Esqueci a senha". Tres cuidados vindos da revisao de 08/09/2026:
+//  1. CONFIRMA antes de enviar. A pagina e publica: sem isso qualquer pessoa que
+//     abra o endereco dispara e-mail de redefinicao na caixa dele a vontade.
+//  2. TRAVA de 1 minuto. Cada link novo MATA o anterior — dois cliques seguidos
+//     deixam o primeiro e-mail morto sem ninguem perceber (aconteceu em 29/08).
+//  3. AVISA que redefinir desconecta os outros aparelhos. No dia ruim ele conserta
+//     o celular e descobre que o desktop parou, multiplicando o problema.
+// Nao escreve o endereco na tela de proposito: mensagem generica basta.
+let _ultimoReset = 0;
+function esqueciSenha() {
+  const aviso = document.getElementById('login-aviso');
+  const agora = Date.now();
+  if (agora - _ultimoReset < 60000) {
+    aviso.style.display = 'block';
+    aviso.textContent = 'Já enviei há pouco. Confira o e-mail, inclusive o lixo eletrônico — cada pedido novo invalida o anterior.';
+    return;
+  }
+  if (!confirm('Enviar link de redefinição para o e-mail cadastrado?\n\nTrocar a senha desconecta os outros aparelhos, e o link anterior deixa de valer.')) return;
+  _ultimoReset = agora;
+  firebase.auth().sendPasswordResetEmail(EQUIPE_EMAIL)
+    .then(function () {
+      aviso.style.display = 'block';
+      aviso.textContent = 'Enviado para o e-mail cadastrado. Confira também o lixo eletrônico.';
+    })
+    .catch(function (e) {
+      _ultimoReset = 0;   // nao saiu: nao consome a trava
+      aviso.style.display = 'block';
+      aviso.textContent = 'Não consegui enviar agora (' + (e.code || 'erro') + '). Tente de novo em instantes.';
+    });
 }
 
 function showApp() {
