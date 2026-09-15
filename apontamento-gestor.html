@@ -709,7 +709,7 @@ nav .abas{ align-items:center; }
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
-<script src="firebase-config.js"></script>
+<script src="firebase-config.js?v=2"></script>
 </head>
 <body>
 
@@ -919,7 +919,8 @@ function ratearTurno(t) {
   const ext  = Math.max(0, Math.min(HORAS_TURNO, Number(t.extHoras) || 0));
   const rest = HORAS_TURNO - ext;
   if (ext > 0) {
-    const dest = (t.extDest || '').trim() || 'Externo (sem destino)';
+    // Agrupa pela chave sem caixa/acento: "Obra" e "obra" são o mesmo destino.
+    const dest = registrarDestino((t.extDest || '').trim() || 'Externo (sem destino)');
     out.externo[dest] = (out.externo[dest] || 0) + ext;
     out.horas += ext;
   }
@@ -1408,7 +1409,7 @@ function renderRateio() {
   const linhas = Object.entries(r.porExterno).sort((a,b) => b[1].valor - a[1].valor);
   ext.innerHTML = linhas.length
     ? `<tr><th>Destino</th><th class="num">Horas</th><th class="num">Custo</th></tr>` +
-      linhas.map(([d,v]) => `<tr><td>${esc(d)}</td><td class="num">${h(v.horas)}</td><td class="num">${moeda(v.valor)}</td></tr>`).join('') +
+      linhas.map(([d,v]) => `<tr><td>${esc(rotuloDestino(d))}</td><td class="num">${h(v.horas)}</td><td class="num">${moeda(v.valor)}</td></tr>`).join('') +
       `<tr class="total"><td>Total</td><td class="num">${h(linhas.reduce((s,[,v])=>s+v.horas,0))}</td>
        <td class="num">${moeda(totExt)}</td></tr>`
     : `<tr><td class="vazio">Nenhuma hora externa neste mês.</td></tr>`;
@@ -1444,7 +1445,7 @@ function exportarCSV() {
   linhas.push('');
   linhas.push(['Destino externo','Horas','Custo'].join(sep));
   Object.entries(r.porExterno).forEach(([d,v]) =>
-    linhas.push([d, v.horas.toFixed(2), v.valor.toFixed(2)].join(sep)));
+    linhas.push([rotuloDestino(d), v.horas.toFixed(2), v.valor.toFixed(2)].join(sep)));
 
   const blob = new Blob(['﻿' + linhas.join('\n')], { type:'text/csv;charset=utf-8' });
   const a = document.createElement('a');
@@ -1480,6 +1481,9 @@ function fecharModal() {
 }
 
 function renderModal() {
+  // Sugestões de destino: o que já apareceu no mês, com a grafia conhecida.
+  document.getElementById('destinos-conhecidos').innerHTML =
+    destinosConhecidos().map(d => `<option value="${esc(d)}">`).join('');
   document.getElementById('modal-body').innerHTML =
     turnoHTML('manha', 'Manhã', '08:00 – 12:00') +
     turnoHTML('tarde', 'Tarde', '13:00 – 17:00');
@@ -1497,7 +1501,7 @@ function turnoHTML(key, label, faixa) {
     ? (r.incompleto
         ? '<b style="color:#dc2626">Faltam horas:</b> marque uma unidade ou complete as horas externas.'
         : Object.entries(r.unidades).map(([u,v]) => `${NOMES[u]}: <b>${h(v)}</b>`)
-            .concat(Object.entries(r.externo).map(([e,v]) => `${esc(e)}: <b>${h(v)}</b>`)).join(' · ') || 'Nada marcado.')
+            .concat(Object.entries(r.externo).map(([e,v]) => `${esc(rotuloDestino(e))}: <b>${h(v)}</b>`)).join(' · ') || 'Nada marcado.')
     : (t.status === 'folga' ? 'Folga — não entra no rateio.' : 'Falta — não entra no rateio.');
 
   return `
@@ -1520,7 +1524,7 @@ function turnoHTML(key, label, faixa) {
         <input class="inp h" type="number" step="0.5" min="0" max="${HORAS_TURNO}" value="${t.extHoras||''}"
           placeholder="h" onchange="setExtHoras('${key}', this.value)">
         <input class="inp" type="text" value="${esc(t.extDest)}" placeholder="Onde? ex: Obra academia"
-          onchange="setExtDest('${key}', this.value)">
+          list="destinos-conhecidos" onchange="setExtDest('${key}', this.value)">
       </div>
     ` : ''}
     <div class="resumo-turno">${detalhe}</div>
@@ -1553,7 +1557,7 @@ function setExtHoras(key, v) {
   editando[key].extHoras = Math.max(0, Math.min(HORAS_TURNO, Number(v)||0));
   renderModal();
 }
-function setExtDest(key, v) { editando[key].extDest = v; renderModal(); }
+function setExtDest(key, v) { editando[key].extDest = destinoCanonico(v); renderModal(); }
 
 async function salvarDia() {
   if (!editando) return;
@@ -1805,5 +1809,6 @@ function voltarAoMenu(e) {
   }
 })();
 </script>
+<datalist id="destinos-conhecidos"></datalist>
 </body>
 </html>
