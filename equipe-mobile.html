@@ -680,7 +680,7 @@ nav.tabs button.active{ background:var(--acento-bg); border-color:var(--acento);
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
-<script src="firebase-config.js"></script>
+<script src="firebase-config.js?v=2"></script>
 </head>
 <body>
 
@@ -1156,6 +1156,10 @@ function initApont() {
   // Filtra só por func: range de data junto exigiria índice composto no Firestore.
   unsubApont = db.collection('apontamentos').where('func', '==', currentUser).onSnapshot(snap => {
     meusApts = snap.docs.map(d => ({ id:d.id, ...d.data() }));
+    // Destinos que este colaborador já usou viram sugestão (e grafia canônica).
+    meusApts.forEach(a => ['manha','tarde'].forEach(k => a[k] && a[k].extDest && registrarDestino(a[k].extDest)));
+    document.getElementById('destinos-conhecidos').innerHTML =
+      destinosConhecidos().map(d => `<option value="${esc(d)}">`).join('');
     renderMeuDia();
   });
   unsubCfgApont = db.collection('config').doc('apontamento').onSnapshot(snap => {
@@ -1232,7 +1236,11 @@ function ratearTurno(t) {
   if (!t || t.status !== 'trabalho') return out;
   const ext  = Math.max(0, Math.min(HORAS_TURNO, Number(t.extHoras) || 0));
   const rest = HORAS_TURNO - ext;
-  if (ext > 0) { out.externo[(t.extDest||'').trim() || 'Externo'] = ext; out.horas += ext; }
+  if (ext > 0) {
+    // Mesma chave do painel do gestor: "Obra" e "obra" são um destino só.
+    const k = registrarDestino((t.extDest||'').trim() || 'Externo');
+    out.externo[k] = (out.externo[k] || 0) + ext; out.horas += ext;
+  }
   const sel = (t.unidades || []).filter(u => APTOS[u]);
   if (rest > 0) {
     if (!sel.length) out.incompleto = true;
@@ -1376,7 +1384,7 @@ function mdTurnoHTML(key, label, faixa) {
     detalhe = `<span class="erro">Faltam ${fmtH(HORAS_TURNO - (Number(t.extHoras)||0))}</span> — marque uma Angelica ou aumente as horas externas.`;
   } else {
     const its = Object.entries(r.unidades).map(([u,v]) => `${NOMES_UN[u]}: <b>${fmtH(v)}</b>`)
-      .concat(Object.entries(r.externo).map(([e,v]) => `${esc(e)}: <b>${fmtH(v)}</b>`));
+      .concat(Object.entries(r.externo).map(([e,v]) => `${esc(rotuloDestino(e))}: <b>${fmtH(v)}</b>`));
     detalhe = its.join(' · ') || 'Nada marcado ainda.';
   }
 
@@ -1399,7 +1407,7 @@ function mdTurnoHTML(key, label, faixa) {
         <input class="h" type="number" step="0.5" min="0" max="${HORAS_TURNO}" value="${t.extHoras||''}"
           placeholder="h" onchange="mdExtHoras('${key}', this.value)">
         <input class="d" type="text" value="${esc(t.extDest)}" placeholder="Onde? ex: Obra academia"
-          onchange="mdExtDest('${key}', this.value)">
+          list="destinos-conhecidos" onchange="mdExtDest('${key}', this.value)">
       </div>` : ''}
     <div class="resumo-turno">${detalhe}</div>
   </div>`;
@@ -1433,7 +1441,7 @@ function mdExtHoras(key, v) {
   diaEdit[key].extHoras = Math.max(0, Math.min(HORAS_TURNO, Number(v)||0));
   renderMeuDia();
 }
-function mdExtDest(key, v) { diaEdit[key].extDest = v; renderMeuDia(); }
+function mdExtDest(key, v) { diaEdit[key].extDest = destinoCanonico(v); renderMeuDia(); }
 
 function validarTurno(t, label) {
   if (t.status !== 'trabalho') return null;
@@ -1532,7 +1540,10 @@ async function instalarApp() {
     // fazer e decidido pelas regras do Firestore (ler/criar/atualizar; nunca
     // apagar), nao por qual conta ela finge ser. Ate 2026-08-16 a senha da conta
     // da equipe vinha escrita aqui, numa pagina publica.
-    firebase.auth().signInAnonymously().then(() => {
+    // Reaproveita a sessão que já existe (inclusive a do gestor, neste
+    // aparelho) e só entra como anônimo se não houver ninguém — ver
+    // sessaoOuAnonima em firebase-config.js.
+    sessaoOuAnonima().then(() => {
     const savedName = sessionStorage.getItem('manut_equipe_nome');
     if (savedName) {
       entrar(savedName);
@@ -1579,5 +1590,6 @@ async function instalarApp() {
   }
 })();
 </script>
+<datalist id="destinos-conhecidos"></datalist>
 </body>
 </html>
