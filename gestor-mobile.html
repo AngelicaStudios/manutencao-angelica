@@ -299,6 +299,7 @@
      informa não vira acento. */
   .pill-status.ativa.p-andamento { background:#eff6ff; border-color:var(--azul-info); color:#1d4ed8; }
   .pill-status.ativa.p-concluida { background:#f0fdf4; border-color:var(--green);  color:#14532d; }
+  .pill-status.ativa.p-cancelada { background:#f1f5f9; border-color:#94a3b8; color:#334155; }
 
   .btn-excluir-tarefa {
     flex-shrink: 0; padding: 7px 14px; border-radius: 8px;
@@ -1118,7 +1119,9 @@ function taskCardHTML(t, isArq) {
 
   // A pílula do estado atual fica marcada: sem isso as três ficam iguais e não
   // dá pra saber, olhando a linha, em qual delas a tarefa está.
-  const pills = [['pendente','Pendente'], ['andamento','Andamento'], ['concluida','Concluída']]
+  // 'cancelada' (17/09/2026): faxina que não aconteceu — é o sinal que cancela
+  // a ordem no Contas a Pagar; apagar a tarefa só avisa.
+  const pills = [['pendente','Pendente'], ['andamento','Andamento'], ['concluida','Concluída'], ['cancelada','Cancelada']]
     .map(([valor, rotulo]) =>
       `<button class="pill-status p-${valor}${t.status === valor ? ' ativa' : ''}"` +
       `${t.status === valor ? ' aria-current="true"' : ''}` +
