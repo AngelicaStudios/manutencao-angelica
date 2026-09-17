@@ -1063,41 +1063,54 @@ function limpProxData(dia) {
   return d.getFullYear() + '-' + mm + '-' + dd2;
 }
 
+/* Uma tarefa POR STUDIO (17/09/2026): cada tarefa vira uma ordem de R$ 90 no
+   Contas a Pagar (centro LIM), então precisa dizer QUAL Studio — o lote antigo
+   gravava 1 tarefa por colaboradora com os Studios só no texto. Entra só quem
+   tem DIA marcado (o executor fica gravado de uma semana para outra; sozinho
+   ele não diz que há faxina). Quem já tem tarefa para o mesmo dia é pulado:
+   clicar de novo na quinta não duplica as de terça. Sem WhatsApp na hora —
+   o aviso da manhã (notif_manutencao) agrupa tudo por colaboradora. */
 async function limpCriarTarefas() {
-  const comExec = limpData.filter(r => r.executor && r.executor.trim());
-  if (!comExec.length) { toast('Nenhum executor atribuído!'); return; }
-
-  const grupos = {};
-  comExec.forEach(r => {
-    const exec   = r.executor.trim();
-    const diaRaw = (r.dia || '').toLowerCase();
-    const diaKey = (diaRaw.includes('sex') || diaRaw.includes('fri') || diaRaw === '5') ? 'sexta' : 'terca';
-    const key    = exec + '|' + diaKey;
-    if (!grupos[key]) grupos[key] = { exec, diaKey, aptos: [] };
-    grupos[key].aptos.push(r.apto);
+  const prontos = [], semDia = [], jaTem = [];
+  limpData.forEach(r => {
+    if (!r.executor || !r.executor.trim()) return;
+    const info   = limpStatusInfo(r.status, r.dia);
+    const dayKey = LIMP_DAY_UPPER[info.filterKey] || null;
+    if (!dayKey) { semDia.push(r.apto); return; }
+    const dataISO = r.diaISO || limpProximaData(dayKey);
+    if (!dataISO) { semDia.push(r.apto); return; }
+    if (limpTarefas[r.apto + '|' + dataISO]) { jaTem.push(r.apto); return; }
+    prontos.push({ apto: r.apto, exec: r.executor.trim(), dataISO,
+                   diaLabel: LIMP_DIA_LABEL_TAREFA[dayKey] || '', obs: (r.observacao || '').trim() });
   });
-
-  const lista = Object.values(grupos);
-  const preview = lista.map(g =>
-    '• ' + g.exec + ' — ' + g.aptos.length + ' studio(s) — ' + (g.diaKey === 'sexta' ? 'Sexta' : 'Terça')
+  if (!prontos.length) {
+    toast(jaTem.length ? 'Todos os Studios com dia já têm tarefa esta semana.'
+                       : 'Nenhum Studio com executor E dia marcado.');
+    return;
+  }
+  const porExec = {};
+  prontos.forEach(p => { (porExec[p.exec] = porExec[p.exec] || []).push(p); });
+  const preview = Object.keys(porExec).map(e =>
+    '• ' + e + ' — ' + porExec[e].map(p => 'Studio ' + p.apto + ' (' + p.dataISO.split('-').reverse().slice(0, 2).join('/') + ')').join(', ')
   ).join('\n');
-
-  if (!confirm('Criar ' + lista.length + ' tarefa(s) no painel de Manutenção?\n\n' + preview)) return;
+  const nota = (jaTem.length ? '\n\nJá têm tarefa (pulados): ' + jaTem.join(', ') : '') +
+               (semDia.length ? '\n\nSem dia marcado (fora): ' + semDia.join(', ') : '');
+  if (!confirm('Criar ' + prontos.length + ' tarefa(s) de limpeza, uma por Studio?\n\n' + preview + nota)) return;
 
   let ok = 0;
-  for (const g of lista) {
-    const data     = limpProxData(g.diaKey);
-    const diaLabel = g.diaKey === 'sexta' ? 'Sexta-feira' : 'Terça-feira';
-    const tarefa   = {
-      id: uid(), apto: 'Limpeza', tipo: 'Limpeza Semanal',
-      prio: 'media', resp: g.exec, data,
-      desc: diaLabel + ' — Studios: ' + g.aptos.join(', '),
+  for (const p of prontos) {
+    const tarefa = {
+      id: uid(), apto: p.apto, tipo: 'Limpeza Semanal',
+      prio: 'media', resp: p.exec, data: p.dataISO,
+      desc: p.obs || (p.diaLabel + ' — Limpeza studio ' + p.apto),
       status: 'pendente', obs: '', dataExec: '', fotos: [], criadoEm: Date.now()
     };
     await dbSet('tarefas', tarefa.id, tarefa);
+    limpTarefas[p.apto + '|' + p.dataISO] = true;
     ok++;
   }
-  toast('' + ok + ' tarefa(s) criada(s) no painel de Manutenção!');
+  limpRender();
+  toast('' + ok + ' tarefa(s) criada(s), uma por Studio. O aviso da manhã avisa a equipe.');
 }
 
 const LIMP_DIA_LABEL_TAREFA = {
