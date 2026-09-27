@@ -652,6 +652,7 @@
 .lsel-mini:focus { outline:none; border-color:var(--primary); }
 .lobs { border:1px solid var(--border); border-radius:6px; padding:4px 8px; font-size:.78rem; width:140px; color:var(--text); background:#fff; }
 .lobs:focus { outline:none; border-color:var(--primary); }
+.limp-saida { font-size:.72rem; font-weight:700; color:#0f766e; margin-top:2px; }
 .ldia-input { border:1px solid var(--border); border-radius:6px; padding:3px 6px; font-size:.78rem; color:var(--text); background:#fff; cursor:pointer; }
 .ldia-input:focus { outline:none; border-color:var(--primary); }
 /* Ícones desenhados (SVG) em vez de emoji: traço igual em qualquer aparelho. */
@@ -2072,6 +2073,42 @@ async function limpSync() {
   }
 }
 
+// apto -> [{data, resp, status}] — higienização de saída já no painel (hig-).
+let limpSaidas = {};
+async function limpCarregarSaidas() {
+  try {
+    const snap = await db.collection('tarefas').where('tipo', '==', 'Limpeza Semanal').get();
+    limpSaidas = {};
+    snap.forEach(doc => {
+      const t = doc.data() || {};
+      if (String(doc.id).indexOf('hig-') === 0 && t.apto && t.data && t.status !== 'cancelada') {
+        const k = String(t.apto).trim();
+        (limpSaidas[k] = limpSaidas[k] || []).push({ data: t.data, resp: t.resp || '', status: t.status || '' });
+      }
+    });
+    limpRender();
+  } catch(e) { /* sem leitura do Firebase: a linha fica sem a marca */ }
+}
+
+/** Linhas "Higienização Ter 29/09 · Geone" do Studio que tem faxina de saída
+ *  programada pela enquete (tarefa hig-, 27/09/2026), da semana corrente em
+ *  diante. Fica embaixo do nome: o status do Studio continua sendo só a oferta
+ *  semanal do inquilino — marcar dia ali faria sair o boleto de R$ 90, e a
+ *  faxina de saída não se cobra (sai da caução). */
+function limpSaidaHtml(apto) {
+  const d0 = new Date();
+  d0.setDate(d0.getDate() - ((d0.getDay() + 6) % 7));          // segunda desta semana
+  const desde = d0.getFullYear() + '-' + String(d0.getMonth() + 1).padStart(2, '0') + '-' +
+                String(d0.getDate()).padStart(2, '0');
+  const lista = (limpSaidas[String(apto || '').trim()] || []).filter(s => s.data >= desde)
+    .sort((a, b) => (a.data < b.data ? -1 : 1));
+  return lista.map(s => {
+    const dia = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'][new Date(s.data + 'T12:00:00').getDay()];
+    return '<div class="limp-saida">Higienização ' + dia + ' ' + s.data.slice(8, 10) + '/' + s.data.slice(5, 7) +
+      (s.resp ? ' · ' + escHtml(s.resp) : '') + (s.status === 'concluida' ? ' · feita' : '') + '</div>';
+  }).join('');
+}
+
 async function initLimpeza() {
   try {
     const r = await fetch(`${LIMPEZA_API}/api/agenda`, { headers: LIMP_AUTH_HEADERS });
@@ -2098,6 +2135,7 @@ async function initLimpeza() {
   }
   limpRender();
   limpCarregarStatusCobranca();   // pinta os botões de boleto (já emitido / bloqueado)
+  limpCarregarSaidas();           // higienização de saída já no painel (embaixo do nome)
   document.getElementById('btn-disparar').disabled = limpData.length === 0;
 }
 
@@ -2163,7 +2201,7 @@ function limpRender() {
 
     rows += `<tr>
       <td><strong>${apto}</strong></td>
-      <td>${nome}${vago ? ' <span class="lb lb-vago" style="font-size:.7rem;padding:1px 6px">Vago</span>' : ''}</td>
+      <td>${nome}${vago ? ' <span class="lb lb-vago" style="font-size:.7rem;padding:1px 6px">Vago</span>' : ''}${limpSaidaHtml(row.apto)}</td>
       <td>
         <select class="lsel-mini lsel-status" onchange="limpSaveStatus('${apto}',this.value)">
           <option value="AGUARDANDO" ${s==='AGUARDANDO'?'selected':''}>⏳ Aguardando</option>
