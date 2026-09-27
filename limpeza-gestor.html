@@ -135,8 +135,7 @@
      demais no card. A hierarquia vem do tamanho e da cor, não do traço. */
   .limp-card-apto { font-size: .9rem; font-weight: 500; }
   .limp-card-nome { font-size: .76rem; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  /* quebra linha de proposito: no celular a coluna do nome tem ~130px e o
-     dia e a colaboradora sumiam nas reticencias */
+  /* quebra linha de proposito: no celular a coluna do nome tem ~130px */
   .limp-card-saida { font-size: .72rem; font-weight: 700; color: var(--teal-d); line-height: 1.25; margin-top: 1px; }
   .limp-badge { flex-shrink: 0; padding: 3px 9px; border-radius: 20px; font-size: .68rem; font-weight: 700; }
   .lb-ter   { background: #ccfbf1; color: #0f766e; }
@@ -610,6 +609,9 @@ function limpNormalize(r) {
     status, dia: diaRaw.toLowerCase(), diaISO,
     executor:  String(r.executor || '').trim(),
     observacao: String(r.observacao || '').trim(),
+    // Higienização de SAÍDA marcada pela enquete (27/09/2026): o id da tarefa
+    // que o botão cria ('hig-<n>'). Vazio nas faxinas semanais.
+    higienizacao: String(r.higienizacao || '').trim(),
     // Carimbo de quando a oferta saiu. Só o envio grava isso — `updated` não
     // serve, porque também muda ao editar dia/status na tela.
     msgEnviadaEm: String(r.msg_enviada_em || '').trim()
@@ -666,40 +668,28 @@ async function limpCarregarStatusCobranca() {
  * então uma tarefa da semana passada não marca o botão desta semana como feito.
  * Consulta só as de limpeza — o quadro de manutenção tem muito mais coisa.
  */
+/** A tarefa com esse id já está no painel (viva ou arquivada)? null = não deu
+ *  para ler as vivas. Usada pela higienização de saída, que tem id fixo: gravar
+ *  por cima de uma que existe reabriria uma tarefa já feita. */
+async function limpTarefaExiste(id) {
+  let viva;
+  try { viva = (await db.collection('tarefas').doc(id).get()).exists; }
+  catch(e) { return null; }
+  if (viva) return true;
+  try { return (await db.collection('arquivo').doc(id).get()).exists; }
+  catch(e) { return false; }   // arquivo ilegível: o que importa é não escrever por cima da viva
+}
+
 async function limpCarregarTarefas() {
   try {
     const snap = await db.collection('tarefas').where('tipo', '==', 'Limpeza Semanal').get();
     limpTarefas = {};
-    limpSaidas = {};
     snap.forEach(doc => {
       const t = doc.data() || {};
       if (t.apto && t.data) limpTarefas[String(t.apto).trim() + '|' + t.data] = true;
-      if (String(doc.id).indexOf('hig-') === 0 && t.apto && t.data && t.status !== 'cancelada') {
-        const k = String(t.apto).trim();
-        (limpSaidas[k] = limpSaidas[k] || []).push({ data: t.data, resp: t.resp || '', status: t.status || '' });
-      }
     });
     limpRender();
   } catch(e) { /* sem acesso ao Firebase — botão fica no estado neutro */ }
-}
-
-/** Linhas "Higienização Ter 29/09 · Geone" do Studio que tem faxina de saída
- *  programada pela enquete (tarefa hig-, 27/09/2026), da semana corrente em
- *  diante. Fica embaixo do nome: o status do Studio continua sendo só a oferta
- *  semanal do inquilino — marcar dia ali faria sair o boleto de R$ 90, e a
- *  faxina de saída não se cobra (sai da caução). */
-function limpSaidaHtml(apto) {
-  const d0 = new Date();
-  d0.setDate(d0.getDate() - ((d0.getDay() + 6) % 7));          // segunda desta semana
-  const desde = d0.getFullYear() + '-' + String(d0.getMonth() + 1).padStart(2, '0') + '-' +
-                String(d0.getDate()).padStart(2, '0');
-  const lista = (limpSaidas[String(apto || '').trim()] || []).filter(s => s.data >= desde)
-    .sort((a, b) => (a.data < b.data ? -1 : 1));
-  return lista.map(s => {
-    const dia = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'][new Date(s.data + 'T12:00:00').getDay()];
-    return '<div class="limp-card-saida">Higienização ' + dia + ' ' + s.data.slice(8, 10) + '/' + s.data.slice(5, 7) +
-      (s.resp ? ' · ' + esc(s.resp) : '') + (s.status === 'concluida' ? ' · feita' : '') + '</div>';
-  }).join('');
 }
 
 /** '2026-08-14' → '14/08'. Vazio continua vazio. */
@@ -910,6 +900,9 @@ function limpRender() {
       if (cob.emitido)      { cobOff = true; cobCls = 'limp-act-ok';  cobIco = ICO_BOLETO_OK; cobTit = 'Boleto já emitido — ' + (cob.motivo || ''); }
       else if (!cob.pode)   { cobOff = true; cobTit = 'Não dá pra cobrar: ' + (cob.motivo || ''); }
     }
+    // Higienização de saída não se cobra: sai da caução (a trava real é no servidor).
+    if (r.higienizacao) { cobOff = true; cobCls = 'limp-act-cob'; cobIco = ICO_BOLETO;
+                          cobTit = 'Higienização de saída — não se cobra (sai da caução)'; }
     const cobBtnHtml = '<button class="limp-act ' + cobCls + '"' + (cobOff ? ' disabled' : '') +
       ' title="' + esc(cobTit) + '"' +
       ' onclick="limpCobrarUm(\'' + esc(aptoKey) + '\')">' + cobIco + '</button>';
@@ -940,7 +933,7 @@ function limpRender() {
         '<div class="limp-card-info">' +
           '<div class="limp-card-apto">Studio ' + esc(aptoKey) + '</div>' +
           '<div class="limp-card-nome">' + esc(r.nome) + '</div>' +
-          limpSaidaHtml(aptoKey) +
+          (r.higienizacao ? '<div class="limp-card-saida">Higienização de saída</div>' : '') +
         '</div>' +
         '<span class="limp-badge ' + info.cls + '">' + info.label + '</span>' +
         waBtnHtml +
@@ -1109,7 +1102,8 @@ async function limpCriarTarefas() {
     if (!dataISO) { semDia.push(r.apto); return; }
     if (limpTarefas[r.apto + '|' + dataISO]) { jaTem.push(r.apto); return; }
     prontos.push({ apto: r.apto, exec: r.executor.trim(), dataISO,
-                   diaLabel: LIMP_DIA_LABEL_TAREFA[dayKey] || '', obs: (r.observacao || '').trim() });
+                   diaLabel: LIMP_DIA_LABEL_TAREFA[dayKey] || '', obs: (r.observacao || '').trim(),
+                   hig: (r.higienizacao || '').trim() });
   });
   if (!prontos.length) {
     toast(jaTem.length ? 'Todos os Studios com dia já têm tarefa esta semana.'
@@ -1127,10 +1121,13 @@ async function limpCriarTarefas() {
 
   let ok = 0;
   for (const p of prontos) {
+    // Higienização de saída: id fixo da marca; se já está no painel (ou não deu
+    // para conferir), não grava por cima.
+    if (p.hig && (await limpTarefaExiste(p.hig)) !== false) continue;
     const tarefa = {
-      id: uid(), apto: p.apto, tipo: 'Limpeza Semanal',
+      id: p.hig || uid(), apto: p.apto, tipo: 'Limpeza Semanal',
       prio: 'media', resp: p.exec, data: p.dataISO,
-      desc: p.obs || (p.diaLabel + ' — Limpeza studio ' + p.apto),
+      desc: p.obs || (p.diaLabel + ' — ' + (p.hig ? 'Higienização de saída' : 'Limpeza') + ' studio ' + p.apto),
       status: 'pendente', obs: '', dataExec: '', fotos: [], criadoEm: Date.now()
     };
     await dbSet('tarefas', tarefa.id, tarefa);
@@ -1161,17 +1158,32 @@ async function limpCriarTarefaUnica(apto) {
   const executor  = r.executor.trim();
   const obs       = (r.observacao || '').trim();
 
+  // Higienização de SAÍDA (enquete): a tarefa nasce com o id da marca
+  // ('hig-<n>') — é por ele que o Contas a Pagar paga o valor de saída. Uma só:
+  // se já existe (viva ou arquivada), não cria por cima.
+  const hig = (r.higienizacao || '').trim();
+  if (hig) {
+    const existe = await limpTarefaExiste(hig);
+    if (existe === null) { toast('Não consegui conferir o painel — tente de novo.'); return; }
+    if (existe) {
+      limpTarefas[apto + '|' + dataISO] = true;
+      limpRender();
+      toast('A higienização do Studio ' + apto + ' já está no painel.');
+      return;
+    }
+  }
   // Duplicata não é bloqueio (pode ser proposital: trocou de executor, refazer o
   // serviço), mas tem que ser dita — senão a equipe recebe a mesma tarefa 2x sem
   // ninguém perceber.
-  const repetida = !!limpTarefas[apto + '|' + dataISO];
+  const repetida = !hig && !!limpTarefas[apto + '|' + dataISO];
   const aviso = repetida ? 'Este studio JÁ TEM tarefa criada para ' + dataBR + '.\nCriar outra?\n\n' : '';
-  if (!confirm(aviso + 'Criar tarefa de limpeza?\n\nStudio: ' + apto + '\nExecutor: ' + executor + '\nData: ' + diaLabel + ' (' + dataBR + ')')) return;
+  if (!confirm(aviso + (hig ? 'Criar tarefa de higienização de saída?' : 'Criar tarefa de limpeza?') +
+      '\n\nStudio: ' + apto + '\nExecutor: ' + executor + '\nData: ' + diaLabel + ' (' + dataBR + ')')) return;
 
   const tarefa = {
-    id: uid(), apto: apto, tipo: 'Limpeza Semanal',
+    id: hig || uid(), apto: apto, tipo: 'Limpeza Semanal',
     prio: 'media', resp: executor, data: dataISO,
-    desc: obs || (diaLabel + ' — Limpeza studio ' + apto),
+    desc: obs || (diaLabel + ' — ' + (hig ? 'Higienização de saída' : 'Limpeza') + ' studio ' + apto),
     status: 'pendente', obs: '', dataExec: '', fotos: [], criadoEm: Date.now()
   };
   await dbSet('tarefas', tarefa.id, tarefa);
@@ -1205,8 +1217,6 @@ let limpCobrando = false;
 let limpCobStatus = {};
 // 'apto|AAAA-MM-DD' -> true — quais studios já têm tarefa criada pra aquele dia.
 let limpTarefas = {};
-// apto -> [{data, resp, status}] — higienização de saída já no painel (hig-).
-let limpSaidas = {};
 
 const _fmtBRL = v => 'R$ ' + Number(v || 0).toFixed(2).replace('.', ',');
 const _fmtDataBR = iso => (iso || '').split('-').reverse().join('/');
