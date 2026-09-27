@@ -135,6 +135,9 @@
      demais no card. A hierarquia vem do tamanho e da cor, não do traço. */
   .limp-card-apto { font-size: .9rem; font-weight: 500; }
   .limp-card-nome { font-size: .76rem; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  /* quebra linha de proposito: no celular a coluna do nome tem ~130px e o
+     dia e a colaboradora sumiam nas reticencias */
+  .limp-card-saida { font-size: .72rem; font-weight: 700; color: var(--teal-d); line-height: 1.25; margin-top: 1px; }
   .limp-badge { flex-shrink: 0; padding: 3px 9px; border-radius: 20px; font-size: .68rem; font-weight: 700; }
   .lb-ter   { background: #ccfbf1; color: #0f766e; }
   .lb-sex   { background: #dcfce7; color: #166534; }
@@ -667,12 +670,36 @@ async function limpCarregarTarefas() {
   try {
     const snap = await db.collection('tarefas').where('tipo', '==', 'Limpeza Semanal').get();
     limpTarefas = {};
+    limpSaidas = {};
     snap.forEach(doc => {
       const t = doc.data() || {};
       if (t.apto && t.data) limpTarefas[String(t.apto).trim() + '|' + t.data] = true;
+      if (String(doc.id).indexOf('hig-') === 0 && t.apto && t.data && t.status !== 'cancelada') {
+        const k = String(t.apto).trim();
+        (limpSaidas[k] = limpSaidas[k] || []).push({ data: t.data, resp: t.resp || '', status: t.status || '' });
+      }
     });
     limpRender();
   } catch(e) { /* sem acesso ao Firebase — botão fica no estado neutro */ }
+}
+
+/** Linhas "Higienização Ter 29/09 · Geone" do Studio que tem faxina de saída
+ *  programada pela enquete (tarefa hig-, 27/09/2026), da semana corrente em
+ *  diante. Fica embaixo do nome: o status do Studio continua sendo só a oferta
+ *  semanal do inquilino — marcar dia ali faria sair o boleto de R$ 90, e a
+ *  faxina de saída não se cobra (sai da caução). */
+function limpSaidaHtml(apto) {
+  const d0 = new Date();
+  d0.setDate(d0.getDate() - ((d0.getDay() + 6) % 7));          // segunda desta semana
+  const desde = d0.getFullYear() + '-' + String(d0.getMonth() + 1).padStart(2, '0') + '-' +
+                String(d0.getDate()).padStart(2, '0');
+  const lista = (limpSaidas[String(apto || '').trim()] || []).filter(s => s.data >= desde)
+    .sort((a, b) => (a.data < b.data ? -1 : 1));
+  return lista.map(s => {
+    const dia = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'][new Date(s.data + 'T12:00:00').getDay()];
+    return '<div class="limp-card-saida">Higienização ' + dia + ' ' + s.data.slice(8, 10) + '/' + s.data.slice(5, 7) +
+      (s.resp ? ' · ' + esc(s.resp) : '') + (s.status === 'concluida' ? ' · feita' : '') + '</div>';
+  }).join('');
 }
 
 /** '2026-08-14' → '14/08'. Vazio continua vazio. */
@@ -913,6 +940,7 @@ function limpRender() {
         '<div class="limp-card-info">' +
           '<div class="limp-card-apto">Studio ' + esc(aptoKey) + '</div>' +
           '<div class="limp-card-nome">' + esc(r.nome) + '</div>' +
+          limpSaidaHtml(aptoKey) +
         '</div>' +
         '<span class="limp-badge ' + info.cls + '">' + info.label + '</span>' +
         waBtnHtml +
@@ -1177,6 +1205,8 @@ let limpCobrando = false;
 let limpCobStatus = {};
 // 'apto|AAAA-MM-DD' -> true — quais studios já têm tarefa criada pra aquele dia.
 let limpTarefas = {};
+// apto -> [{data, resp, status}] — higienização de saída já no painel (hig-).
+let limpSaidas = {};
 
 const _fmtBRL = v => 'R$ ' + Number(v || 0).toFixed(2).replace('.', ',');
 const _fmtDataBR = iso => (iso || '').split('-').reverse().join('/');
