@@ -514,12 +514,14 @@ function limpRandomDelay() { return LIMP_DELAY_MIN + Math.random() * (LIMP_DELAY
 let limpData    = [];
 let limpFilter  = 'todos';
 let limpSending = false;
-let limpSemana  = null; // { data_inicio, data_fim, terca, sexta } — semana configurada via "Criar Semana"
+let limpSemana  = null; // { data_inicio, data_fim, quarta, sexta } — semana configurada via "Criar Semana"
 
+// Dias da faxina: QUARTA e SEXTA desde 18/10/2026 (eram terça e sexta).
 const LIMP_DAY_MAP = {SEGUNDA:1,TERCA:2,QUARTA:3,QUINTA:4,SEXTA:5,SABADO:6,DOMINGO:0};
 function limpProximaData(dayKey) {
   // Se houver uma semana configurada (Criar Semana), usa a data fixada nela.
   if (limpSemana) {
+    if (dayKey === 'QUARTA' && limpSemana.quarta) return limpSemana.quarta;
     if (dayKey === 'TERCA' && limpSemana.terca) return limpSemana.terca;
     if (dayKey === 'SEXTA' && limpSemana.sexta) return limpSemana.sexta;
   }
@@ -540,7 +542,7 @@ function limpRenderSemanaInfo() {
   if (!limpSemana) { el.style.display = 'none'; return; }
   el.style.display = 'block';
   el.textContent = 'Semana atual: ' + fmtDate(limpSemana.data_inicio) + ' a ' + fmtDate(limpSemana.data_fim) +
-    (limpSemana.terca ? '  ·  Terça ' + fmtDate(limpSemana.terca) : '') +
+    (limpSemana.quarta ? '  ·  Quarta ' + fmtDate(limpSemana.quarta) : '') +
     (limpSemana.sexta ? '  ·  Sexta ' + fmtDate(limpSemana.sexta) : '');
 }
 
@@ -578,7 +580,7 @@ async function limpConfirmarNovaSemana() {
     });
     const data = await res.json();
     if (data.ok === false) { toast('' + (data.erro || 'Erro ao criar semana')); return; }
-    limpSemana = { data_inicio: inicio, data_fim: fim, terca: data.terca, sexta: data.sexta };
+    limpSemana = { data_inicio: inicio, data_fim: fim, quarta: data.quarta, sexta: data.sexta };
     limpRenderSemanaInfo();
     limpToggleNovaSemana();
     toast('Semana criada!');
@@ -777,15 +779,17 @@ function limpStatusInfo(status, dia) {
   if (s === 'nao' || s === 'não' || s === 'recusou') return { label:'Não', cls:'lb-nao', cardCls:'lc-nao', filterKey:'nao' };
   if (s === 'nao_respondeu' || s === 'sem_resposta') return { label:'Sem resp.', cls:'lb-nr', cardCls:'lc-nr', filterKey:'nao_respondeu' };
   if (LIMP_DAY_LABEL[s]) {
-    const cardCls = s === 'terca' ? 'lc-ter' : (s === 'sexta' ? 'lc-sex' : 'lc-outro');
-    const cls     = s === 'terca' ? 'lb-ter' : (s === 'sexta' ? 'lb-sex' : 'lb-outro');
+    // A cor "ter" (verde-água) é a do 1º dia da faxina — hoje a quarta.
+    const cardCls = s === 'quarta' ? 'lc-ter' : (s === 'sexta' ? 'lc-sex' : 'lc-outro');
+    const cls     = s === 'quarta' ? 'lb-ter' : (s === 'sexta' ? 'lb-sex' : 'lb-outro');
     return { label: '' + LIMP_DAY_LABEL[s], cls, cardCls, filterKey: s };
   }
-  // compat com respostas antigas do bot de WhatsApp
+  // compat com respostas antigas do bot de WhatsApp ("confirmado" + rótulo do dia)
   if (s === 'sim' || s === 'confirmado') {
     const isSex = d.includes('sex') || d.includes('fri') || d === '5';
     if (isSex) return { label:'Sexta', cls:'lb-sex', cardCls:'lc-sex', filterKey:'sexta' };
-    return { label:'Terça', cls:'lb-ter', cardCls:'lc-ter', filterKey:'terca' };
+    if (d.includes('qua')) return { label:'Quarta', cls:'lb-ter', cardCls:'lc-ter', filterKey:'quarta' };
+    return { label:'Terça', cls:'lb-outro', cardCls:'lc-outro', filterKey:'terca' };
   }
   return { label:'Aguardando', cls:'lb-agu', cardCls:'lc-agu', filterKey:'aguardando' };
 }
@@ -807,7 +811,7 @@ function limpRender() {
     });
   }
 
-  // Stats — Terça e Sexta sempre aparecem (dias padrão); os demais só aparecem
+  // Stats — Quarta e Sexta sempre aparecem (dias padrão); os demais só aparecem
   // no filtro quando existe pelo menos 1 apartamento programado naquele dia.
   const DAY_ORDER = ['segunda','terca','quarta','quinta','sexta','sabado','domingo'];
   const DAY_ABBR  = { segunda:'Segunda', terca:'Terça', quarta:'Quarta', quinta:'Quinta', sexta:'Sexta', sabado:'Sábado', domingo:'Domingo' };
@@ -820,10 +824,10 @@ function limpRender() {
 
   let statsHtml = '';
   DAY_ORDER.forEach(d => {
-    const isStandard = (d === 'terca' || d === 'sexta');
+    const isStandard = (d === 'quarta' || d === 'sexta');
     const count = dayCounts[d];
     if (!isStandard && count === 0) return;
-    const cls = d === 'terca' ? 's-ter' : (d === 'sexta' ? 's-sex' : 's-outro');
+    const cls = d === 'quarta' ? 's-ter' : (d === 'sexta' ? 's-sex' : 's-outro');
     statsHtml += '<div class="limp-stat-m ' + cls + (limpFilter===d?' active':'') + '" data-lf="' + d + '"' +
       ' onclick="limpStatFilter(this)" title="Filtrar ' + DAY_ABBR[d] + '">' +
       '<div class="sn">' + count + '</div><div class="sl">' + DAY_ABBR[d] + '</div></div>';
@@ -1069,11 +1073,12 @@ async function limpAcompanharMassa() {
 function limpProxData(dia) {
   if (limpSemana) {
     if (dia === 'sexta' && limpSemana.sexta) return limpSemana.sexta;
+    if (dia === 'quarta' && limpSemana.quarta) return limpSemana.quarta;
     if (dia === 'terca' && limpSemana.terca) return limpSemana.terca;
   }
   const hoje = new Date();
-  const dow  = hoje.getDay(); // 0=dom, 2=ter, 5=sex
-  const alvo = (dia === 'sexta') ? 5 : 2;
+  const dow  = hoje.getDay(); // 0=dom, 2=ter, 3=qua, 5=sex
+  const alvo = (dia === 'sexta') ? 5 : (dia === 'terca' ? 2 : 3);
   let diff = alvo - dow;
   if (diff <= 0) diff += 7;
   const d = new Date(hoje);
@@ -1150,7 +1155,7 @@ async function limpCriarTarefaUnica(apto) {
 
   const info   = limpStatusInfo(r.status, r.dia);
   const dayKey = LIMP_DAY_UPPER[info.filterKey] || null;
-  if (!dayKey) { toast('Studio sem dia de limpeza agendado (defina Terça/Sexta/etc).'); return; }
+  if (!dayKey) { toast('Studio sem dia de limpeza agendado (defina Quarta/Sexta/etc).'); return; }
 
   const dataISO   = r.diaISO || limpProximaData(dayKey);
   const dataBR    = dataISO.split('-').reverse().join('/');
