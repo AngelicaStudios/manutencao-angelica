@@ -2664,21 +2664,14 @@ async function limpNotificarExecutor(nomeExecutor, apto, diaLabel, dataISO, obs)
 }
 
 async function limpNovasSemana() {
-  if (!confirm('Resetar agenda para nova semana?\nStatus, executor e observação serão limpos para todos os aptos.')) return;
+  if (!confirm('Resetar agenda para nova semana?\nStatus, executor e observação serão limpos para todos os Studios, menos a higienização de saída marcada.')) return;
   try {
-    // 1. Reset de status no backend
+    // 1. Reset no backend: status, executor e observação voltam em branco, menos a
+    // higienização de saída marcada de hoje em diante. Limpar executor e observação
+    // daqui, Studio por Studio, apagava também os da higienização (01/11/2026).
     await fetch(`${LIMPEZA_API}/api/reset`, { method:'POST', headers: LIMP_AUTH_HEADERS });
 
-    // 2. Limpar executor e observação de cada apto em paralelo
-    const opts = { method:'POST', headers:{'Content-Type':'application/json', ...LIMP_AUTH_HEADERS} };
-    await Promise.all(limpData.flatMap(r => [
-      fetch(`${LIMPEZA_API}/api/agenda/${encodeURIComponent(r.apto)}/executor`,
-        { ...opts, body: JSON.stringify({ executor: '' }) }).catch(()=>{}),
-      fetch(`${LIMPEZA_API}/api/agenda/${encodeURIComponent(r.apto)}/observacao`,
-        { ...opts, body: JSON.stringify({ observacao: '' }) }).catch(()=>{})
-    ]));
-
-    // 3. Recarregar dados frescos
+    // 2. Recarregar dados frescos
     await initLimpeza();
     toast('Nova semana iniciada! Todos os campos foram limpos.', 'success');
   } catch(e) {
