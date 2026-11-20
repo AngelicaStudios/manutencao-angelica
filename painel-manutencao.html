@@ -1989,8 +1989,106 @@ function renderFuncs() {
 // LIMPEZA SEMANAL
 // ══════════════════════════════════════════════
 const LIMPEZA_API = 'https://limpeza.angelicastudios.com.br';
-// Domínio protegido por HTTP Basic Auth no nginx do VPS (usuário "angelica").
-const LIMP_AUTH_HEADERS = { 'Authorization': 'Basic YW5nZWxpY2E6R1B5eTREdXhRQzA2Nmx0Z1hIbzU=' };
+// O servidor da limpeza é protegido por senha (HTTP Basic Auth no nginx do VPS, usuário "angelica").
+// A senha NÃO fica mais gravada no código: o painel pede uma vez e guarda só neste aparelho
+// (localStorage). Se a senha for trocada no servidor, o painel pede a nova sozinho.
+const LIMP_AUTH_USER = 'angelica';
+const LIMP_AUTH_KEY  = 'limp_auth_senha';
+let limpSenhaPedido  = null; // um único pedido de senha por vez, mesmo com várias chamadas juntas
+
+function limpSenhaSalva() {
+  try { return localStorage.getItem(LIMP_AUTH_KEY) || ''; } catch (e) { return ''; }
+}
+function limpAuthValor(senha) {
+  let bin = '';
+  new TextEncoder().encode(LIMP_AUTH_USER + ':' + senha).forEach(b => { bin += String.fromCharCode(b); });
+  return 'Basic ' + btoa(bin);
+}
+
+// Confere a senha com uma leitura simples (não altera nada no servidor).
+// Devolve 'ok', 'recusada' ou 'offline'.
+// Obs.: quando o nginx recusa a senha, a resposta 401 vem sem os cabeçalhos de CORS e o
+// navegador a entrega como "falha de rede". Por isso, se a chamada falhar, testamos se o
+// servidor está no ar com um pedido "no-cors": se ele responde, o problema era a senha.
+async function limpTestarSenha(senha) {
+  try {
+    const r = await fetch(LIMPEZA_API + '/api/agenda', { headers: { 'Authorization': limpAuthValor(senha) } });
+    return r.status === 401 ? 'recusada' : 'ok';
+  } catch (e) {
+    try {
+      await fetch(LIMPEZA_API + '/api/agenda', { mode: 'no-cors', credentials: 'omit', cache: 'no-store' });
+      return 'recusada';
+    } catch (e2) { return 'offline'; }
+  }
+}
+
+// Abre a janelinha de senha. Só fecha com uma senha aceita pelo servidor (devolve a senha)
+// ou se a pessoa cancelar (devolve null).
+function limpPedirSenha(aviso) {
+  if (limpSenhaPedido) return limpSenhaPedido;
+  limpSenhaPedido = new Promise(resolve => {
+    const fundo = document.createElement('div');
+    fundo.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:5000;display:flex;align-items:center;justify-content:center;padding:16px';
+    fundo.innerHTML =
+      '<form style="background:#fff;color:#1f2937;border-radius:14px;padding:20px;width:100%;max-width:340px;display:flex;flex-direction:column;gap:12px;box-shadow:0 10px 40px rgba(0,0,0,.35);font-family:inherit">' +
+        '<strong style="font-size:1.05rem">🔒 Senha do servidor da limpeza</strong>' +
+        '<span style="font-size:.85rem;line-height:1.4;color:#4b5563">Digite a senha uma vez. Ela fica guardada só neste aparelho.</span>' +
+        '<input type="password" autocomplete="current-password" placeholder="Senha" style="padding:12px;border:1.5px solid #d1d5db;border-radius:10px;font-size:1rem;width:100%;box-sizing:border-box" />' +
+        '<span data-msg style="font-size:.82rem;color:#b91c1c;min-height:1.1em"></span>' +
+        '<div style="display:flex;gap:8px">' +
+          '<button type="submit" style="flex:1;padding:12px;border:0;border-radius:10px;background:#1d4ed8;color:#fff;font-weight:700;font-size:.95rem;cursor:pointer">Entrar</button>' +
+          '<button type="button" style="padding:12px 14px;border:1.5px solid #d1d5db;border-radius:10px;background:#fff;color:#374151;font-size:.95rem;cursor:pointer">Cancelar</button>' +
+        '</div>' +
+      '</form>';
+    const form  = fundo.querySelector('form');
+    const campo = fundo.querySelector('input');
+    const msg   = fundo.querySelector('[data-msg]');
+    const [btnOk, btnCancelar] = fundo.querySelectorAll('button');
+    msg.textContent = aviso || '';
+    const fechar = valor => { fundo.remove(); limpSenhaPedido = null; resolve(valor); };
+    btnCancelar.onclick = () => fechar(null);
+    form.onsubmit = async ev => {
+      ev.preventDefault();
+      const senha = campo.value;
+      if (!senha) { msg.textContent = 'Digite a senha.'; return; }
+      btnOk.disabled = true; btnOk.textContent = 'Conferindo…'; msg.textContent = '';
+      const estado = await limpTestarSenha(senha);
+      btnOk.disabled = false; btnOk.textContent = 'Entrar';
+      if (estado === 'ok') {
+        try { localStorage.setItem(LIMP_AUTH_KEY, senha); } catch (e) {}
+        fechar(senha);
+      } else if (estado === 'offline') {
+        msg.textContent = 'Não consegui falar com o servidor. Confira a internet e tente de novo.';
+      } else {
+        msg.textContent = 'Senha incorreta. Tente de novo.';
+        campo.select();
+      }
+    };
+    document.body.appendChild(fundo);
+    campo.focus();
+  });
+  return limpSenhaPedido;
+}
+
+// Use no lugar de fetch() em toda chamada ao servidor da limpeza: coloca a senha no pedido.
+async function limpFetch(url, opts = {}) {
+  let senha = limpSenhaSalva() || await limpPedirSenha();
+  if (!senha) throw new Error('Senha do servidor da limpeza não informada');
+  const chamar = s => fetch(url, { ...opts, headers: { ...(opts.headers || {}), 'Authorization': limpAuthValor(s) } });
+
+  let res, erro;
+  try { res = await chamar(senha); if (res.status !== 401) return res; }
+  catch (e) { erro = e; }
+  const desistir = () => { if (erro) throw erro; return res; };
+
+  // Falhou. Só repete o pedido se for certeza que a senha foi recusada — nesse caso o nginx
+  // barrou antes de chegar ao sistema, então repetir não duplica boleto nem mensagem.
+  if (await limpTestarSenha(senha) !== 'recusada') return desistir();
+  if (limpSenhaSalva() === senha) { try { localStorage.removeItem(LIMP_AUTH_KEY); } catch (e) {} }
+  senha = limpSenhaSalva() || await limpPedirSenha('O servidor não aceitou a senha guardada. Digite a senha atual.');
+  if (!senha) return desistir();
+  return chamar(senha);
+}
 
 let limpData     = [];   // dados brutos da API
 let limpFiltStat = '';   // filtro status
@@ -2069,7 +2167,7 @@ function limpNormalize(row) {
 
 async function limpSync() {
   try {
-    const r = await fetch(`${LIMPEZA_API}/api/sync`, { method: 'POST', headers: LIMP_AUTH_HEADERS });
+    const r = await limpFetch(`${LIMPEZA_API}/api/sync`, { method: 'POST' });
     const d = await r.json();
     if (!r.ok) throw new Error(d.erro || 'Erro ' + r.status);
     toast(`✅ Sincronizado: ${d.novos} novos, ${d.atualizados} atualizados (total: ${d.total})`, 'success');
@@ -2081,7 +2179,7 @@ async function limpSync() {
 
 async function initLimpeza() {
   try {
-    const r = await fetch(`${LIMPEZA_API}/api/agenda`, { headers: LIMP_AUTH_HEADERS });
+    const r = await limpFetch(`${LIMPEZA_API}/api/agenda`);
     if (!r.ok) throw new Error('API ' + r.status);
     const raw = await r.json();
     const arr = Array.isArray(raw) ? raw : (raw.agenda || []);
@@ -2296,8 +2394,8 @@ async function limpSaveStatus(apto, status) {
   if (row) { row.status = status; row.dia = diaDate || ''; }
   limpRender();
   try {
-    const resp = await fetch(`${LIMPEZA_API}/api/agenda/${encodeURIComponent(apto)}/status`, {
-      method:'POST', headers:{'Content-Type':'application/json', ...LIMP_AUTH_HEADERS},
+    const resp = await limpFetch(`${LIMPEZA_API}/api/agenda/${encodeURIComponent(apto)}/status`, {
+      method:'POST', headers:{'Content-Type':'application/json'},
       body: JSON.stringify({ status, dia: diaDate })
     });
     if (!resp.ok) { const t = await resp.text(); toast(`Erro ao salvar status: ${t.slice(0,60)}`, 'error'); }
@@ -2309,8 +2407,8 @@ async function limpSaveDia(apto, dia) {
   const row = limpData.find(r => r.apto === apto);
   if (row) row.dia = dia;
   try {
-    await fetch(`${LIMPEZA_API}/api/agenda/${encodeURIComponent(apto)}/dia`, {
-      method:'POST', headers:{'Content-Type':'application/json', ...LIMP_AUTH_HEADERS},
+    await limpFetch(`${LIMPEZA_API}/api/agenda/${encodeURIComponent(apto)}/dia`, {
+      method:'POST', headers:{'Content-Type':'application/json'},
       body: JSON.stringify({ dia })
     });
   } catch(e) { /* offline — só local */ }
@@ -2323,8 +2421,8 @@ async function limpSendOneConfirm(apto) {
   const nome = (row.nome || '').split(' ')[0] || 'Inquilino';
   if (!confirm(`Enviar mensagem WhatsApp para o apto ${apto} (${nome})?`)) return;
   try {
-    const resp = await fetch(`${LIMPEZA_API}/api/disparar`, {
-      method:'POST', headers:{'Content-Type':'application/json', ...LIMP_AUTH_HEADERS},
+    const resp = await limpFetch(`${LIMPEZA_API}/api/disparar`, {
+      method:'POST', headers:{'Content-Type':'application/json'},
       body: JSON.stringify({ apto, nome: row.nome || '', numero: row.numero || '' })
     });
     if (resp.ok) {
@@ -2343,8 +2441,8 @@ async function limpSaveExec(apto, executor) {
   const row = limpData.find(r => r.apto === apto);
   if (row) row.executor = executor;
   try {
-    await fetch(`${LIMPEZA_API}/api/agenda/${encodeURIComponent(apto)}/executor`, {
-      method:'POST', headers:{'Content-Type':'application/json', ...LIMP_AUTH_HEADERS},
+    await limpFetch(`${LIMPEZA_API}/api/agenda/${encodeURIComponent(apto)}/executor`, {
+      method:'POST', headers:{'Content-Type':'application/json'},
       body: JSON.stringify({ executor })
     });
   } catch(e) { toast('Erro ao salvar executor (offline?)', 'error'); }
@@ -2355,8 +2453,8 @@ async function limpSaveObs(apto, observacao) {
   const row = limpData.find(r => r.apto === apto);
   if (row) row.observacao = observacao;
   try {
-    await fetch(`${LIMPEZA_API}/api/agenda/${encodeURIComponent(apto)}/observacao`, {
-      method:'POST', headers:{'Content-Type':'application/json', ...LIMP_AUTH_HEADERS},
+    await limpFetch(`${LIMPEZA_API}/api/agenda/${encodeURIComponent(apto)}/observacao`, {
+      method:'POST', headers:{'Content-Type':'application/json'},
       body: JSON.stringify({ observacao })
     });
   } catch(e) { /* offline — só local */ }
@@ -2512,7 +2610,7 @@ let limpCobrando = false;
  */
 async function limpCarregarStatusCobranca() {
   try {
-    const res = await fetch(`${LIMPEZA_API}/api/cobranca-limpeza/previa`, { headers: LIMP_AUTH_HEADERS });
+    const res = await limpFetch(`${LIMPEZA_API}/api/cobranca-limpeza/previa`);
     const d   = await res.json();
     limpCobStatus = {};
     (d.aEmitir || []).forEach(i => { limpCobStatus[i.apto] = { pode: true }; });
@@ -2530,7 +2628,7 @@ async function limpCobrarUm(apto) {
 
   let previa;
   try {
-    const res = await fetch(`${LIMPEZA_API}/api/cobranca-limpeza/previa?apto=${encodeURIComponent(apto)}`, { headers: LIMP_AUTH_HEADERS });
+    const res = await limpFetch(`${LIMPEZA_API}/api/cobranca-limpeza/previa?apto=${encodeURIComponent(apto)}`);
     previa = await res.json();
   } catch(e) { toast('Erro ao consultar a cobrança (offline?)', 'error'); return; }
 
@@ -2549,8 +2647,8 @@ async function limpCobrarUm(apto) {
   // 45-75s do WhatsApp e o proxy corta em 60s — antes o painel mostrava erro
   // enquanto a cobrança saía (aconteceu em 03/08 nos studios 411 e 403).
   try {
-    const res  = await fetch(`${LIMPEZA_API}/api/cobranca-limpeza/emitir`, {
-      method:'POST', headers:{'Content-Type':'application/json', ...LIMP_AUTH_HEADERS},
+    const res  = await limpFetch(`${LIMPEZA_API}/api/cobranca-limpeza/emitir`, {
+      method:'POST', headers:{'Content-Type':'application/json'},
       body: JSON.stringify({ apto })
     });
     const data = await res.json();
@@ -2570,7 +2668,7 @@ async function limpCobrarTodos() {
 
   let previa;
   try {
-    const res = await fetch(`${LIMPEZA_API}/api/cobranca-limpeza/previa`, { headers: LIMP_AUTH_HEADERS });
+    const res = await limpFetch(`${LIMPEZA_API}/api/cobranca-limpeza/previa`);
     previa = await res.json();
   } catch(e) { toast('Erro ao consultar as cobranças (offline?)', 'error'); return; }
 
@@ -2598,7 +2696,7 @@ async function limpCobrarTodos() {
   if (!confirm(msg)) return;
 
   try {
-    const res  = await fetch(`${LIMPEZA_API}/api/cobranca-limpeza/emitir-lote`, { method:'POST', headers: LIMP_AUTH_HEADERS });
+    const res  = await limpFetch(`${LIMPEZA_API}/api/cobranca-limpeza/emitir-lote`, { method:'POST' });
     const data = await res.json();
     if (data.ok === false) { toast(`⚠️ ${data.erro || 'Erro ao iniciar'}`, 'warn'); return; }
   } catch(e) { toast('Erro ao iniciar a emissão', 'error'); return; }
@@ -2610,7 +2708,7 @@ async function limpCobrarTodos() {
 async function limpAcompanharCobranca() {
   const btn = document.getElementById('limp-btn-cobrar');
   try {
-    const res = await fetch(`${LIMPEZA_API}/api/cobranca-limpeza/emitir-lote/status`, { headers: LIMP_AUTH_HEADERS });
+    const res = await limpFetch(`${LIMPEZA_API}/api/cobranca-limpeza/emitir-lote/status`);
     const st  = await res.json();
     limpCobrando = !!st.rodando;
 
@@ -2652,8 +2750,8 @@ async function limpNotificarExecutor(nomeExecutor, apto, diaLabel, dataISO, obs)
     `\n\nVerifique o painel de Tarefas`;
 
   try {
-    const res  = await fetch(`${LIMPEZA_API}/api/notificar-executor`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json', ...LIMP_AUTH_HEADERS },
+    const res  = await limpFetch(`${LIMPEZA_API}/api/notificar-executor`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ numero: tel, mensagem: msg })
     });
     const data = await res.json();
@@ -2669,7 +2767,7 @@ async function limpNovasSemana() {
     // 1. Reset no backend: status, executor e observação voltam em branco, menos a
     // higienização de saída marcada de hoje em diante. Limpar executor e observação
     // daqui, Studio por Studio, apagava também os da higienização (01/11/2026).
-    await fetch(`${LIMPEZA_API}/api/reset`, { method:'POST', headers: LIMP_AUTH_HEADERS });
+    await limpFetch(`${LIMPEZA_API}/api/reset`, { method:'POST' });
 
     // 2. Recarregar dados frescos
     await initLimpeza();
@@ -2852,7 +2950,7 @@ async function limpStartSend() {
   const pstat = document.getElementById('lp-status');
 
   try {
-    const res  = await fetch(`${LIMPEZA_API}/api/disparar-massa`, { method:'POST', headers: LIMP_AUTH_HEADERS });
+    const res  = await limpFetch(`${LIMPEZA_API}/api/disparar-massa`, { method:'POST' });
     const data = await res.json();
     if (data.ok === false) {
       pstat.textContent = 'Erro: ' + (data.erro || 'não foi possível iniciar');
@@ -2868,7 +2966,7 @@ async function limpStartSend() {
   async function acompanhar() {
     let st;
     try {
-      const res = await fetch(`${LIMPEZA_API}/api/disparar-massa/status`, { headers: LIMP_AUTH_HEADERS });
+      const res = await limpFetch(`${LIMPEZA_API}/api/disparar-massa/status`);
       st = await res.json();
     } catch(e) {
       setTimeout(acompanhar, 6000);
