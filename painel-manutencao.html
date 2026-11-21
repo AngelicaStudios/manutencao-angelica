@@ -2623,6 +2623,15 @@ async function limpCarregarStatusCobranca() {
 const _fmtBRL    = v => 'R$ ' + Number(v || 0).toFixed(2).replace('.', ',');
 const _fmtDataBR = iso => (iso || '').split('-').reverse().join('/');
 
+// Vencimento do boleto = data da faxina. Se o card ficou com a data de uma semana
+// anterior, o Asaas recusa (vencimento no passado) e o painel só mostrava
+// "1 erro(s)" — aconteceu em 19/11/2026 no studio 104. Avisa antes de pedir.
+function _hojeISO() {
+  const d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+}
+const _vencPassou = iso => /^\d{4}-\d{2}-\d{2}$/.test(iso || '') && iso < _hojeISO();
+
 async function limpCobrarUm(apto) {
   if (limpCobrando) { toast('⏳ Já tem uma emissão em andamento…', 'warn'); return; }
 
@@ -2636,6 +2645,12 @@ async function limpCobrarUm(apto) {
   if (!previa.aEmitir || !previa.aEmitir.length) { toast('⚠️ Nada a cobrar nesse studio.', 'warn'); return; }
 
   const i = previa.aEmitir[0];
+  if (_vencPassou(i.dataVencimento)) {
+    alert('Studio ' + i.apto + ': a data da faxina (' + _fmtDataBR(i.dataVencimento) + ') já passou.\n\n' +
+          'O boleto sairia com vencimento vencido e seria recusado.\n' +
+          'Corrija a data no card do studio e tente de novo.');
+    return;
+  }
   const teste = !!previa.modoTeste;
   if (!confirm((teste ? '🧪 MODO TESTE — NADA será cobrado nem enviado.\n\n' : '') +
                `Emitir boleto da taxa de limpeza?\n\nStudio: ${i.apto} — ${i.nome}\nValor: ${_fmtBRL(i.valor)}` +
@@ -2688,6 +2703,13 @@ async function limpCobrarTodos() {
     msg += `\n\n⚠️ ${pulados.length} fora da lista:\n` +
            pulados.slice(0,8).map(p => `• ${p.apto} — ${p.motivo}`).join('\n') +
            (pulados.length > 8 ? `\n• …e mais ${pulados.length - 8}` : '');
+  }
+  const vencidos = aEmitir.filter(i => _vencPassou(i.dataVencimento));
+  if (vencidos.length) {
+    msg += '\n\nATENÇÃO — ' + vencidos.length + ' com data que já passou (vão dar erro):\n' +
+           vencidos.slice(0, 8).map(i => '• ' + i.apto + ' — ' + _fmtDataBR(i.dataVencimento)).join('\n') +
+           (vencidos.length > 8 ? '\n• …e mais ' + (vencidos.length - 8) : '') +
+           '\nCancele e corrija a data no card, ou continue para emitir só os demais.';
   }
   const testeLote = !!previa.modoTeste;
   msg = (testeLote ? '🧪 MODO TESTE — NADA será cobrado nem enviado.\n\n' : '') + msg;
